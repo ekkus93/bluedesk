@@ -42,7 +42,7 @@ The project will be developed using the following tools and technologies:
 
 This application targets standard Android devices (phones and tablets) that support the Bluetooth Human Interface Device (HID) profile. Amazon Fire HD tablets are not supported due to Fire OS limitations regarding Bluetooth HID peripheral functionality.
 
-Last updated: 2025-11-08T17:32:41.037Z
+Last updated: 2025-11-08T18:05:22.428Z
 
 ## Current Status
 
@@ -183,7 +183,14 @@ Last updated: 2025-11-08T17:32:41.037Z
 
 ## Planned Unit Tests (coverage roadmap)
 
-- PairingViewModel: discovery start/stop messaging, discovered/paired list updates, connect/disconnect actions, message clearing, error states.
+- PairingViewModel tests status:
+  - [x] initialState_isEmpty
+  - [x] startDiscovery_setsMessage_and_callsService
+  - [x] stopDiscovery_callsService_and_clearsMessage
+  - [x] updatesDiscovered_andPairedLists_fromServiceCallbacks
+  - [x] connect_onSelection_invokesService_and_updatesState
+  - [x] disconnect_updatesState_and_message
+  - [x] surfacesErrorMessages_and_clearsOnNavigate
 - BluetoothService/IBluetoothService integration (unit via fakes): map onConnectionStateChanged and bond state callbacks into VM/UI state; reconnect/backoff decisions.
 - HID report builders: keyboard (normal + modifiers + 6-key rollover), media keys (Consumer Control), mouse move/buttons, vertical/horizontal scroll with invert; verify byte arrays and sizes.
 - DataStore settings: defaults, persist/restore of sensitivity, scroll speed/invert, click-sound, h-scroll enable, middle-click toggle; migration safety.

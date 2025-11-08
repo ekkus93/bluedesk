@@ -84,6 +84,7 @@ class PairingViewModel : ViewModel() {
         DebugLog.log("PairingViewModel", "stopDiscovery")
         discoveryJob?.cancel()
         bluetoothService?.stopDiscovery()
+        _message.value = null
     }
 
     fun updateDiscoveredDevices() {
