@@ -42,7 +42,7 @@ The project will be developed using the following tools and technologies:
 
 This application targets standard Android devices (phones and tablets) that support the Bluetooth Human Interface Device (HID) profile. Amazon Fire HD tablets are not supported due to Fire OS limitations regarding Bluetooth HID peripheral functionality.
 
-Last updated: 2025-11-08T18:05:22.428Z
+Last updated: 2025-11-08T19:03:57.812Z
 
 ## Current Status
 
@@ -191,18 +191,19 @@ Last updated: 2025-11-08T18:05:22.428Z
   - [x] connect_onSelection_invokesService_and_updatesState
   - [x] disconnect_updatesState_and_message
   - [x] surfacesErrorMessages_and_clearsOnNavigate
-- BluetoothService/IBluetoothService integration (unit via fakes): map onConnectionStateChanged and bond state callbacks into VM/UI state; reconnect/backoff decisions.
-- HID report builders: keyboard (normal + modifiers + 6-key rollover), media keys (Consumer Control), mouse move/buttons, vertical/horizontal scroll with invert; verify byte arrays and sizes.
-- DataStore settings: defaults, persist/restore of sensitivity, scroll speed/invert, click-sound, h-scroll enable, middle-click toggle; migration safety.
-- Gesture translation: multi-finger detection to HID events (move, 2-finger v/h scroll, 3-finger middle click); thresholds/debouncing math.
-- Auto-reconnect: last-device persistence, reconnect attempt scheduling/backoff, cancel on manual disconnect.
-- Foreground service lifecycle logic (platform-free parts): ensures startForeground called within 5s guard path, START_STICKY intent handling, notification content text builders.
-- Permissions UX logic: rationale vs permanently-denied branches and Settings deeplink; gating of actions when permissions missing.
-- UI guards: Keyboard/Mouse nav disabled when disconnected; brief "Disconnected" snackbar emission on auto-navigation.
-- Logging: level filter, message formatting, bounded log buffer, export assembly.
-- BLE HOGP path (if enabled): report map selection and notify/descriptor flag logic via stubs; no Bluetooth stack use.
-- Descriptor selection flags: simplified vs full descriptor bytes built correctly for Windows experiments.
-- Quick Settings tile: intent routing to open MainActivity; no-throw when service not bound.
+- [x] BluetoothService/IBluetoothService integration (connection/bond callbacks, reconnect decisions)
+- [x] HID report builders (keyboard rollover, media, mouse move/buttons, scroll invert bytes)
+- [x] DataStore settings (defaults, persist/restore, migration safety)
+- [x] Gesture translation (1-finger move, 2-finger v/h scroll accumulation, 3-finger middle tap debounce)
+- [x] Auto-reconnect (persist last device, exponential backoff, stop conditions)
+- [x] Foreground service lifecycle (5s guard, START_STICKY, notification text)
+- [x] Permissions UX logic (rationale vs settings, gating actions)
+- [ ] UI guards (nav disabled when disconnected, snackbar emission)  <-- not yet unit tested
+- [x] Logging (level filtering, bounded buffer, export scope)
+- [x] BLE HOGP logic (report map selection, CCCD notify flag)
+- [x] Descriptor variants (simplified vs full bytes)
+- [x] Quick Settings tile (routing constant, safe noop)
+
 
 Note: keep these as host JVM unit tests with fakes/mocks; avoid Android framework calls or use small pure helpers so logic is testable.
 
