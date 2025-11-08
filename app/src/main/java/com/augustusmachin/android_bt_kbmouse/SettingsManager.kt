@@ -40,40 +40,29 @@ object SettingsManager {
     private val KEY_LOGLEVEL = intPreferencesKey("log_level")
     private val KEY_START_ON_BOOT = booleanPreferencesKey("start_on_boot")
 
+    fun fromPreferences(p: androidx.datastore.preferences.core.Preferences): Settings = Settings(
+        touchpadSensitivity = p[KEY_SENS] ?: 1.5f,
+        scrollSpeed = p[KEY_SCROLL] ?: 1.0f,
+        invertScroll = p[KEY_INVERT] ?: false,
+        enableHorizontalScroll = p[KEY_HSCROLL] ?: true,
+        invertHorizontalScroll = p[KEY_HSCROLL_INV] ?: false,
+        enableMiddleClick = p[KEY_MIDDLE] ?: true,
+        keyRepeatDelayMs = p[KEY_REPEAT] ?: 350,
+        clickSound = p[KEY_CLICK] ?: true,
+        debugLogging = p[KEY_DEBUG] ?: false,
+        logLevel = p[KEY_LOGLEVEL] ?: 0,
+        startOnBoot = p[KEY_START_ON_BOOT] ?: false,
+        keyMap = emptyMap(),
+    )
+
     fun flow(context: Context): Flow<Settings> = context.settingsDataStore.data.map { p ->
-        Settings(
-            touchpadSensitivity = p[KEY_SENS] ?: 1.5f,
-            scrollSpeed = p[KEY_SCROLL] ?: 1.0f,
-            invertScroll = p[KEY_INVERT] ?: false,
-            enableHorizontalScroll = p[KEY_HSCROLL] ?: true,
-            invertHorizontalScroll = p[KEY_HSCROLL_INV] ?: false,
-            enableMiddleClick = p[KEY_MIDDLE] ?: true,
-            keyRepeatDelayMs = p[KEY_REPEAT] ?: 350,
-            clickSound = p[KEY_CLICK] ?: true,
-            debugLogging = p[KEY_DEBUG] ?: false,
-            logLevel = p[KEY_LOGLEVEL] ?: 0,
-            startOnBoot = p[KEY_START_ON_BOOT] ?: false,
-            keyMap = emptyMap(),
-        )
+        fromPreferences(p)
     }
 
     // Per-device overlay: returns global settings merged with per-device overrides
-    fun flowForDevice(context: Context, deviceAddress: String?): Flow<Settings> = context.settingsDataStore.data.map { p ->
-        val base = Settings(
-            touchpadSensitivity = p[KEY_SENS] ?: 1.5f,
-            scrollSpeed = p[KEY_SCROLL] ?: 1.0f,
-            invertScroll = p[KEY_INVERT] ?: false,
-            enableHorizontalScroll = p[KEY_HSCROLL] ?: true,
-            invertHorizontalScroll = p[KEY_HSCROLL_INV] ?: false,
-            enableMiddleClick = p[KEY_MIDDLE] ?: true,
-            keyRepeatDelayMs = p[KEY_REPEAT] ?: 350,
-            clickSound = p[KEY_CLICK] ?: true,
-            debugLogging = p[KEY_DEBUG] ?: false,
-            logLevel = p[KEY_LOGLEVEL] ?: 0,
-            startOnBoot = p[KEY_START_ON_BOOT] ?: false,
-            keyMap = emptyMap(),
-        )
-        if (deviceAddress.isNullOrEmpty()) return@map base
+    fun fromPreferencesForDevice(p: androidx.datastore.preferences.core.Preferences, deviceAddress: String?): Settings {
+        val base = fromPreferences(p)
+        if (deviceAddress.isNullOrEmpty()) return base
         val pref = { key: String -> "device_${deviceAddress}_" + key }
         val sens = p[floatPreferencesKey(pref("touchpad_sensitivity"))] ?: base.touchpadSensitivity
         val scroll = p[floatPreferencesKey(pref("scroll_speed"))] ?: base.scrollSpeed
@@ -84,7 +73,7 @@ object SettingsManager {
         val repeat = p[intPreferencesKey(pref("key_repeat_delay_ms"))] ?: base.keyRepeatDelayMs
         val click = p[booleanPreferencesKey(pref("click_sound"))] ?: base.clickSound
         val mapStr = p[androidx.datastore.preferences.core.stringPreferencesKey(pref("keymap"))] ?: ""
-        base.copy(
+        return base.copy(
             touchpadSensitivity = sens,
             scrollSpeed = scroll,
             invertScroll = inv,
@@ -95,6 +84,10 @@ object SettingsManager {
             clickSound = click,
             keyMap = parseKeyMap(mapStr)
         )
+    }
+
+    fun flowForDevice(context: Context, deviceAddress: String?): Flow<Settings> = context.settingsDataStore.data.map { p ->
+        fromPreferencesForDevice(p, deviceAddress)
     }
 
     private fun parseKeyMap(s: String): Map<Int, Int> {
