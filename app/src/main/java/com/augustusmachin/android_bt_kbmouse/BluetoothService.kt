@@ -267,7 +267,7 @@ class BluetoothService : Service(), IBluetoothService {
         } ?: return
         val attempt = (++reconnectAttempt).coerceAtLeast(1)
         val base = if (delayMs > 0) delayMs else 2000L
-        val computed = kotlin.math.min(30000L, base shl (attempt - 1))
+        val computed = ReconnectLogic.computeReconnectDelay(base, attempt)
         reconnectRunnable?.let { mainHandler.removeCallbacks(it) }
         val r = Runnable {
             try {
