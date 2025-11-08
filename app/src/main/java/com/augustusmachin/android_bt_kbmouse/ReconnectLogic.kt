@@ -15,4 +15,15 @@ object ReconnectLogic {
     fun shouldScheduleReconnect(manualDisconnect: Boolean, btEnabled: Boolean): Boolean = !manualDisconnect && btEnabled
     /** Bond state action: schedule immediate reconnect when bonded. */
     fun bondStateTriggersReconnect(state: Int): Boolean = state == BluetoothDevice.BOND_BONDED
+
+    /** Minimal preference-like store helpers for last_device to enable pure unit tests. */
+    fun saveLastDevice(store: MutableMap<String, String>, address: String) { store["last_device"] = address }
+    fun readLastDevice(store: Map<String, String>): String? = store["last_device"]
+
+    /** Compute next delay or null when retries should stop (on success or manual disconnect or BT off). */
+    fun nextDelay(manualDisconnect: Boolean, success: Boolean, btEnabled: Boolean, base: Long, currentAttempt: Int): Long? {
+        if (manualDisconnect || success || !btEnabled) return null
+        val nextAttempt = (currentAttempt + 1).coerceAtLeast(1)
+        return computeReconnectDelay(base, nextAttempt)
+    }
 }
