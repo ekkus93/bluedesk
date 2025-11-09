@@ -46,10 +46,13 @@ Last updated: 2025-11-08T19:03:57.812Z
 
 ## Current Status
 
-- Core HID keyboard and mouse implemented; full touchpad gesture stack restored via Compose pointer APIs (multi-finger move, vertical/horizontal scroll, middle-click, right-click); media keys and settings available.
-- Foreground service with persistent notification, auto‑reconnect, and connection UX (status in TopAppBar, brief “Disconnected” overlay) is in place.
+- Core HID keyboard and mouse implemented; touchpad gesture stack implemented via Compose pointer APIs (multi-finger move, vertical/horizontal scroll, middle-click, right-click); media keys and settings available.
+- Foreground service with persistent notification, auto-reconnect, and connection UX (status in TopAppBar, brief “Disconnected” overlay) is in place.
 - Debug logging (toggle + viewer/export + level filter) is implemented; Quick Settings tile and permission UX added.
-- Current focus: UI polish (layout/spacing/iconography) and broad host/device testing (Windows/macOS/Linux) to refine sensitivity/scroll/media key defaults; documenting observed quirks.
+- System IME integration: a "Use system keyboard" toggle and a small TextField that accepts committed characters from the Android IME and translates them to HID reports using the app's char→HID mapper. A runtime heuristic samples committed characters and auto-disables system IME when non-Latin input is detected to avoid sending incorrect HID keycodes.
+- Per-IME persistence: users can "Always allow" or "Never allow" the current IME; these choices are persisted via DataStore (SettingsManager) and exposed in Settings (human-friendly IME labels shown). The IME-reject dialog can persist allow/deny decisions.
+- Local preview mode: when running in environments without Bluetooth (emulator), a "Local preview" toggle shows a human-readable log of HID events (codes, modifiers, unmapped characters) instead of attempting to send them. This makes it easy to validate keyboard and IME mapping on an emulator.
+- Unit tests (host JVM) are passing and the project builds successfully. See the Tests section for commands.
 
 
 ## Known Issues (Windows Pairing)
@@ -76,6 +79,8 @@ Last updated: 2025-11-08T19:03:57.812Z
 - UI polish: app title uses string resource and larger style; nav icons have content descriptions; touchpad hint styled; dividers added to paired list; minor layout tweaks in Logs.
 - Build: Debug APK built successfully at app/build/outputs/apk/debug/app-debug.apk.
 - Next: Smoke test on a phone and a tablet; verify launch, foreground notification, permissions UX, navigation, keyboard/mouse basics; record OS-specific quirks (Windows/macOS/Linux).
+ - Build: Debug APK built successfully at app/build/outputs/apk/debug/app-debug.apk. Unit tests are green.
+ - Next: Smoke test on a phone and a tablet; verify launch, foreground notification, permissions UX, navigation, keyboard/mouse basics; record OS-specific quirks (Windows/macOS/Linux). Also validate system IME behavior for the specific IMEs you expect users to run (Gboard, AOSP LatinIME, SwiftKey), and test the stored per-IME allow/deny behavior.
 - If the launch-stop issue reproduces, follow the diagnostics under the earlier Session Notes and capture logcat immediately.
 
 ## To-Do List
@@ -211,3 +216,9 @@ Note: keep these as host JVM unit tests with fakes/mocks; avoid Android framewor
 - Unit tests: ./gradlew :app:testDebugUnitTest
 - Connected UI tests: ./gradlew :app:connectedDebugAndroidTest
 
+
+Status update (2025-11-08T23:53:19.007Z)
+- MainActivity restored to HEAD; project builds successfully.
+- Added Extended screen: enum entry + NavHost route; ExtendedKeysScreen.kt present.
+- KeyboardScreen remains original (IME-based simplification not applied yet).
+- Next steps: decide on IME KeyboardScreen swap and wire Extended keys to send HID events.
