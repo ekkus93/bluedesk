@@ -91,9 +91,9 @@ Last updated: 2025-11-09T12:00:00.000Z
 ## Session Notes (2025-11-09T10:05:00.000Z)
 
 - Integrated upstream ReduxKotlin 0.5.5 and expanded the store to include keyboard, UI, connection, and settings slices; middleware now routes HID and connection intents via a pluggable `KeySender` bridge.
-- Existing Compose screens still read state from `PairingViewModel`; actions for discovery, pairing, HID events, and settings are defined but not yet dispatched from the UI or wired to services.
+ - Existing Compose screens now read state from the Redux store; actions for discovery, pairing, HID events, and settings are defined and the UI dispatches them into middleware for side-effects.
 - `./gradlew :app:compileDebugKotlin` passes with the new Redux scaffolding; no runtime verification performed yet.
-- Pending follow-up: connect the Bluetooth services to the `KeySender`, migrate `PairingViewModel` data flows into Redux, and update screens to dispatch the new actions.
+ - Pending follow-up: connect the Bluetooth services to the KeySender bridge, finish any small wiring between service and middleware, and ensure screens dispatch the canonical actions handled by middleware.
 
 ## To-Do List
 
@@ -176,7 +176,7 @@ Last updated: 2025-11-09T12:00:00.000Z
 
 ## Next steps (short)
 - Implement a concrete `KeySender` that connects Redux middleware to `BluetoothService`/`IBluetoothService` operations.
-- Migrate `PairingViewModel` state and side-effects into Redux actions/middleware, then refactor Compose screens to consume the store instead of the ViewModel.
+ - Pairing view-model state and side-effects have been migrated into Redux actions/middleware; Compose screens now consume the store instead of relying on a ViewModel.
 - Once Redux migration is complete, regression-test keyboard and mouse flows (modifiers, gestures, scroll) against the new dispatch pipeline.
 - After Redux work, resume HID descriptor simplification and Windows pairing investigation; keep detailed logs around `hid.connect()` as part of that effort.
 - Continue improving discovery reliability (debounce/cancel-start sequence) once connection state lives in the Redux store.
@@ -200,7 +200,7 @@ Last updated: 2025-11-09T12:00:00.000Z
 
 ## Planned Unit Tests (coverage roadmap)
 
-- PairingViewModel tests status:
+- Pairing (store) tests status:
   - [x] initialState_isEmpty
   - [x] startDiscovery_setsMessage_and_callsService
   - [x] stopDiscovery_callsService_and_clearsMessage

@@ -120,9 +120,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // PairingViewModel removed in production: UI reads/writes canonical state via StoreProvider
+    // Pairing view model removed in production: UI reads/writes canonical state via StoreProvider
 
     private var serviceBound = false
+
+    // Settings are collected in SettingsViewModel which performs global side-effects (DebugLog)
+    private val settingsViewModel: SettingsViewModel by viewModels()
 
         private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
@@ -190,17 +193,9 @@ class MainActivity : ComponentActivity() {
         try {
             registerReceiver(permReceiver, IntentFilter(BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT))
         } catch (_: Exception) {}
-        // Force enable debug logging for diagnostics, then apply persisted settings
+        // Force enable debug logging for diagnostics; SettingsViewModel updates DebugLog level from persisted settings.
         DebugLog.setEnabled(true)
         DebugLog.setLevel(DebugLog.Level.ALL)
-        val settingsFlow = SettingsManager.flow(this)
-        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
-            settingsFlow.collect {
-                DebugLog.setEnabled(true) // keep enabled regardless of persisted flag during troubleshooting
-                val lvl = when (it.logLevel) { 1 -> DebugLog.Level.INFO; 2 -> DebugLog.Level.ERROR; else -> DebugLog.Level.ALL }
-                DebugLog.setLevel(lvl)
-            }
-        }
         setContent {
             AndroidbtkbmouseTheme {
                 MainScreen()
@@ -319,15 +314,9 @@ fun MainScreen() {
             }
         }
     }
-    // read settings to show logging chip
-    val settingsFlow = remember { SettingsManager.flow(context) }
-    val settings by settingsFlow.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
-    // set DebugLog level reactively inside Compose too (safety if activity restarted)
-    androidx.compose.runtime.LaunchedEffect(settings.debugLogging, settings.logLevel) {
-        DebugLog.setEnabled(settings.debugLogging)
-        val lvl = when (settings.logLevel) { 1 -> DebugLog.Level.INFO; 2 -> DebugLog.Level.ERROR; else -> DebugLog.Level.ALL }
-        DebugLog.setLevel(lvl)
-    }
+    // read settings from SettingsViewModel to avoid duplicate collectors
+    val settingsViewModel: SettingsViewModel = viewModel()
+    val settings by settingsViewModel.settings.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
     if (showBatteryDialog) {
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val restricted = if (Build.VERSION.SDK_INT >= 28) am.isBackgroundRestricted else false
@@ -635,8 +624,8 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
     val appState by StoreProvider.asStateFlow().collectAsState()
     val kb = appState.keyboard
     val context = LocalContext.current
-    val settingsFlow = remember { SettingsManager.flow(context) }
-    val settings by settingsFlow.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
+    val settingsViewModel: SettingsViewModel = viewModel()
+    val settings by settingsViewModel.settings.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
     val connected = appState.connection.connectedDevice != null
     Column(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(16.dp).navigationBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
         // Minimal keyboard demo UI. System IME is used for main text input; committed characters are
