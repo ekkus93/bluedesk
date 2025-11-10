@@ -42,7 +42,7 @@ The project will be developed using the following tools and technologies:
 
 This application targets standard Android devices (phones and tablets) that support the Bluetooth Human Interface Device (HID) profile. Amazon Fire HD tablets are not supported due to Fire OS limitations regarding Bluetooth HID peripheral functionality.
 
-Last updated: 2025-11-09T12:00:00.000Z
+Last updated: 2025-11-10T12:00:00.000Z
 
 ## Current Status
 
@@ -52,6 +52,17 @@ Last updated: 2025-11-09T12:00:00.000Z
 - Extracted `labelToHid` mapping helper and added `ExtendedKeyMappingsTest` (positive, negative and boundary cases).
 - Removed NumLock support across UI, actions, middleware and sender implementations (per project decision). CapsLock and ScrollLock remain.
 - Host JVM unit tests (including the new mapping tests and existing `BluetoothKeySender` tests) run locally and are passing.
+
+- Removed the large app title from the top bar and moved the bottom `NavigationBar` into the top bar so navigation isn't occluded by the system IME (changes applied in `MainActivity.kt`).
+- Updated `ExtendedKeysScreen` to remove the manual Show/Hide IME button, keep `autoShowKeyboard` behavior, and continue to provide the offline preview console when no host is connected (`ExtendedKeysScreen.kt`).
+- Built and installed the debug APK on the emulator and performed runtime verification:
+  - The APK was built successfully: `app/build/outputs/apk/debug/app-debug.apk`.
+  - Installed to emulator and launched the app; dumped the UI hierarchy and captured an IME-focused screenshot for verification.
+  - Artifacts captured during verification and included in the workspace:
+    - `uidump_after_install.xml` / `uidump_after_tap2.xml` — uiAutomator UI dumps showing the Keyboard screen and top navigation.
+    - `keyboard_ime.png` — screenshot taken while the Keyboard screen's `TextField` was focused (system IME visible) showing the top navigation remains accessible.
+
+- Forced the Android soft keyboard to appear on the emulator for testing by setting `show_ime_with_physical_keyboard=1` via ADB when needed. The verification screenshot is available at `./keyboard_ime.png` (and `keyboard_now.png` from prior runs).
 
 The rest of the status section below describes the broader project surface; the bullets above are the most recent, repo-level changes.
 
