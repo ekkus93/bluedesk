@@ -1,6 +1,10 @@
 package com.augustusmachin.android_bt_kbmouse
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,6 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -20,13 +27,38 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen(onOpenLogs: (() -> Unit)? = null) {
+fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: (() -> Unit)? = null) {
     val context = LocalContext.current
     val flow = remember { SettingsManager.flow(context) }
     val settings by flow.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
     val scope = remember { CoroutineScope(Dispatchers.IO) }
+    var imeOverrides by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
+    var imeLabels by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
+    LaunchedEffect(Unit) {
+        try {
+            imeOverrides = SettingsManager.getAllImeOverrides(context)
+            // resolve package names to human-friendly labels
+            val pm = context.packageManager
+            val labels = mutableMapOf<String, String>()
+            imeOverrides.keys.forEach { pkg ->
+                try {
+                    val ai = pm.getApplicationInfo(pkg, 0)
+                    val lbl = pm.getApplicationLabel(ai)?.toString() ?: pkg
+                    labels[pkg] = lbl
+                } catch (_: Exception) {
+                    labels[pkg] = pkg
+                }
+            }
+            imeLabels = labels
+        } catch (_: Exception) {
+            imeOverrides = emptyMap()
+            imeLabels = emptyMap()
+        }
+    }
+
+    val scrollState = rememberScrollState()
+    Column(Modifier.fillMaxSize().padding(contentPadding).verticalScroll(scrollState).padding(16.dp).navigationBarsPadding()) {
         Text("Touchpad sensitivity: ${"%.2f".format(settings.touchpadSensitivity)}")
         Slider(value = settings.touchpadSensitivity, onValueChange = {
             scope.launch { SettingsManager.setTouchpadSensitivity(context, it.coerceIn(0.5f, 3.0f)) }
@@ -82,6 +114,12 @@ fun SettingsScreen(onOpenLogs: (() -> Unit)? = null) {
                 scope.launch { SettingsManager.setDebugLogging(context, it) }
             })
         }
+        Row(Modifier.padding(top = 8.dp)) {
+            Text("Offline preview (use keyboard/mouse without Bluetooth)", modifier = Modifier.weight(1f))
+            Switch(checked = settings.offlinePreview, onCheckedChange = {
+                scope.launch { SettingsManager.setOfflinePreview(context, it) }
+            })
+        }
         if (settings.debugLogging) {
             Row(Modifier.padding(top = 8.dp)) {
                 Text("Log level:", modifier = Modifier.padding(end = 8.dp))
@@ -89,6 +127,12 @@ fun SettingsScreen(onOpenLogs: (() -> Unit)? = null) {
                 Button(onClick = { scope.launch { SettingsManager.setLogLevel(context, 0) } }, modifier = Modifier.padding(end = 4.dp), enabled = sel != 0) { Text("All") }
                 Button(onClick = { scope.launch { SettingsManager.setLogLevel(context, 1) } }, modifier = Modifier.padding(end = 4.dp), enabled = sel != 1) { Text("Info") }
                 Button(onClick = { scope.launch { SettingsManager.setLogLevel(context, 2) } }, enabled = sel != 2) { Text("Error") }
+            }
+            Row(Modifier.padding(top = 8.dp)) {
+                Text("Use simplified HID descriptor (Windows)", modifier = Modifier.weight(1f))
+                Switch(checked = settings.hidSimplified, onCheckedChange = {
+                    scope.launch { SettingsManager.setHidSimplified(context, it) }
+                })
             }
         }
         Row(Modifier.padding(top = 16.dp)) {
@@ -101,6 +145,43 @@ fun SettingsScreen(onOpenLogs: (() -> Unit)? = null) {
         if (onOpenLogs != null) {
             Button(modifier = Modifier.padding(top = 8.dp), onClick = onOpenLogs) {
                 Text("Open Logs")
+            }
+        }
+
+        // IME overrides management
+        androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(top = 16.dp))
+        Text("IME overrides:")
+        if (imeOverrides.isEmpty()) {
+            Text("(none)", modifier = Modifier.padding(top = 4.dp))
+        } else {
+            imeOverrides.forEach { (pkg, allowed) ->
+                val label = imeLabels[pkg] ?: pkg
+                Row(Modifier.padding(top = 8.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Text(label)
+                        if (label != pkg) Text("($pkg)", modifier = Modifier.padding(top = 2.dp))
+                    }
+                    Text(if (allowed) "Allowed" else "Denied", modifier = Modifier.padding(end = 8.dp))
+                    Button(onClick = {
+                        scope.launch {
+                            SettingsManager.removeImeOverride(context, pkg)
+                            imeOverrides = SettingsManager.getAllImeOverrides(context)
+                            // refresh labels
+                            val pm = context.packageManager
+                            val labels = mutableMapOf<String, String>()
+                            imeOverrides.keys.forEach { p ->
+                                try {
+                                    val ai = pm.getApplicationInfo(p, 0)
+                                    val lbl = pm.getApplicationLabel(ai)?.toString() ?: p
+                                    labels[p] = lbl
+                                } catch (_: Exception) {
+                                    labels[p] = p
+                                }
+                            }
+                            imeLabels = labels
+                        }
+                    }) { Text("Remove") }
+                }
             }
         }
     }

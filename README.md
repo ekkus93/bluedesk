@@ -47,6 +47,7 @@ Last updated: 2025-11-08T19:03:57.812Z
 ## Current Status
 
 - Core HID keyboard and mouse implemented; touchpad gesture stack implemented via Compose pointer APIs (multi-finger move, vertical/horizontal scroll, middle-click, right-click); media keys and settings available.
+- ReduxKotlin store scaffolding in place: keyboard modifiers and HID intents now dispatch through the store/middleware, with connection/settings slices defined for the upcoming migration of service state.
 - Foreground service with persistent notification, auto-reconnect, and connection UX (status in TopAppBar, brief “Disconnected” overlay) is in place.
 - Debug logging (toggle + viewer/export + level filter) is implemented; Quick Settings tile and permission UX added.
 - System IME integration: a "Use system keyboard" toggle and a small TextField that accepts committed characters from the Android IME and translates them to HID reports using the app's char→HID mapper. A runtime heuristic samples committed characters and auto-disables system IME when non-Latin input is detected to avoid sending incorrect HID keycodes.
@@ -82,6 +83,13 @@ Last updated: 2025-11-08T19:03:57.812Z
  - Build: Debug APK built successfully at app/build/outputs/apk/debug/app-debug.apk. Unit tests are green.
  - Next: Smoke test on a phone and a tablet; verify launch, foreground notification, permissions UX, navigation, keyboard/mouse basics; record OS-specific quirks (Windows/macOS/Linux). Also validate system IME behavior for the specific IMEs you expect users to run (Gboard, AOSP LatinIME, SwiftKey), and test the stored per-IME allow/deny behavior.
 - If the launch-stop issue reproduces, follow the diagnostics under the earlier Session Notes and capture logcat immediately.
+
+## Session Notes (2025-11-09T10:05:00.000Z)
+
+- Integrated upstream ReduxKotlin 0.5.5 and expanded the store to include keyboard, UI, connection, and settings slices; middleware now routes HID and connection intents via a pluggable `KeySender` bridge.
+- Existing Compose screens still read state from `PairingViewModel`; actions for discovery, pairing, HID events, and settings are defined but not yet dispatched from the UI or wired to services.
+- `./gradlew :app:compileDebugKotlin` passes with the new Redux scaffolding; no runtime verification performed yet.
+- Pending follow-up: connect the Bluetooth services to the `KeySender`, migrate `PairingViewModel` data flows into Redux, and update screens to dispatch the new actions.
 
 ## To-Do List
 
@@ -163,11 +171,11 @@ Last updated: 2025-11-08T19:03:57.812Z
 - Regression: navigation guards (disable Keyboard/Mouse when disconnected), brief “Disconnected” snackbar on auto-navigation to Pairing.
 
 ## Next steps (short)
-- Simplify HID descriptor (remove media/hwheel), retest Windows; if OK, re-add incrementally.
-- Add detailed logs around hid.connect() and BluetoothProfile callbacks; surface status in UI.
-- Improve in-app scanning reliability (debounce + ensure adapter cancel/start sequence).
-- Try BLE HID (HOGP) prototype if classic HID keeps failing.
-- Document Windows build/driver findings.
+- Implement a concrete `KeySender` that connects Redux middleware to `BluetoothService`/`IBluetoothService` operations.
+- Migrate `PairingViewModel` state and side-effects into Redux actions/middleware, then refactor Compose screens to consume the store instead of the ViewModel.
+- Once Redux migration is complete, regression-test keyboard and mouse flows (modifiers, gestures, scroll) against the new dispatch pipeline.
+- After Redux work, resume HID descriptor simplification and Windows pairing investigation; keep detailed logs around `hid.connect()` as part of that effort.
+- Continue improving discovery reliability (debounce/cancel-start sequence) once connection state lives in the Redux store.
 
 ## Repro commands
 - Build/install debug: ./gradlew :app:assembleDebug && adb install -r app/build/outputs/apk/debug/app-debug.apk

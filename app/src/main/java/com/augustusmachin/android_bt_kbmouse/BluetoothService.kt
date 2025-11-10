@@ -11,6 +11,9 @@ import android.content.IntentFilter
 import android.os.Binder
 import android.os.IBinder
 import android.bluetooth.BluetoothHidDevice
+import android.Manifest
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.flow.first
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -27,6 +30,7 @@ class BluetoothService : Service(), IBluetoothService {
         private const val ACTION_CONNECT = "com.augustusmachin.android_bt_kbmouse.ACTION_CONNECT"
         private const val ACTION_DISCONNECT = "com.augustusmachin.android_bt_kbmouse.ACTION_DISCONNECT"
         private const val ACTION_FORGET = "com.augustusmachin.android_bt_kbmouse.ACTION_FORGET"
+        const val ACTION_MISSING_BLUETOOTH_CONNECT = "com.augustusmachin.android_bt_kbmouse.ACTION_MISSING_BLUETOOTH_CONNECT"
     }
 
     private val binder = LocalBinder()
@@ -105,9 +109,19 @@ class BluetoothService : Service(), IBluetoothService {
     private val profileListener = object : BluetoothProfile.ServiceListener {
         override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
             if (profile == BluetoothProfile.HID_DEVICE) {
+                // Require BLUETOOTH_CONNECT permission before using HID APIs
+                val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (!hasBtConnect) {
+                    DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; reporting and skipping HID initialization to avoid SecurityException")
+                    eventListener?.onError("Missing BLUETOOTH_CONNECT permission - HID disabled")
+                    reportMissingBluetoothConnect()
+                    return
+                }
+
                 bluetoothHidProfile = proxy
                 hid = proxy as BluetoothHidDevice
                 DebugLog.log("BluetoothService", "HID service connected")
+                eventListener?.onInfo("HID profile proxy connected; registering app")
                 bluetoothHidModule = BluetoothHidModule(bluetoothAdapter!!).also { module ->
                     module.listener = object : BluetoothHidModule.HidEventListenerExt {
                         override fun onAppStatus(registered: Boolean) {
@@ -123,6 +137,8 @@ class BluetoothService : Service(), IBluetoothService {
                                             lastTargetDevice = dev
                                             reconnectAttempt = 0
                                             DebugLog.log("BluetoothService", "auto reconnect now to $addr")
+                                            eventListener?.onInfo("Immediate auto-connect to $addr")
+                                            eventListener?.onInfo("hid.connect($addr) immediate")
                                             hid?.connect(dev)
                                         }
                                     } catch (e: Exception) {
@@ -134,6 +150,7 @@ class BluetoothService : Service(), IBluetoothService {
                         }
                         override fun onConnectionStateChanged(device: BluetoothDevice, state: Int) {
                             if (state == BluetoothProfile.STATE_CONNECTED) {
+                                eventListener?.onInfo("HID state CONNECTED ${device.address}")
                                 connectedDevice = device
                                 reconnectAttempt = 0
                                 bluetoothAdapter?.cancelDiscovery()
@@ -143,6 +160,7 @@ class BluetoothService : Service(), IBluetoothService {
                                 refreshQsTile()
                                 eventListener?.onConnected(device)
                             } else if (state == BluetoothProfile.STATE_DISCONNECTED) {
+                                eventListener?.onInfo("HID state DISCONNECTED ${device.address}")
                                 connectedDevice = null
                                 // clear connected name
                                 getSharedPreferences("bt_hid", MODE_PRIVATE).edit().remove("connected_name").apply()
@@ -155,6 +173,16 @@ class BluetoothService : Service(), IBluetoothService {
                         override fun onLeds(leds: Int) { eventListener?.onLeds(leds) }
                     }
                 }
+                // Resolve descriptor variant from settings
+                val simplified = try {
+                    kotlinx.coroutines.runBlocking {
+                        // call Flow.first() as an extension on the Flow instance
+                        SettingsManager.flow(this@BluetoothService).first().hidSimplified
+                    }
+                } catch (e: Exception) { true }
+                eventListener?.onInfo("Registering HID app (simplified=$simplified)")
+                // registerApp currently takes only the proxy; descriptor selection
+                // is handled inside BluetoothHidModule.registerApp
                 bluetoothHidModule?.registerApp(proxy)
             }
         }
@@ -272,6 +300,7 @@ class BluetoothService : Service(), IBluetoothService {
         val r = Runnable {
             try {
                 DebugLog.log("BluetoothService", "auto reconnect attempt #${attempt} to ${target.address}")
+                eventListener?.onInfo("hid.connect(${target.address}) attempt #${attempt}")
                 hid?.connect(target)
             } catch (e: Exception) {
                 DebugLog.e("BluetoothService", "reconnect error: ${e.message}")
@@ -280,6 +309,7 @@ class BluetoothService : Service(), IBluetoothService {
         }
         reconnectRunnable = r
         DebugLog.log("BluetoothService", "scheduleReconnect attempt=${attempt} in ${computed}ms to ${target.address}")
+        eventListener?.onInfo("Reconnect attempt #${attempt} in ${computed}ms to ${target.address}")
         mainHandler.postDelayed(r, computed)
     }
 
@@ -288,9 +318,12 @@ class BluetoothService : Service(), IBluetoothService {
         reconnectAttempt = 0
         lastTargetDevice = device
         DebugLog.log("BluetoothService", "connectDevice ${device.address}")
+        eventListener?.onInfo("Connecting to ${device.name ?: device.address} (manual)")
         getSharedPreferences("bt_hid", MODE_PRIVATE).edit().putString("last_device", device.address).apply()
         lastDeviceAddress = device.address
         try {
+            DebugLog.log("BluetoothService", "hid.connect immediate manual ${device.address}")
+            eventListener?.onInfo("hid.connect(${device.address})")
             hid?.connect(device)
         } catch (e: Exception) {
             DebugLog.e("BluetoothService", "connect error: ${e.message}")
@@ -384,11 +417,62 @@ class BluetoothService : Service(), IBluetoothService {
             .addAction(R.drawable.ic_settings, "Forget", forgetPi)
             .setOngoing(true)
             .build()
-        if (android.os.Build.VERSION.SDK_INT >= 29) {
-            startForeground(1, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
-        } else {
+        // Use the two-argument startForeground where possible. On some
+        // platform builds the system may still enforce foreground-service
+        // types; guard against that so the service doesn't crash the app.
+        try {
             startForeground(1, notif)
+        } catch (e: Exception) {
+            // Fall back to posting the notification without calling
+            // startForeground so the process won't be killed during
+            // startup on restrictive platform builds. This keeps the
+            // user-visible notification but accepts the risk that the
+            // service may not be treated as a true FGS by the system.
+            DebugLog.e("BluetoothService", "startForeground failed: ${e.message}")
+            mgr.notify(1, notif)
         }
+    }
+
+    private fun reportMissingBluetoothConnect() {
+        val msg = "App requires BLUETOOTH_CONNECT permission. Please grant it in Settings."
+        DebugLog.e("BluetoothService", msg)
+        // Post a user-visible notification with a shortcut to app settings
+        try {
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val channelId = "bt_hid_error"
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                if (nm.getNotificationChannel(channelId) == null) {
+                    val ch = NotificationChannel(channelId, "Bluetooth HID errors", NotificationManager.IMPORTANCE_HIGH)
+                    ch.enableLights(true)
+                    ch.lightColor = Color.RED
+                    nm.createNotificationChannel(ch)
+                }
+            }
+            val settingsIntent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", packageName, null))
+            settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val pi = PendingIntent.getActivity(this, 0, settingsIntent, PendingIntent.FLAG_UPDATE_CURRENT or (if (android.os.Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0))
+            val notif = NotificationCompat.Builder(this, channelId)
+                .setContentTitle("Bluetooth permission required")
+                .setContentText(msg)
+                .setSmallIcon(R.drawable.ic_bluetooth)
+                .setContentIntent(pi)
+                .setAutoCancel(true)
+                .build()
+            nm.notify(2, notif)
+        } catch (e: Exception) {
+            DebugLog.e("BluetoothService", "failed to post settings notification: ${e.message}")
+        }
+
+        // Broadcast so Activity can show UI and exit gracefully
+        try {
+            val b = Intent(ACTION_MISSING_BLUETOOTH_CONNECT).setPackage(packageName)
+            sendBroadcast(b)
+        } catch (e: Exception) {
+            DebugLog.e("BluetoothService", "failed to send missing-perm broadcast: ${e.message}")
+        }
+
+        // Stop the service gracefully
+        try { stopSelf() } catch (_: Exception) {}
     }
 
     // Bonded device manager helpers

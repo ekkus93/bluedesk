@@ -12,6 +12,8 @@ import android.bluetooth.le.AdvertiseSettings
 import android.bluetooth.le.BluetoothLeAdvertiser
 import android.content.pm.ServiceInfo
 import android.content.Context
+import android.content.pm.PackageManager
+import android.Manifest
 import android.content.Intent
 import android.os.Binder
 import android.os.Build
@@ -58,6 +60,17 @@ class BleHogpService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        // Require BLUETOOTH_CONNECT permission to interact with GATT/advertising.
+        val hasConnectPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        if (!hasConnectPermission) {
+            // Can't proceed with GATT server/advertising until permission is granted.
+            android.util.Log.w("BleHogpService", "BLUETOOTH_CONNECT permission not granted; deferring BLE initialization")
+            return
+        }
         startInForeground()
         val mgr = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val adapter = mgr.adapter
@@ -285,21 +298,30 @@ class BleHogpService : Service() {
             .setContentIntent(pi)
             .setOngoing(true)
             .build()
-        if (Build.VERSION.SDK_INT >= 29) startForeground(2, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE) else startForeground(2, notif)
+        // Try to start as a foreground service but handle restrictive
+        // platform behavior gracefully. If startForeground throws an
+        // exception (MissingForegroundServiceTypeException or
+        // SecurityException), fall back to just posting the notification
+        // so the process won't be killed at startup.
+        try {
+            startForeground(2, notif)
+        } catch (e: Exception) {
+            android.util.Log.e("BleHogpService", "startForeground failed: ${e.message}")
+            nm.notify(2, notif)
+        }
     }
 
-    // Minimal HID Report Map: Boot keyboard + boot mouse
+    // Simplified HID Report Map: Boot keyboard only (remove mouse for Windows experiment)
     private val HID_REPORT_MAP = byteArrayOf(
-        // Keyboard (boot)
         0x05, 0x01,       // Usage Page (Generic Desktop)
         0x09, 0x06,       // Usage (Keyboard)
         0xA1.toByte(), 0x01, // Collection (Application)
-        0x05, 0x07,       //  Usage Page (Key Codes)
+        0x05, 0x07,       // Usage Page (Key Codes)
         0x19.toByte(), 0xE0.toByte(),  // Usage Min (224)
         0x29.toByte(), 0xE7.toByte(),  // Usage Max (231)
-        0x15, 0x00,       //  Logical Min (0)
-        0x25, 0x01,       //  Logical Max (1)
-        0x75, 0x01,       //  Report Size (1)
+        0x15, 0x00,       // Logical Min (0)
+        0x25, 0x01,       // Logical Max (1)
+        0x75, 0x01,       // Report Size (1)
         0x95.toByte(), 0x08, // Report Count (8)
         0x81.toByte(), 0x02, // Input (Data,Var,Abs) mod
         0x95.toByte(), 0x01, // Report Count (1)
@@ -322,33 +344,6 @@ class BleHogpService : Service() {
         0x19.toByte(), 0x00, // Usage Min (0)
         0x29.toByte(), 0x65, // Usage Max (101)
         0x81.toByte(), 0x00, // Input (Data,Array,Abs)
-        0xC0.toByte(),    // End Collection
-        // Mouse (boot)
-        0x05, 0x01,       // Usage Page (Generic Desktop)
-        0x09, 0x02,       // Usage (Mouse)
-        0xA1.toByte(), 0x01, // Collection (Application)
-        0x09, 0x01,       //  Usage (Pointer)
-        0xA1.toByte(), 0x00, // Collection (Physical)
-        0x05, 0x09,       //   Usage Page (Buttons)
-        0x19.toByte(), 0x01, //   Usage Min (Button 1)
-        0x29.toByte(), 0x03, //   Usage Max (Button 3)
-        0x15, 0x00,       //   Logical Min (0)
-        0x25, 0x01,       //   Logical Max (1)
-        0x75, 0x01,       //   Report Size (1)
-        0x95.toByte(), 0x03, //   Report Count (3)
-        0x81.toByte(), 0x02, //   Input (Data,Var,Abs)
-        0x75, 0x05,       //   Report Size (5)
-        0x95.toByte(), 0x01, //   Report Count (1)
-        0x81.toByte(), 0x01, //   Input (Const)
-        0x05, 0x01,       //   Usage Page (Generic Desktop)
-        0x09, 0x30,       //   Usage (X)
-        0x09, 0x31,       //   Usage (Y)
-        0x15, 0x81.toByte(), //   Logical Min (-127)
-        0x25, 0x7F,       //   Logical Max (127)
-        0x75, 0x08,       //   Report Size (8)
-        0x95.toByte(), 0x02, //   Report Count (2)
-        0x81.toByte(), 0x06, //   Input (Data,Var,Rel)
-        0xC0.toByte(),    // End Collection
         0xC0.toByte()     // End Collection
     )
 }

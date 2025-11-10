@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 
 val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
@@ -22,7 +23,11 @@ data class Settings(
     val clickSound: Boolean = true,
     val debugLogging: Boolean = false,
     val logLevel: Int = 0, // 0=All,1=Info,2=Error
+    // Allow using Keyboard/Mouse UI without a Bluetooth connection (offline/local preview)
+    val offlinePreview: Boolean = false,
     val startOnBoot: Boolean = false,
+    // Descriptor variant toggle: true = simplified (Windows workaround), false = full
+    val hidSimplified: Boolean = true,
     // Per-device: key remapping table (HID usage -> HID usage)
     val keyMap: Map<Int, Int> = emptyMap(),
 )
@@ -38,7 +43,9 @@ object SettingsManager {
     private val KEY_CLICK = booleanPreferencesKey("click_sound")
     private val KEY_DEBUG = booleanPreferencesKey("debug_logging")
     private val KEY_LOGLEVEL = intPreferencesKey("log_level")
+    private val KEY_OFFLINE_PREVIEW = booleanPreferencesKey("offline_preview")
     private val KEY_START_ON_BOOT = booleanPreferencesKey("start_on_boot")
+    private val KEY_HID_SIMPLE = booleanPreferencesKey("hid_simplified")
 
     fun fromPreferences(p: androidx.datastore.preferences.core.Preferences): Settings = Settings(
         touchpadSensitivity = p[KEY_SENS] ?: 1.5f,
@@ -51,7 +58,9 @@ object SettingsManager {
         clickSound = p[KEY_CLICK] ?: true,
         debugLogging = p[KEY_DEBUG] ?: false,
         logLevel = p[KEY_LOGLEVEL] ?: 0,
+        offlinePreview = p[KEY_OFFLINE_PREVIEW] ?: false,
         startOnBoot = p[KEY_START_ON_BOOT] ?: false,
+        hidSimplified = p[KEY_HID_SIMPLE] ?: true,
         keyMap = emptyMap(),
     )
 
@@ -82,6 +91,7 @@ object SettingsManager {
             enableMiddleClick = middle,
             keyRepeatDelayMs = repeat,
             clickSound = click,
+            offlinePreview = p[booleanPreferencesKey(pref("offline_preview"))] ?: base.offlinePreview,
             keyMap = parseKeyMap(mapStr)
         )
     }
@@ -130,11 +140,18 @@ object SettingsManager {
     suspend fun setDebugLogging(context: Context, v: Boolean) {
         context.settingsDataStore.edit { it[KEY_DEBUG] = v }
     }
+    suspend fun setOfflinePreview(context: Context, v: Boolean) {
+        context.settingsDataStore.edit { it[KEY_OFFLINE_PREVIEW] = v }
+    }
     suspend fun setLogLevel(context: Context, v: Int) {
         context.settingsDataStore.edit { it[KEY_LOGLEVEL] = v.coerceIn(0, 2) }
     }
     suspend fun setStartOnBoot(context: Context, v: Boolean) {
         context.settingsDataStore.edit { it[KEY_START_ON_BOOT] = v }
+    }
+
+    suspend fun setHidSimplified(context: Context, v: Boolean) {
+        context.settingsDataStore.edit { it[KEY_HID_SIMPLE] = v }
     }
 
     // Per-device setters
@@ -196,6 +213,55 @@ object SettingsManager {
                 androidx.datastore.preferences.core.stringPreferencesKey(pk(addr, "keymap"))
             ).forEach { prefs.remove(it) }
         }
+    }
+
+    // Per-IME allow/deny overrides. Stored as boolean under key "ime_override_{packageName}".
+    // These let the app remember user decisions about whether a specific IME package is allowed
+    // to be used in system-IME mode (true = allowed, false = explicitly denied).
+    suspend fun setImeOverride(context: Context, imePackage: String, allowed: Boolean) {
+        val key = booleanPreferencesKey("ime_override_$imePackage")
+        context.settingsDataStore.edit { prefs ->
+            prefs[key] = allowed
+        }
+    }
+
+    suspend fun removeImeOverride(context: Context, imePackage: String) {
+        val key = booleanPreferencesKey("ime_override_$imePackage")
+        context.settingsDataStore.edit { prefs ->
+            prefs.remove(key)
+        }
+    }
+
+    /** Returns a Flow<Boolean?> that emits the override value (true/false) or null if not set. */
+    fun imeOverrideFlow(context: Context, imePackage: String): Flow<Boolean?> =
+        context.settingsDataStore.data.map { p ->
+            p[booleanPreferencesKey("ime_override_$imePackage")]
+        }
+
+    /** Suspends and returns the current override value for the IME package, or null if none set. */
+    suspend fun getImeOverride(context: Context, imePackage: String): Boolean? {
+        val key = booleanPreferencesKey("ime_override_$imePackage")
+        val prefs = context.settingsDataStore.data.first()
+        return prefs[key]
+    }
+
+    /** Returns a map of imePackage -> override (true=allowed,false=denied) for all stored overrides. */
+    suspend fun getAllImeOverrides(context: Context): Map<String, Boolean> {
+        val prefs = context.settingsDataStore.data.first()
+        val out = mutableMapOf<String, Boolean>()
+        prefs.asMap().forEach { (key, value) ->
+            try {
+                val name = key.name
+                if (name.startsWith("ime_override_")) {
+                    val pkg = name.removePrefix("ime_override_")
+                    val boolVal = value as? Boolean ?: return@forEach
+                    out[pkg] = boolVal
+                }
+            } catch (_: Exception) {
+                // ignore unexpected keys
+            }
+        }
+        return out
     }
 }
 

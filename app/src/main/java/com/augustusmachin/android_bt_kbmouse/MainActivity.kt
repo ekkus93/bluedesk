@@ -3,7 +3,9 @@ package com.augustusmachin.android_bt_kbmouse
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.ServiceConnection
+import androidx.activity.result.ActivityResultLauncher
 import android.os.Bundle
 import android.os.IBinder
 import androidx.activity.ComponentActivity
@@ -12,6 +14,9 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -39,12 +44,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.size
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -77,8 +85,37 @@ import android.bluetooth.BluetoothDevice
 import android.provider.Settings
 import android.net.Uri
 import android.app.ActivityManager
+import android.view.inputmethod.InputMethodManager
+import com.augustusmachin.android_bt_kbmouse.store.Action
+import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 
 class MainActivity : ComponentActivity() {
+
+    private val permReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == com.augustusmachin.android_bt_kbmouse.BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT) {
+                // Show a dialog on UI thread and finish gracefully
+                runOnUiThread {
+                    try {
+                        androidx.appcompat.app.AlertDialog.Builder(this@MainActivity)
+                            .setTitle("Missing permission")
+                            .setMessage("This app requires the BLUETOOTH_CONNECT permission. Please grant it in Settings. The app will now exit.")
+                            .setPositiveButton("Open Settings") { _, _ ->
+                                val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+                                startActivity(i)
+                                finish()
+                            }
+                            .setNegativeButton("Close") { _, _ -> finish() }
+                            .setCancelable(false)
+                            .show()
+                    } catch (e: Exception) {
+                        // As a fallback, just finish
+                        finish()
+                    }
+                }
+            }
+        }
+    }
 
     private val viewModel: PairingViewModel by viewModels()
 
@@ -97,6 +134,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Register receiver for permission-error reports from services
+        try {
+            registerReceiver(permReceiver, IntentFilter(BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT))
+        } catch (_: Exception) {}
         // Force enable debug logging for diagnostics, then apply persisted settings
         DebugLog.setEnabled(true)
         DebugLog.setLevel(DebugLog.Level.ALL)
@@ -113,21 +154,72 @@ class MainActivity : ComponentActivity() {
                 MainScreen(viewModel)
             }
         }
-        val serviceIntent = Intent(this, BluetoothService::class.java)
-        if (android.os.Build.VERSION.SDK_INT >= 26) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
+        // Defer starting/binding services until required runtime permissions are granted.
+        val permissionLauncher: ActivityResultLauncher<Array<String>> =
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+                val granted = result.values.all { it }
+                if (granted) {
+                    startServicesAndBind()
+                } else {
+                    showPermissionNeededDialog()
+                }
+            }
+
+        val missing = requiredStartupPermissions().filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
-        // Also start BLE HOGP peripheral service for Windows compatibility
-        val bleIntent = Intent(this, BleHogpService::class.java)
-        if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(bleIntent) else startService(bleIntent)
-        serviceBound = bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)
+        if (missing.isEmpty()) {
+            startServicesAndBind()
+        } else {
+            permissionLauncher.launch(missing.toTypedArray())
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        try { unregisterReceiver(permReceiver) } catch (_: Exception) {}
         if (serviceBound) { unbindService(connection); serviceBound = false }
+    }
+
+    private fun requiredStartupPermissions(): Array<String> {
+        return if (android.os.Build.VERSION.SDK_INT >= 33) arrayOf(
+            android.Manifest.permission.BLUETOOTH_SCAN,
+            android.Manifest.permission.BLUETOOTH_CONNECT,
+            android.Manifest.permission.BLUETOOTH_ADVERTISE,
+            android.Manifest.permission.POST_NOTIFICATIONS
+        ) else if (android.os.Build.VERSION.SDK_INT >= 31) arrayOf(
+            android.Manifest.permission.BLUETOOTH_SCAN,
+            android.Manifest.permission.BLUETOOTH_CONNECT,
+            android.Manifest.permission.BLUETOOTH_ADVERTISE
+        ) else arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    private fun startServicesAndBind() {
+        val serviceIntent = Intent(this, BluetoothService::class.java)
+        if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(serviceIntent) else startService(serviceIntent)
+        val bleIntent = Intent(this, BleHogpService::class.java)
+        if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(bleIntent) else startService(bleIntent)
+        try { serviceBound = bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE) } catch (e: Exception) { DebugLog.e("MainActivity", "bind service failed: ${e.message}") }
+    }
+
+    private fun showPermissionNeededDialog() {
+        runOnUiThread {
+            try {
+                androidx.appcompat.app.AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Permissions required")
+                    .setMessage("This app needs Bluetooth permissions to operate. Open App Settings to grant permissions or close the app.")
+                    .setPositiveButton("Open Settings") { _, _ ->
+                        val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+                        startActivity(i)
+                        finish()
+                    }
+                    .setNegativeButton("Close") { _, _ -> finish() }
+                    .setCancelable(false)
+                    .show()
+            } catch (e: Exception) {
+                finish()
+            }
+        }
     }
 }
 
@@ -231,7 +323,11 @@ fun MainScreen(viewModel: PairingViewModel) {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
                 Screen.values().forEach { screen ->
-                    val isEnabled = connected != null || screen == Screen.Pairing || screen == Screen.Settings
+                    // Allow access to keyboard/mouse screens when connected OR when in Pairing/Settings
+                    // Also allow access when debug logging is enabled so developers can use local preview
+                    // on emulator/no-BT without changing production behavior.
+                    // Allow offline access to keyboard/mouse when user enables Offline preview
+                    val isEnabled = connected != null || screen == Screen.Pairing || screen == Screen.Settings || settings.debugLogging || settings.offlinePreview
                     NavigationBarItem(
                         icon = { Icon(painterResource(id = screen.icon), contentDescription = screen.title) },
                         label = { Text(screen.title) },
@@ -257,30 +353,31 @@ fun MainScreen(viewModel: PairingViewModel) {
         val connected by viewModel.connectedDevice.collectAsState()
         val navBack by navController.currentBackStackEntryAsState()
         val route = navBack?.destination?.route
-        androidx.compose.runtime.LaunchedEffect(connected, route) {
-            if (connected == null && (route == Screen.Keyboard.route || route == Screen.Mouse.route)) {
-                snackbarHostState.showSnackbar("Disconnected")
-                navController.navigate(Screen.Pairing.route) { launchSingleTop = true }
+        androidx.compose.runtime.LaunchedEffect(connected, route, settings.offlinePreview, settings.debugLogging) {
+                val keyboardAccessible = connected != null || settings.debugLogging || settings.offlinePreview
+                if (!keyboardAccessible && (route == Screen.Keyboard.route || route == Screen.Mouse.route)) {
+                    snackbarHostState.showSnackbar("Disconnected")
+                    navController.navigate(Screen.Pairing.route) { launchSingleTop = true }
+                }
             }
-        }
         if (message != null) {
             androidx.compose.runtime.LaunchedEffect(message) {
                 snackbarHostState.showSnackbar(message!!)
                 viewModel.consumeMessage()
             }
         }
-        NavHost(navController, startDestination = Screen.Pairing.route, Modifier.padding(innerPadding)) {
-            composable(Screen.Pairing.route) { PairingScreen(viewModel) }
-            composable(Screen.Keyboard.route) { KeyboardScreen(viewModel) }
-            composable(Screen.Mouse.route) { MouseScreen(viewModel) }
-            composable(Screen.Settings.route) { SettingsScreen(onOpenLogs = { navController.navigate("logs") }) }
-            composable("logs") { LogsScreen() }
+        NavHost(navController, startDestination = Screen.Pairing.route, Modifier) {
+            composable(Screen.Pairing.route) { PairingScreen(viewModel, contentPadding = innerPadding) }
+            composable(Screen.Keyboard.route) { KeyboardScreen(viewModel, contentPadding = innerPadding) }
+            composable(Screen.Mouse.route) { MouseScreen(viewModel, contentPadding = innerPadding) }
+            composable(Screen.Settings.route) { SettingsScreen(contentPadding = innerPadding, onOpenLogs = { navController.navigate("logs") }) }
+            composable("logs") { LogsScreen(contentPadding = innerPadding) }
         }
     }
 }
 
 @Composable
-fun PairingScreen(viewModel: PairingViewModel) {
+fun PairingScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = PaddingValues()) {
     val discoveredDevices by viewModel.discoveredDevices.collectAsState()
     val pairedDevices by viewModel.pairedDevices.collectAsState()
     val connectedDevice by viewModel.connectedDevice.collectAsState()
@@ -403,7 +500,7 @@ fun PairingScreen(viewModel: PairingViewModel) {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().padding(contentPadding).navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (connectedDevice == null) {
@@ -473,144 +570,41 @@ fun PairingScreen(viewModel: PairingViewModel) {
 }
 
 @Composable
-fun KeyboardScreen(viewModel: PairingViewModel) {
-    val context = LocalContext.current
-    val connected by viewModel.connectedDevice.collectAsState()
-    val settingsFlow = remember(connected) { SettingsManager.flowForDevice(context, connected?.address) }
-    val settings by settingsFlow.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
-    var shiftOn by remember { mutableStateOf(false) }
-    var ctrlOn by remember { mutableStateOf(false) }
-    var altOn by remember { mutableStateOf(false) }
-    var guiOn by remember { mutableStateOf(false) }
-    val capsOn by viewModel.capsLock.collectAsState()
-    val numOn by viewModel.numLock.collectAsState()
-    val scrollOn by viewModel.scrollLock.collectAsState()
-
-    val rows = listOf(
-        listOf("F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12"),
-        listOf("ESC", "`", "1","2","3","4","5","6","7","8","9","0","-","=","BKSP"),
-        listOf("TAB", "Q","W","E","R","T","Y","U","I","O","P","[", "]", "\\"),
-        listOf("CAPS", "A","S","D","F","G","H","J","K","L",";","'","ENTER"),
-        listOf("SHIFT","Z","X","C","V","B","N","M",",",".","/","SPACE"),
-        listOf("CTRL","ALT","GUI","NUM","SCROLL","←","↑","↓","→"),
-        listOf("HOME","END","PGUP","PGDN","DEL")
-    )
-
-    fun labelToHid(label: String): Byte? {
-        val numMap = mapOf(
-            "1" to 0x1E, "2" to 0x1F, "3" to 0x20, "4" to 0x21, "5" to 0x22,
-            "6" to 0x23, "7" to 0x24, "8" to 0x25, "9" to 0x26, "0" to 0x27
-        )
-        val punctMap = mapOf(
-            "-" to 0x2D, "=" to 0x2E, "[" to 0x2F, "]" to 0x30, "\\" to 0x31,
-            "`" to 0x35, ";" to 0x33, "'" to 0x34, "," to 0x36, "." to 0x37, "/" to 0x38
-        )
-        val functionMap = mapOf(
-            "F1" to 0x3A, "F2" to 0x3B, "F3" to 0x3C, "F4" to 0x3D, "F5" to 0x3E, "F6" to 0x3F,
-            "F7" to 0x40, "F8" to 0x41, "F9" to 0x42, "F10" to 0x43, "F11" to 0x44, "F12" to 0x45
-        )
-        val arrowsMap = mapOf(
-            "←" to 0x50, "→" to 0x4F, "↑" to 0x52, "↓" to 0x51
-        )
-        val navMap = mapOf(
-            "HOME" to 0x4A, "END" to 0x4D, "PGUP" to 0x4B, "PGDN" to 0x4E, "DEL" to 0x4C
-        )
-        return when (label) {
-            "SPACE" -> 0x2C.toByte()
-            "ENTER" -> 0x28.toByte()
-            "BKSP" -> 0x2A.toByte()
-            "TAB" -> 0x2B.toByte()
-            "ESC" -> 0x29.toByte()
-            in numMap.keys -> numMap.getValue(label).toByte()
-            in punctMap.keys -> punctMap.getValue(label).toByte()
-            in functionMap.keys -> functionMap.getValue(label).toByte()
-            in arrowsMap.keys -> arrowsMap.getValue(label).toByte()
-            in navMap.keys -> navMap.getValue(label).toByte()
-            else -> {
-                val ch = label.first()
-                if (ch in 'A'..'Z') {
-                    val code = 0x04 + (ch - 'A')
-                    code.toByte()
-                } else null
-            }
+fun KeyboardScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = PaddingValues()) {
+    // Minimal KeyboardScreen wired to Redux store for modifier demo.
+    val appState by StoreProvider.asStateFlow().collectAsState()
+    val kb = appState.keyboard
+    Column(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(16.dp).navigationBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("Keyboard (Redux demo)", style = MaterialTheme.typography.titleLarge)
+        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
+        androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Ctrl:" )
+            androidx.compose.material3.Switch(checked = kb.ctrl, onCheckedChange = { StoreProvider.dispatch(Action.ToggleCtrl) })
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(12.dp))
+            Text("Shift:")
+            androidx.compose.material3.Switch(checked = kb.shift, onCheckedChange = { StoreProvider.dispatch(Action.ToggleShift) })
         }
+        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
+        Button(onClick = {
+            // dispatch a SendKey action as demonstration (HID 'A' usage 0x04)
+            StoreProvider.dispatch(Action.SendKey(0x04.toByte(), mods = if (kb.ctrl) 0x01 else 0))
+        }) { Text("Send 'A' (via middleware)") }
     }
+}
 
-    fun currentModifiers(): Int {
-        var mods = 0
-        if (ctrlOn) mods = mods or 0x01
-        if (shiftOn) mods = mods or 0x02
-        if (altOn) mods = mods or 0x04
-        if (guiOn) mods = mods or 0x08
-        return mods
-    }
-
-    val view = LocalView.current
-    fun keyWeight(label: String): Float = when (label) {
-        "SPACE" -> 8f
-        "ENTER" -> 2.25f
-        "BKSP" -> 2.0f
-        "SHIFT" -> 2.25f
-        "CAPS" -> 1.75f
-        "TAB" -> 1.5f
-        "CTRL", "ALT", "GUI" -> 1.25f
-        "HOME", "END", "PGUP", "PGDN", "DEL" -> 1.2f
-        else -> 1f
-    }
-
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-        rows.forEach { row ->
-            androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxWidth()) {
-                row.forEach { label ->
-                    when (label) {
-                        "SHIFT" -> KeyButton(label = "SHIFT", toggled = shiftOn, modifier = Modifier.weight(keyWeight(label)).padding(4.dp).height(48.dp)) {
-                            shiftOn = !shiftOn
-                            view.playSoundEffect(SoundEffectConstants.CLICK)
-                        }
-                        "CTRL" -> KeyButton(label = "CTRL", toggled = ctrlOn, modifier = Modifier.weight(keyWeight(label)).padding(4.dp).height(48.dp)) {
-                            ctrlOn = !ctrlOn
-                            view.playSoundEffect(SoundEffectConstants.CLICK)
-                        }
-                        "ALT" -> KeyButton(label = "ALT", toggled = altOn, modifier = Modifier.weight(keyWeight(label)).padding(4.dp).height(48.dp)) {
-                            altOn = !altOn
-                            view.playSoundEffect(SoundEffectConstants.CLICK)
-                        }
-                        "GUI" -> KeyButton(label = "GUI", toggled = guiOn, modifier = Modifier.weight(keyWeight(label)).padding(4.dp).height(48.dp)) {
-                            guiOn = !guiOn
-                            view.playSoundEffect(SoundEffectConstants.CLICK)
-                        }
-                        "CAPS" -> KeyButton(label = "CAPS", toggled = capsOn, modifier = Modifier.weight(keyWeight(label)).padding(4.dp).height(48.dp)) {
-                            viewModel.toggleCapsLock()
-                            view.playSoundEffect(SoundEffectConstants.CLICK)
-                        }
-                        "NUM" -> KeyButton(label = "NUM", toggled = numOn, modifier = Modifier.weight(keyWeight(label)).padding(4.dp).height(48.dp)) {
-                            viewModel.toggleNumLock()
-                            view.playSoundEffect(SoundEffectConstants.CLICK)
-                        }
-                        "SCROLL" -> KeyButton(label = "SCROLL", toggled = scrollOn, modifier = Modifier.weight(keyWeight(label)).padding(4.dp).height(48.dp)) {
-                            viewModel.toggleScrollLock()
-                            view.playSoundEffect(SoundEffectConstants.CLICK)
-                        }
-                        else -> {
-                            val baseCode = labelToHid(label) ?: return@Row
-                            val mapped = settings.keyMap[baseCode.toInt()]?.toByte() ?: baseCode
-                            KeyButton(
-                                label = label,
-                                modifier = Modifier.weight(keyWeight(label)).padding(4.dp).height(48.dp),
-                                repeatable = true,
-                                repeatDelayMs = settings.keyRepeatDelayMs,
-                                onPress = {
-                                    viewModel.keyDown(mapped, currentModifiers())
-                                    view.playSoundEffect(SoundEffectConstants.CLICK)
-                                },
-                                onRelease = {
-                                    viewModel.keyUp(mapped)
-                                    if (shiftOn) shiftOn = false
-                                }
-                            ) { }
-                        }
-                    }
-                }
+@Composable
+fun ExtendedModButton(label: String, active: Boolean, persist: Boolean, onClick: () -> Unit, onLong: () -> Unit) {
+    androidx.compose.material3.Button(onClick = onClick, modifier = Modifier.height(40.dp)) {
+        androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(label)
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(6.dp))
+            val color = when {
+                persist -> androidx.compose.ui.graphics.Color.Red
+                active -> androidx.compose.ui.graphics.Color.Green
+                else -> androidx.compose.ui.graphics.Color.LightGray
+            }
+            androidx.compose.foundation.Canvas(modifier = Modifier.size(10.dp)) {
+                drawCircle(color = color)
             }
         }
     }
@@ -629,11 +623,9 @@ private fun KeyButton(
 ) {
     val scope = rememberCoroutineScope()
     var pressed by remember { mutableStateOf(false) }
-    val colors = if (pressed || toggled) {
-        ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-    } else {
-        ButtonDefaults.buttonColors()
-    }
+    val containerColor = if (pressed || toggled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+    val contentColor = if (pressed || toggled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    val colors = ButtonDefaults.buttonColors(containerColor = containerColor, contentColor = contentColor)
     Button(
         modifier = if (repeatable) modifier.pointerInput(Unit) {
             awaitPointerEventScope {
@@ -676,13 +668,13 @@ private fun KeyButton(
 }
 
 @Composable
-fun MouseScreen(viewModel: PairingViewModel) {
+fun MouseScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = PaddingValues()) {
     val context = LocalContext.current
     val connected by viewModel.connectedDevice.collectAsState()
     val settingsFlow = remember(connected) { SettingsManager.flowForDevice(context, connected?.address) }
     val settings by settingsFlow.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(16.dp).navigationBarsPadding()) {
         // Touchpad area
         Box(
             modifier = Modifier
@@ -776,7 +768,7 @@ fun MouseScreen(viewModel: PairingViewModel) {
 }
 
 @Composable
-fun LogsScreen() {
+fun LogsScreen(contentPadding: PaddingValues = PaddingValues()) {
     val context = LocalContext.current
     val lines by DebugLog.lines.collectAsState(initial = emptyList())
     var filter by remember { mutableStateOf(0) } // 0=All,1=Info,2=Error
@@ -787,7 +779,7 @@ fun LogsScreen() {
             else -> lines
         }
     }
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
+    Column(Modifier.fillMaxSize().padding(contentPadding).navigationBarsPadding().padding(16.dp)) {
         androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth()) {
             Button(onClick = { DebugLog.clear() }, modifier = Modifier.padding(end = 8.dp)) { Text("Clear") }
             Button(onClick = {
