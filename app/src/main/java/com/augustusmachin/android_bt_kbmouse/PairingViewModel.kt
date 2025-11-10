@@ -7,160 +7,152 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import com.augustusmachin.android_bt_kbmouse.store.Action
 
-class PairingViewModel : ViewModel() {
+class PairingViewModel(private val dispatcher: CoroutineDispatcher = Dispatchers.Unconfined) : ViewModel() {
 
-    private val _discoveredDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
-    val discoveredDevices: StateFlow<List<BluetoothDevice>> = _discoveredDevices
+    // Expose read-only views of the canonical Redux store slices so UI/tests can keep using
+    // the PairingViewModel API while Redux remains the single source of truth.
+    // Use Unconfined so test dispatchers (Main test dispatcher) or simple JVM test threads
+    // observe updates synchronously; production will usually run on Main/Default as needed.
+    private val _localScope = CoroutineScope(dispatcher + SupervisorJob())
 
-    private val _pairedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
-    val pairedDevices: StateFlow<List<BluetoothDevice>> = _pairedDevices
+    val discoveredDevices: StateFlow<List<BluetoothDevice>> = StoreProvider.asStateFlow()
+        .map { it.connection.discoveredDevices }
+        .stateIn(_localScope, SharingStarted.Eagerly, emptyList())
 
-    private val _connectedDevice = MutableStateFlow<BluetoothDevice?>(null)
-    val connectedDevice: StateFlow<BluetoothDevice?> = _connectedDevice
+    val pairedDevices: StateFlow<List<BluetoothDevice>> = StoreProvider.asStateFlow()
+        .map { it.connection.pairedDevices }
+        .stateIn(_localScope, SharingStarted.Eagerly, emptyList())
 
-    private val _message = MutableStateFlow<String?>(null)
-    val message: StateFlow<String?> = _message
+    val connectedDevice: StateFlow<BluetoothDevice?> = StoreProvider.asStateFlow()
+        .map { it.connection.connectedDevice }
+        .stateIn(_localScope, SharingStarted.Eagerly, null)
 
-    private val _capsLock = MutableStateFlow(false)
-    val capsLock: StateFlow<Boolean> = _capsLock
-    private val _numLock = MutableStateFlow(false)
-    val numLock: StateFlow<Boolean> = _numLock
-    private val _scrollLock = MutableStateFlow(false)
-    val scrollLock: StateFlow<Boolean> = _scrollLock
+    val message: StateFlow<String?> = StoreProvider.asStateFlow()
+        .map { it.connection.message }
+        .stateIn(_localScope, SharingStarted.Eagerly, null)
 
+    val capsLock: StateFlow<Boolean> = StoreProvider.asStateFlow()
+        .map { it.connection.capsLock }
+        .stateIn(_localScope, SharingStarted.Eagerly, false)
+
+    val numLock: StateFlow<Boolean> = StoreProvider.asStateFlow()
+        .map { it.connection.numLock }
+        .stateIn(_localScope, SharingStarted.Eagerly, false)
+
+    val scrollLock: StateFlow<Boolean> = StoreProvider.asStateFlow()
+        .map { it.connection.scrollLock }
+        .stateIn(_localScope, SharingStarted.Eagerly, false)
+
+    // Keep a reference for alias helpers; MainActivity will install service listeners and dispatch
+    // canonical store updates. PairingViewModel no longer installs listeners or manages discovery.
     private var bluetoothService: IBluetoothService? = null
-    private var discoveryJob: Job? = null
-    private val _defaultDeviceAddress = MutableStateFlow<String?>(null)
-    val defaultDeviceAddress: StateFlow<String?> = _defaultDeviceAddress
+
+    // Expose default device from the store as well when available
+    val defaultDeviceAddress: StateFlow<String?> = StoreProvider.asStateFlow()
+        .map { it.connection.defaultDeviceAddress }
+        .stateIn(_localScope, SharingStarted.Eagerly, null)
 
     fun setBluetoothService(service: IBluetoothService) {
-        DebugLog.log("PairingViewModel", "setBluetoothService")
+        DebugLog.log("PairingViewModel", "setBluetoothService (shim)")
         bluetoothService = service
-        _defaultDeviceAddress.value = service.getLastDeviceAddress()
-        service.setEventListener(object : BluetoothService.ServiceEventListener {
-            override fun onConnected(device: BluetoothDevice) {
-                DebugLog.log("PairingViewModel", "onConnected ${device.address}")
-                _connectedDevice.value = device
-                _message.value = "Connected to ${device.name ?: device.address}"
-            }
-            override fun onDisconnected(device: BluetoothDevice?) {
-                DebugLog.log("PairingViewModel", "onDisconnected")
-                _connectedDevice.value = null
-                _message.value = "Disconnected"
-            }
-            override fun onInfo(message: String) { DebugLog.log("PairingViewModel", "info: " + message); _message.value = message }
-            override fun onError(message: String) { DebugLog.e("PairingViewModel", message); _message.value = message }
-            override fun onLeds(leds: Int) {
-                _numLock.value = (leds and 0x01) != 0
-                _capsLock.value = (leds and 0x02) != 0
-                _scrollLock.value = (leds and 0x04) != 0
-            }
-        })
+        // Event listeners are owned/installed by MainActivity (production) or tests can
+        // dispatch store actions directly. No listener is installed here to keep the
+        // ViewModel a pure shim over the Redux store.
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        _localScope.cancel()
+    }
+
+
     fun startDiscovery() {
-        DebugLog.log("PairingViewModel", "startDiscovery")
-        _message.value = "Scanning for devices..."
-        discoveryJob?.cancel()
-        discoveryJob = viewModelScope.launch {
-            bluetoothService?.startDiscovery()
-            // Immediate refresh so user sees lists update
-            updateDiscoveredDevices()
-            getPairedDevices()
-            while (true) {
-                updateDiscoveredDevices()
-                getPairedDevices()
-                // Auto-restart discovery if it finished before host became discoverable
-                // Always re-trigger discover to surface results reliably during debugging
-                bluetoothService?.startDiscovery()
-                delay(1500)
-            }
-        }
+        DebugLog.log("PairingViewModel", "startDiscovery -> dispatch StartDiscovery")
+        StoreProvider.dispatch(Action.UpdateMessage("Scanning for devices..."))
+        StoreProvider.dispatch(Action.UpdateIsScanning(true))
+        StoreProvider.dispatch(Action.StartDiscovery)
     }
 
     fun stopDiscovery() {
-        DebugLog.log("PairingViewModel", "stopDiscovery")
-        discoveryJob?.cancel()
-        bluetoothService?.stopDiscovery()
-        _message.value = null
-    }
-
-    fun updateDiscoveredDevices() {
-        _discoveredDevices.value = bluetoothService?.getDiscoveredDevices() ?: emptyList()
+        DebugLog.log("PairingViewModel", "stopDiscovery -> dispatch StopDiscovery")
+        StoreProvider.dispatch(Action.StopDiscovery)
+        StoreProvider.dispatch(Action.UpdateMessage(null))
+        StoreProvider.dispatch(Action.UpdateIsScanning(false))
     }
 
     fun pairDevice(device: BluetoothDevice) {
-        DebugLog.log("PairingViewModel", "pairDevice ${device.address}")
-        bluetoothService?.pairDevice(device)
+        DebugLog.log("PairingViewModel", "pairDevice -> dispatch PairDevice ${device.address}")
+        StoreProvider.dispatch(Action.PairDevice(device))
     }
 
     fun connectDevice(device: BluetoothDevice) {
-        DebugLog.log("PairingViewModel", "connectDevice ${device.address}")
-        bluetoothService?.connectDevice(device)
-        _connectedDevice.value = device
+        DebugLog.log("PairingViewModel", "connectDevice -> dispatch ConnectDevice ${device.address}")
+        StoreProvider.dispatch(Action.ConnectDevice(device))
     }
 
     fun disconnectDevice() {
-        DebugLog.log("PairingViewModel", "disconnectDevice")
-        bluetoothService?.disconnectDevice()
-        _connectedDevice.value = null
-        _message.value = "Disconnected"
+        DebugLog.log("PairingViewModel", "disconnectDevice -> dispatch DisconnectDevice")
+        StoreProvider.dispatch(Action.DisconnectDevice)
     }
 
     // Device picker helpers
     fun setDefaultDevice(device: BluetoothDevice) {
-        bluetoothService?.setDefaultDevice(device)
-        _defaultDeviceAddress.value = device.address
+        StoreProvider.dispatch(Action.SetDefaultDevice(device))
     }
+
     fun getAlias(device: BluetoothDevice): String? = bluetoothService?.getAlias(device)
     fun setAlias(device: BluetoothDevice, alias: String) { bluetoothService?.setAlias(device, alias) }
+
     fun forgetDevice(device: BluetoothDevice, unpair: Boolean) {
-        bluetoothService?.forgetDevice(device, unpair)
-        if (_connectedDevice.value?.address == device.address) _connectedDevice.value = null
-        if (_defaultDeviceAddress.value == device.address) _defaultDeviceAddress.value = null
-        getPairedDevices()
+        StoreProvider.dispatch(Action.ForgetDevice(device, unpair))
     }
 
-    fun getPairedDevices() {
-        _pairedDevices.value = bluetoothService?.getPairedDevices() ?: emptyList()
-    }
-
-    fun consumeMessage() { _message.value = null }
+    fun consumeMessage() { StoreProvider.dispatch(Action.UpdateMessage(null)) }
 
     // Input actions
     fun sendKey(keyCode: Byte, modifiers: Int = 0) {
-        bluetoothService?.sendKeyPress(keyCode, modifiers)
+        StoreProvider.dispatch(Action.SendKey(keyCode, modifiers))
     }
 
     fun moveMouse(dx: Int, dy: Int) {
-        bluetoothService?.sendMouseMove(dx, dy)
+        StoreProvider.dispatch(Action.MoveMouse(dx, dy))
     }
 
     fun leftClick() {
-        bluetoothService?.sendLeftClick()
+        StoreProvider.dispatch(Action.LeftClick)
     }
 
     fun rightClick() {
-        bluetoothService?.sendRightClick()
+        StoreProvider.dispatch(Action.RightClick)
     }
 
     fun middleClick() {
-        bluetoothService?.sendMiddleClick()
+        StoreProvider.dispatch(Action.MiddleClick)
     }
 
     fun scroll(delta: Int) {
-        bluetoothService?.sendScroll(delta)
+        StoreProvider.dispatch(Action.ScrollVertical(delta))
     }
     fun scrollH(delta: Int) {
-        bluetoothService?.sendScrollH(delta)
+        StoreProvider.dispatch(Action.ScrollHorizontal(delta))
     }
 
-    fun keyDown(code: Byte, modifiers: Int) { bluetoothService?.pressKey(code, modifiers) }
-    fun keyUp(code: Byte) { bluetoothService?.releaseKey(code) }
+    fun keyDown(code: Byte, modifiers: Int) { StoreProvider.dispatch(Action.KeyDown(code, modifiers)) }
+    fun keyUp(code: Byte) { StoreProvider.dispatch(Action.KeyUp(code)) }
 
-    fun toggleCapsLock() { bluetoothService?.sendKeyPress(0x39.toByte(), 0) }
-    fun toggleNumLock() { bluetoothService?.sendKeyPress(0x53.toByte(), 0) }
-    fun toggleScrollLock() { bluetoothService?.sendKeyPress(0x47.toByte(), 0) }
+    fun toggleCapsLock() { StoreProvider.dispatch(Action.ToggleCapsLock) }
+    fun toggleNumLock() { StoreProvider.dispatch(Action.ToggleNumLock) }
+    fun toggleScrollLock() { StoreProvider.dispatch(Action.ToggleScrollLock) }
 }

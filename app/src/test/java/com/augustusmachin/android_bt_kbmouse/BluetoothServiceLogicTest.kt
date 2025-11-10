@@ -4,6 +4,8 @@ import android.bluetooth.BluetoothDevice
 import org.junit.Assert.*
 import org.junit.Test
 import org.mockito.Mockito
+import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import com.augustusmachin.android_bt_kbmouse.store.Action
 
 class BluetoothServiceLogicTest {
 
@@ -35,16 +37,14 @@ class BluetoothServiceLogicTest {
             override fun pressKey(keyCode: Byte, modifiers: Int) {}
             override fun releaseKey(keyCode: Byte) {}
         }
-        val service = EventService()
-        val vm = PairingViewModel()
-        vm.setBluetoothService(service)
+    val vm = PairingViewModel()
         val device = Mockito.mock(BluetoothDevice::class.java)
         Mockito.`when`(device.address).thenReturn("FE:ED:FA:CE:00:01")
-        // Simulate callbacks
-        service.listener?.onConnected(device)
-        assertEquals(device, vm.connectedDevice.value)
-        service.listener?.onDisconnected(device)
-        assertNull(vm.connectedDevice.value)
+    // Simulate service callbacks by dispatching canonical store actions (MainActivity does this in production)
+    StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
+    assertEquals(device, vm.connectedDevice.value)
+    StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
+    assertNull(vm.connectedDevice.value)
     }
 
     @Test

@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -55,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.size
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavHostController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -121,14 +123,63 @@ class MainActivity : ComponentActivity() {
 
     private var serviceBound = false
 
-    private val connection = object : ServiceConnection {
+        private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
             val binder = service as BluetoothService.LocalBinder
-            viewModel.setBluetoothService(binder.getService())
+            val svc = binder.getService()
+            // Keep a lightweight reference in the VM for alias helpers, but move service
+            // event dispatching into the activity so Redux is canonical.
+            viewModel.setBluetoothService(svc)
+            try {
+                StoreProvider.setKeySender(com.augustusmachin.android_bt_kbmouse.store.BluetoothKeySender(svc))
+            } catch (t: Throwable) {
+                DebugLog.e("MainActivity", "setKeySender failed: ${t.message}")
+            }
+
+            // Initialize default device address in store from persisted service state
+            try {
+                val last = svc.getLastDeviceAddress()
+                StoreProvider.dispatch(Action.UpdateDefaultDevice(last))
+            } catch (_: Exception) {}
+
+            // Install service event listener here and dispatch canonical store updates
+            try {
+                svc.setEventListener(object : BluetoothService.ServiceEventListener {
+                    override fun onConnected(device: BluetoothDevice) {
+                        DebugLog.log("MainActivity", "onConnected ${device.address}")
+                        StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
+                        StoreProvider.dispatch(Action.UpdateMessage("Connected to ${device.name ?: device.address}"))
+                    }
+
+                    override fun onDisconnected(device: BluetoothDevice?) {
+                        DebugLog.log("MainActivity", "onDisconnected")
+                        StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
+                        StoreProvider.dispatch(Action.UpdateMessage("Disconnected"))
+                    }
+
+                    override fun onInfo(message: String) {
+                        DebugLog.log("MainActivity", "info: $message")
+                        StoreProvider.dispatch(Action.UpdateMessage(message))
+                    }
+
+                    override fun onError(message: String) {
+                        DebugLog.e("MainActivity", message)
+                        StoreProvider.dispatch(Action.UpdateMessage(message))
+                    }
+
+                    override fun onLeds(leds: Int) {
+                        val caps = (leds and 0x02) != 0
+                        val num = (leds and 0x01) != 0
+                        val scroll = (leds and 0x04) != 0
+                        StoreProvider.dispatch(Action.UpdateLocks(caps, num, scroll))
+                    }
+                })
+            } catch (_: Exception) {}
         }
 
         override fun onServiceDisconnected(name: ComponentName) {
-            // This is called when the connection with the service has been unexpectedly disconnected
+            // Unregister the KeySender since the service is gone
+            try { StoreProvider.setKeySender(null) } catch (_: Exception) {}
         }
     }
 
@@ -178,7 +229,11 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         try { unregisterReceiver(permReceiver) } catch (_: Exception) {}
-        if (serviceBound) { unbindService(connection); serviceBound = false }
+        if (serviceBound) {
+            try { StoreProvider.setKeySender(null) } catch (_: Exception) {}
+            unbindService(connection)
+            serviceBound = false
+        }
     }
 
     private fun requiredStartupPermissions(): Array<String> {
@@ -368,9 +423,10 @@ fun MainScreen(viewModel: PairingViewModel) {
         }
         NavHost(navController, startDestination = Screen.Pairing.route, Modifier) {
             composable(Screen.Pairing.route) { PairingScreen(viewModel, contentPadding = innerPadding) }
-            composable(Screen.Keyboard.route) { KeyboardScreen(viewModel, contentPadding = innerPadding) }
-            composable(Screen.Mouse.route) { MouseScreen(viewModel, contentPadding = innerPadding) }
+            composable(Screen.Keyboard.route) { KeyboardScreen(viewModel, navController, contentPadding = innerPadding) }
+            composable(Screen.Mouse.route) { MouseScreen(contentPadding = innerPadding) }
             composable(Screen.Settings.route) { SettingsScreen(contentPadding = innerPadding, onOpenLogs = { navController.navigate("logs") }) }
+            composable("extended") { ExtendedKeysScreen() }
             composable("logs") { LogsScreen(contentPadding = innerPadding) }
         }
     }
@@ -394,7 +450,7 @@ fun PairingScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = P
     var unpair by remember { mutableStateOf(true) }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
         if (granted.values.all { it }) {
-            viewModel.startDiscovery()
+            StoreProvider.dispatch(Action.StartDiscovery)
         } else {
             val denied = granted.filterValues { !it }.keys.toTypedArray()
             if (activity != null && denied.any { !androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }) {
@@ -514,7 +570,7 @@ fun PairingScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = P
                 val req = requiredPermissions()
                 val missing = req.filter { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
                 if (missing.isEmpty()) {
-                    viewModel.startDiscovery()
+                    StoreProvider.dispatch(Action.StartDiscovery)
                 } else {
                     permissionLauncher.launch(missing.toTypedArray())
                 }
@@ -531,7 +587,7 @@ fun PairingScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = P
                     androidx.compose.material3.ListItem(
                         headlineContent = { Text(name) },
                         supportingContent = { Text(dev.address) },
-                        modifier = Modifier.clickable { view.playSoundEffect(SoundEffectConstants.CLICK); viewModel.pairDevice(dev) }
+                        modifier = Modifier.clickable { view.playSoundEffect(SoundEffectConstants.CLICK); StoreProvider.dispatch(Action.PairDevice(dev)) }
                     )
                     androidx.compose.material3.HorizontalDivider()
                 }
@@ -549,11 +605,11 @@ fun PairingScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = P
                     androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxSize().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(text = display + if (isDef) " ★" else "", modifier = Modifier.weight(1f))
                         if (isConn) {
-                            Button(onClick = { viewModel.disconnectDevice() }, modifier = Modifier.padding(end = 6.dp)) { Text("Disconnect") }
+                            Button(onClick = { StoreProvider.dispatch(Action.DisconnectDevice) }, modifier = Modifier.padding(end = 6.dp)) { Text("Disconnect") }
                         } else {
-                            Button(onClick = { viewModel.connectDevice(dev) }, modifier = Modifier.padding(end = 6.dp)) { Text("Connect") }
+                            Button(onClick = { StoreProvider.dispatch(Action.ConnectDevice(dev)) }, modifier = Modifier.padding(end = 6.dp)) { Text("Connect") }
                         }
-                        Button(onClick = { viewModel.setDefaultDevice(dev) }, modifier = Modifier.padding(end = 6.dp), enabled = !isDef) { Text(if (isDef) "Default" else "Make default") }
+                        Button(onClick = { StoreProvider.dispatch(Action.SetDefaultDevice(dev)) }, modifier = Modifier.padding(end = 6.dp), enabled = !isDef) { Text(if (isDef) "Default" else "Make default") }
                         Button(onClick = { renaming = dev; renameText = display }, modifier = Modifier.padding(end = 6.dp)) { Text("Rename") }
                         Button(onClick = { toForget = dev }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("Forget") }
                     }
@@ -570,25 +626,117 @@ fun PairingScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = P
 }
 
 @Composable
-fun KeyboardScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = PaddingValues()) {
+fun KeyboardScreen(viewModel: PairingViewModel, navController: NavHostController, contentPadding: PaddingValues = PaddingValues()) {
     // Minimal KeyboardScreen wired to Redux store for modifier demo.
     val appState by StoreProvider.asStateFlow().collectAsState()
     val kb = appState.keyboard
+    val context = LocalContext.current
+    val settingsFlow = remember { SettingsManager.flow(context) }
+    val settings by settingsFlow.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
+    val connected = appState.connection.connectedDevice != null
     Column(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(16.dp).navigationBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Keyboard (Redux demo)", style = MaterialTheme.typography.titleLarge)
-        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
+        // Minimal keyboard demo UI. System IME is used for main text input; committed characters are
+        // mapped to HID usage codes (via charToHid) and dispatched through the Redux middleware.
+        // For characters not present in the IME or special keys, use the Extended pages (split across
+        // logical groups) accessible from Settings -> Extended Keys.
+        var imeText by remember { mutableStateOf(TextFieldValue("")) }
+        // Keep a committed-string snapshot so we can detect inserts vs deletes when composition finishes
+        var prevCommitted by remember { mutableStateOf("") }
+        val imeFocusRequester = remember { FocusRequester() }
         androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Ctrl:" )
+            Button(onClick = { imeFocusRequester.requestFocus() }) { Text("Open system keyboard") }
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(12.dp))
+            androidx.compose.material3.Text(text = "Use system IME for main input; committed characters are sent as HID events")
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
+            Button(onClick = { navController.navigate("extended") }, enabled = (connected || settings.debugLogging || settings.offlinePreview)) { Text("Extended keys") }
+        }
+        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
+        androidx.compose.material3.TextField(
+            value = imeText,
+            onValueChange = { newValue ->
+                // Update the visible value first so composition works as expected
+                imeText = newValue
+                // Only act when composition is finished (composition == null)
+                if (newValue.composition == null) {
+                    val newText = newValue.text
+                    // If text grew, treat appended characters as committed input
+                    if (newText.length > prevCommitted.length) {
+                        val added = newText.substring(prevCommitted.length)
+                        for (ch in added) {
+                            val mapped = charToHid(ch)
+                            if (mapped != null) {
+                                val code = mapped.first
+                                // combine IME-derived shift with the user's modifier toggles
+                                val mods = mapped.second or run {
+                                    var m = 0
+                                    if (kb.ctrl) m = m or 0x01
+                                    if (kb.shift) m = m or 0x02
+                                    if (kb.alt) m = m or 0x04
+                                    if (kb.gui) m = m or 0x08
+                                    m
+                                }
+                                StoreProvider.dispatch(Action.SendKey(code, mods))
+                            } else {
+                                DebugLog.log("IME", "Unmapped char: ${'$'}{ch}")
+                            }
+                        }
+                    } else if (newText.length < prevCommitted.length) {
+                        // deletion happened - send Backspace HID (0x2A)
+                        StoreProvider.dispatch(Action.SendKey(0x2A.toByte(), mods = run {
+                            var m = 0
+                            if (kb.ctrl) m = m or 0x01
+                            if (kb.shift) m = m or 0x02
+                            if (kb.alt) m = m or 0x04
+                            if (kb.gui) m = m or 0x08
+                            m
+                        }))
+                    }
+                    prevCommitted = newText
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(imeFocusRequester),
+            singleLine = true,
+            placeholder = { Text("Tap to open Android keyboard") }
+        )
+        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
+        // Modifier switches (persist and active state handled in store)
+        androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Ctrl:")
             androidx.compose.material3.Switch(checked = kb.ctrl, onCheckedChange = { StoreProvider.dispatch(Action.ToggleCtrl) })
             androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(12.dp))
             Text("Shift:")
             androidx.compose.material3.Switch(checked = kb.shift, onCheckedChange = { StoreProvider.dispatch(Action.ToggleShift) })
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(12.dp))
+            Text("Alt:")
+            androidx.compose.material3.Switch(checked = kb.alt, onCheckedChange = { StoreProvider.dispatch(Action.ToggleAlt) })
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(12.dp))
+            Text("Gui:")
+            androidx.compose.material3.Switch(checked = kb.gui, onCheckedChange = { StoreProvider.dispatch(Action.ToggleGui) })
         }
         androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = {
-            // dispatch a SendKey action as demonstration (HID 'A' usage 0x04)
-            StoreProvider.dispatch(Action.SendKey(0x04.toByte(), mods = if (kb.ctrl) 0x01 else 0))
-        }) { Text("Send 'A' (via middleware)") }
+
+        // Helper to compute current modifier bitmap used by middleware (ctrl=0x01, shift=0x02, alt=0x04, gui=0x08)
+        fun currentMods(): Int {
+            var m = 0
+            if (kb.ctrl) m = m or 0x01
+            if (kb.shift) m = m or 0x02
+            if (kb.alt) m = m or 0x04
+            if (kb.gui) m = m or 0x08
+            return m
+        }
+
+        // Small demonstration row: A/B/C - press/release send KeyDown/KeyUp, click sends a short SendKey
+        androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
+            KeyButton(label = "A", onPress = { StoreProvider.dispatch(Action.KeyDown(0x04.toByte(), currentMods())) }, onRelease = { StoreProvider.dispatch(Action.KeyUp(0x04.toByte())) }, onClick = { StoreProvider.dispatch(Action.SendKey(0x04.toByte(), mods = currentMods())) })
+            KeyButton(label = "B", onPress = { StoreProvider.dispatch(Action.KeyDown(0x05.toByte(), currentMods())) }, onRelease = { StoreProvider.dispatch(Action.KeyUp(0x05.toByte())) }, onClick = { StoreProvider.dispatch(Action.SendKey(0x05.toByte(), mods = currentMods())) })
+            KeyButton(label = "C", onPress = { StoreProvider.dispatch(Action.KeyDown(0x06.toByte(), currentMods())) }, onRelease = { StoreProvider.dispatch(Action.KeyUp(0x06.toByte())) }, onClick = { StoreProvider.dispatch(Action.SendKey(0x06.toByte(), mods = currentMods())) })
+        }
+
+        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
+        // Space bar / Enter demo
+        KeyButton(label = "Space", modifier = Modifier.fillMaxWidth(), repeatable = true, onPress = { StoreProvider.dispatch(Action.KeyDown(0x2C.toByte(), currentMods())) }, onRelease = { StoreProvider.dispatch(Action.KeyUp(0x2C.toByte())) }, onClick = { StoreProvider.dispatch(Action.SendKey(0x2C.toByte(), mods = currentMods())) })
     }
 }
 
@@ -668,9 +816,10 @@ private fun KeyButton(
 }
 
 @Composable
-fun MouseScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = PaddingValues()) {
+fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
     val context = LocalContext.current
-    val connected by viewModel.connectedDevice.collectAsState()
+    val appState by StoreProvider.asStateFlow().collectAsState()
+    val connected = appState.connection.connectedDevice
     val settingsFlow = remember(connected) { SettingsManager.flowForDevice(context, connected?.address) }
     val settings by settingsFlow.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
 
@@ -702,7 +851,7 @@ fun MouseScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = Pad
                                         moved = true
                                         val dx = (d.x * settings.touchpadSensitivity).roundToInt().coerceIn(-20, 20)
                                         val dy = (d.y * settings.touchpadSensitivity).roundToInt().coerceIn(-20, 20)
-                                        if (dx != 0 || dy != 0) viewModel.moveMouse(dx, dy)
+                                        if (dx != 0 || dy != 0) StoreProvider.dispatch(Action.MoveMouse(dx, dy))
                                         change.consume()
                                     }
                                 }
@@ -717,18 +866,18 @@ fun MouseScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = Pad
                                 moved = moved || (abs(dySum) > 0.5f || abs(dxSum) > 0.5f)
                                 val stepPx = (24f / settings.scrollSpeed.coerceAtLeast(0.1f))
                                 scrollAccumV += dySum
-                                while (abs(scrollAccumV) >= stepPx) {
+                                        while (abs(scrollAccumV) >= stepPx) {
                                     val step = if (scrollAccumV > 0) 1 else -1
                                     val send = if (settings.invertScroll) -step else step
-                                    viewModel.scroll(send)
+                                    StoreProvider.dispatch(Action.ScrollVertical(send))
                                     scrollAccumV -= stepPx * step
                                 }
                                 if (settings.enableHorizontalScroll) {
                                     scrollAccumH += dxSum
-                                    while (abs(scrollAccumH) >= stepPx) {
+                                        while (abs(scrollAccumH) >= stepPx) {
                                         val step = if (scrollAccumH > 0) 1 else -1
                                         val send = if (settings.invertHorizontalScroll) -step else step
-                                        viewModel.scrollH(send)
+                                        StoreProvider.dispatch(Action.ScrollHorizontal(send))
                                         scrollAccumH -= stepPx * step
                                     }
                                 }
@@ -738,11 +887,11 @@ fun MouseScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = Pad
                             }
                         } while (event.changes.any { it.pressed })
                         val duration = System.currentTimeMillis() - startTime
-                        if (!moved && duration < 220) {
+                            if (!moved && duration < 220) {
                             when (maxPointers) {
-                                1 -> viewModel.leftClick()
-                                2 -> viewModel.rightClick()
-                                3 -> if (settings.enableMiddleClick) viewModel.middleClick()
+                                1 -> StoreProvider.dispatch(Action.LeftClick)
+                                2 -> StoreProvider.dispatch(Action.RightClick)
+                                3 -> if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick)
                             }
                         }
                     }
@@ -760,9 +909,9 @@ fun MouseScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = Pad
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
         ) {
-            Button(modifier = Modifier.weight(1f), onClick = { viewModel.leftClick() }) { Text("Left") }
-            Button(modifier = Modifier.weight(1f), enabled = settings.enableMiddleClick, onClick = { if (settings.enableMiddleClick) viewModel.middleClick() }) { Text("Middle") }
-            Button(modifier = Modifier.weight(1f), onClick = { viewModel.rightClick() }) { Text("Right") }
+            Button(modifier = Modifier.weight(1f), onClick = { StoreProvider.dispatch(Action.LeftClick) }) { Text("Left") }
+            Button(modifier = Modifier.weight(1f), enabled = settings.enableMiddleClick, onClick = { if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick) }) { Text("Middle") }
+            Button(modifier = Modifier.weight(1f), onClick = { StoreProvider.dispatch(Action.RightClick) }) { Text("Right") }
         }
     }
 }

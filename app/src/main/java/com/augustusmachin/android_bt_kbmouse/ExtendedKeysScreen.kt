@@ -7,10 +7,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import com.augustusmachin.android_bt_kbmouse.store.Action
 
 @Composable
-fun ExtendedKeysScreen(viewModel: PairingViewModel) {
-    val connected by viewModel.connectedDevice.collectAsState()
+fun ExtendedKeysScreen() {
+    val appState by StoreProvider.asStateFlow().collectAsState()
+    val connected = appState.connection.connectedDevice != null
     val rows = listOf(
         listOf("ESC","TAB","CAPS","ENTER"),
         listOf("F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12"),
@@ -41,7 +44,7 @@ fun ExtendedKeysScreen(viewModel: PairingViewModel) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 r.forEach { label ->
                     val code = map(label)
-                    Button(onClick = { if (code != null) viewModel.sendKey(code) }, enabled = connected != null && code != null, modifier = Modifier.weight(1f)) { Text(label, maxLines = 1) }
+                    Button(onClick = { if (code != null) StoreProvider.dispatch(Action.SendKey(code)) }, enabled = connected && code != null, modifier = Modifier.weight(1f)) { Text(label, maxLines = 1) }
                 }
             }
         }

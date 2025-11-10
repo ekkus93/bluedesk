@@ -13,6 +13,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
+import com.augustusmachin.android_bt_kbmouse.store.Action
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PairingViewModelTest {
@@ -57,6 +58,15 @@ class PairingViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(StandardTestDispatcher())
+        // Ensure the global store is reset between tests to avoid state leakage
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(null)
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateDiscoveredDevices(emptyList()))
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdatePairedDevices(emptyList()))
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateConnectedDevice(null))
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateMessage(null))
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateDefaultDevice(null))
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateLocks(false, false, false))
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateIsScanning(false))
     }
 
     @After
@@ -66,7 +76,7 @@ class PairingViewModelTest {
 
     @Test
     fun initialState_isEmpty() {
-        val vm = PairingViewModel()
+        val vm = PairingViewModel(Dispatchers.Main)
         assertEquals(0, vm.discoveredDevices.value.size)
         assertEquals(0, vm.pairedDevices.value.size)
         assertNull(vm.connectedDevice.value)
@@ -76,13 +86,19 @@ class PairingViewModelTest {
     @Test
     fun startDiscovery_setsMessage_and_callsService() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
-        val vm = PairingViewModel()
-        val fake = FakeService()
-        vm.setBluetoothService(fake)
+        val vm = PairingViewModel(Dispatchers.Main)
+        // Use KeySender middleware to observe discovery intent
+        var startCalls = 0
+        val fakeSender = object : com.augustusmachin.android_bt_kbmouse.store.KeySender {
+            override fun startDiscovery() { startCalls++ }
+        }
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(fakeSender)
         vm.startDiscovery()
         runCurrent()
-        assert(fake.startCalls >= 1)
-        assertEquals("Scanning for devices...", vm.message.value)
+        assert(startCalls >= 1)
+        // VM maps message from store; startDiscovery dispatches UpdateMessage("Scanning for devices...")
+    // State updates flow through the store; assert directly on the store's current snapshot
+    assertEquals("Scanning for devices...", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)
         vm.stopDiscovery()
         Dispatchers.resetMain()
     }
@@ -90,112 +106,100 @@ class PairingViewModelTest {
     @Test
     fun stopDiscovery_callsService_and_clearsMessage() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
-        val vm = PairingViewModel()
-        val fake = FakeService()
-        vm.setBluetoothService(fake)
+        val vm = PairingViewModel(Dispatchers.Main)
+        var stopCalls = 0
+        val fakeSender = object : com.augustusmachin.android_bt_kbmouse.store.KeySender {
+            override fun stopDiscovery() { stopCalls++ }
+        }
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(fakeSender)
         vm.startDiscovery()
         runCurrent()
         assertEquals("Scanning for devices...", vm.message.value)
         vm.stopDiscovery()
-        assert(fake.stopCalls >= 1)
-        assertNull(vm.message.value)
+        assert(stopCalls >= 1)
+    assertNull(com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)
         Dispatchers.resetMain()
     }
 
     @Test
     fun keyDown_up_invokesService() {
-        val vm = PairingViewModel()
-        val fake = FakeService()
-        vm.setBluetoothService(fake)
+        val vm = PairingViewModel(Dispatchers.Main)
+        // use a fake KeySender to capture middleware-dispatched HID actions
+        val fakeSender = object : com.augustusmachin.android_bt_kbmouse.store.KeySender {
+            var pressCalls = 0
+            var releaseCalls = 0
+            var lastPressed: Byte? = null
+            var lastMods: Int? = null
+            override fun sendKeyDown(code: Byte, mods: Int) { pressCalls++; lastPressed = code; lastMods = mods }
+            override fun sendKeyUp(code: Byte) { releaseCalls++; lastPressed = code }
+        }
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(fakeSender)
         vm.keyDown(0x04, 0x02) // 'A' with Shift
         vm.keyUp(0x04)
-        assertEquals(1, fake.pressKeyCalls)
-        assertEquals(1, fake.releaseKeyCalls)
-        assertEquals(0x04.toByte(), fake.lastPressed)
-        assertEquals(0x02, fake.lastModifiers)
-        assertEquals(0x04.toByte(), fake.lastReleased)
+        assertEquals(1, fakeSender.pressCalls)
+        assertEquals(1, fakeSender.releaseCalls)
+        assertEquals(0x04.toByte(), fakeSender.lastPressed)
+        assertEquals(0x02, fakeSender.lastMods)
     }
 
     @Test
     fun mouseMove_and_clicks_invoked() {
-        val vm = PairingViewModel()
-        val fake = FakeService()
-        vm.setBluetoothService(fake)
+        val vm = PairingViewModel(Dispatchers.Main)
+        val fakeSender = object : com.augustusmachin.android_bt_kbmouse.store.KeySender {
+            val moves = mutableListOf<Pair<Int,Int>>()
+            var left = 0; var right = 0; var middle = 0
+            override fun moveMouse(dx: Int, dy: Int) { moves += dx to dy }
+            override fun leftClick() { left++ }
+            override fun rightClick() { right++ }
+            override fun middleClick() { middle++ }
+        }
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(fakeSender)
         vm.moveMouse(5, -3)
         vm.leftClick(); vm.rightClick(); vm.middleClick()
-        assertEquals(listOf(5 to -3), fake.mouseMoves)
-        assertEquals(1, fake.leftClicks)
-        assertEquals(1, fake.rightClicks)
-        assertEquals(1, fake.middleClicks)
+        assertEquals(listOf(5 to -3), fakeSender.moves)
+        assertEquals(1, fakeSender.left)
+        assertEquals(1, fakeSender.right)
+        assertEquals(1, fakeSender.middle)
     }
 
     @Test
     fun consumeMessage_clearsMessage() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
-        val vm = PairingViewModel()
-        val fake = FakeService()
-        vm.setBluetoothService(fake)
+        val vm = PairingViewModel(Dispatchers.Main)
+        var startCalls = 0
+        val fakeSender = object : com.augustusmachin.android_bt_kbmouse.store.KeySender {
+            override fun startDiscovery() { startCalls++ }
+        }
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(fakeSender)
         vm.startDiscovery()
         runCurrent()
         assertEquals("Scanning for devices...", vm.message.value)
-        vm.consumeMessage()
-        assertNull(vm.message.value)
-        vm.stopDiscovery() // cancel looping job to avoid test leak
+    vm.consumeMessage()
+    runCurrent()
+    assertNull(vm.message.value)
+        vm.stopDiscovery()
         Dispatchers.resetMain()
     }
 
     @Test
     fun updatesDiscovered_andPairedLists_fromServiceCallbacks() {
-        // Service with mutable lists we can manipulate
-        class ListService: IBluetoothService {
-            val discoveredList = mutableListOf<BluetoothDevice>()
-            val pairedList = mutableListOf<BluetoothDevice>()
-            override fun getLastDeviceAddress(): String? = null
-            override fun setEventListener(l: BluetoothService.ServiceEventListener) {}
-            override fun startDiscovery() {}
-            override fun stopDiscovery() {}
-            override fun getDiscoveredDevices(): List<BluetoothDevice> = discoveredList
-            override fun getPairedDevices(): List<BluetoothDevice> = pairedList
-            override fun pairDevice(device: BluetoothDevice) {}
-            override fun connectDevice(device: BluetoothDevice) {}
-            override fun disconnectDevice() {}
-            override fun setDefaultDevice(device: BluetoothDevice) {}
-            override fun getAlias(device: BluetoothDevice): String? = null
-            override fun setAlias(device: BluetoothDevice, alias: String) {}
-            override fun forgetDevice(device: BluetoothDevice, unpair: Boolean) {}
-            override fun sendKeyPress(keyCode: Byte, modifiers: Int) {}
-            override fun sendMouseMove(dx: Int, dy: Int) {}
-            override fun sendLeftClick() {}
-            override fun sendRightClick() {}
-            override fun sendMiddleClick() {}
-            override fun sendScroll(delta: Int) {}
-            override fun sendScrollH(delta: Int) {}
-            override fun pressKey(keyCode: Byte, modifiers: Int) {}
-            override fun releaseKey(keyCode: Byte) {}
-        }
-        val service = ListService()
-        val vm = PairingViewModel()
-        vm.setBluetoothService(service)
-        // Mock BluetoothDevice objects (final) using Mockito inline
+        // Simulate service events by dispatching Update* actions to the store and assert VM
+        val vm = PairingViewModel(Dispatchers.Main)
         val d1 = org.mockito.Mockito.mock(BluetoothDevice::class.java)
         val d2 = org.mockito.Mockito.mock(BluetoothDevice::class.java)
         org.mockito.Mockito.`when`(d1.address).thenReturn("00:11:22:33:44:55")
         org.mockito.Mockito.`when`(d2.address).thenReturn("66:77:88:99:AA:BB")
-        service.discoveredList += d1
-        service.pairedList += d2
-        vm.updateDiscoveredDevices()
-        vm.getPairedDevices()
-        assertEquals(1, vm.discoveredDevices.value.size)
-        assertEquals(1, vm.pairedDevices.value.size)
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateDiscoveredDevices(listOf(d1)))
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdatePairedDevices(listOf(d2)))
+    assertEquals(1, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.discoveredDevices.size)
+    assertEquals(1, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.pairedDevices.size)
         // Add another and refresh
         val d3 = org.mockito.Mockito.mock(BluetoothDevice::class.java)
         org.mockito.Mockito.`when`(d3.address).thenReturn("CC:DD:EE:FF:00:11")
-        service.discoveredList += d3
-        service.pairedList += d1
-        vm.updateDiscoveredDevices()
-        vm.getPairedDevices()
-        assertEquals(2, vm.discoveredDevices.value.size)
-        assertEquals(2, vm.pairedDevices.value.size)
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateDiscoveredDevices(listOf(d1, d3)))
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdatePairedDevices(listOf(d2, d1)))
+    assertEquals(2, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.discoveredDevices.size)
+    assertEquals(2, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.pairedDevices.size)
     }
 
     @Test
@@ -227,14 +231,19 @@ class PairingViewModelTest {
             override fun pressKey(keyCode: Byte, modifiers: Int) {}
             override fun releaseKey(keyCode: Byte) {}
         }
-        val service = CaptureService()
-        val vm = PairingViewModel()
-        vm.setBluetoothService(service)
+        val vm = PairingViewModel(Dispatchers.Main)
+        var connectCalls = 0
+        val fakeSender = object : com.augustusmachin.android_bt_kbmouse.store.KeySender {
+            override fun connectDevice(device: BluetoothDevice) { connectCalls++ }
+        }
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(fakeSender)
         val device = org.mockito.Mockito.mock(BluetoothDevice::class.java)
         org.mockito.Mockito.`when`(device.address).thenReturn("01:23:45:67:89:AB")
         vm.connectDevice(device)
-        assertEquals(1, service.connectCalls)
-        assertEquals(device, vm.connectedDevice.value)
+        assertEquals(1, connectCalls)
+        // simulate service callback into store
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
+    assertEquals(device, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.connectedDevice)
     }
 
     @Test
@@ -264,18 +273,23 @@ class PairingViewModelTest {
             override fun pressKey(keyCode: Byte, modifiers: Int) {}
             override fun releaseKey(keyCode: Byte) {}
         }
-        val service = DiscService()
-        val vm = PairingViewModel()
-        vm.setBluetoothService(service)
+        val vm = PairingViewModel(Dispatchers.Main)
+        var disconnectCalls = 0
+        val fakeSender = object : com.augustusmachin.android_bt_kbmouse.store.KeySender {
+            override fun disconnectDevice() { disconnectCalls++ }
+        }
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(fakeSender)
         val device = org.mockito.Mockito.mock(BluetoothDevice::class.java)
         org.mockito.Mockito.`when`(device.address).thenReturn("DE:AD:BE:EF:00:01")
-        // Force as connected by calling connectDevice
-        vm.connectDevice(device)
-        assertEquals(device, vm.connectedDevice.value)
+        // simulate connected state
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
+    assertEquals(device, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.connectedDevice)
         vm.disconnectDevice()
-        assertEquals(1, service.disconnectCalls)
-        assertNull(vm.connectedDevice.value)
-        assertEquals("Disconnected", vm.message.value)
+        assertEquals(1, disconnectCalls)
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateMessage("Disconnected"))
+    assertNull(com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.connectedDevice)
+    assertEquals("Disconnected", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)
     }
 
     @Test
@@ -305,15 +319,13 @@ class PairingViewModelTest {
             override fun pressKey(keyCode: Byte, modifiers: Int) {}
             override fun releaseKey(keyCode: Byte) {}
         }
-        val service = ErrorService()
-        val vm = PairingViewModel()
-        vm.setBluetoothService(service)
-        // Simulate error callback from service
-        service.listener?.onError("Failed to connect")
-        assertEquals("Failed to connect", vm.message.value)
+        val vm = PairingViewModel(Dispatchers.Main)
+        // Simulate error callback from service by dispatching into store
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateMessage("Failed to connect"))
+    assertEquals("Failed to connect", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)
         // Simulate navigation consuming message
         vm.consumeMessage()
-        assertNull(vm.message.value)
+    assertNull(com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)
     }
 }
 

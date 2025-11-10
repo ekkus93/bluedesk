@@ -58,7 +58,17 @@ fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: 
     }
 
     val scrollState = rememberScrollState()
-    Column(Modifier.fillMaxSize().padding(contentPadding).verticalScroll(scrollState).padding(16.dp).navigationBarsPadding()) {
+    // Ensure padding and navigation insets are INSIDE the scrollable area so the bottom
+    // content isn't hidden behind system bars or a bottom nav/menu. Padding must be
+    // applied before verticalScroll so it becomes part of the scrollable content.
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(contentPadding)
+            .navigationBarsPadding()
+            .padding(16.dp)
+            .verticalScroll(scrollState)
+    ) {
         Text("Touchpad sensitivity: ${"%.2f".format(settings.touchpadSensitivity)}")
         Slider(value = settings.touchpadSensitivity, onValueChange = {
             scope.launch { SettingsManager.setTouchpadSensitivity(context, it.coerceIn(0.5f, 3.0f)) }
