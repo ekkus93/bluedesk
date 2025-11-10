@@ -90,6 +90,7 @@ import android.app.ActivityManager
 import android.view.inputmethod.InputMethodManager
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import com.augustusmachin.android_bt_kbmouse.store.ServiceAliasHelper
 
 class MainActivity : ComponentActivity() {
 
@@ -119,7 +120,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private val viewModel: PairingViewModel by viewModels()
+    // PairingViewModel removed in production: UI reads/writes canonical state via StoreProvider
 
     private var serviceBound = false
 
@@ -127,9 +128,9 @@ class MainActivity : ComponentActivity() {
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
             val binder = service as BluetoothService.LocalBinder
             val svc = binder.getService()
-            // Keep a lightweight reference in the VM for alias helpers, but move service
-            // event dispatching into the activity so Redux is canonical.
-            viewModel.setBluetoothService(svc)
+            // Expose alias helpers to UI/tests via a small helper; MainActivity remains the
+            // owner of service event wiring and of installing the KeySender into StoreProvider.
+            ServiceAliasHelper.setService(svc)
             try {
                 StoreProvider.setKeySender(com.augustusmachin.android_bt_kbmouse.store.BluetoothKeySender(svc))
             } catch (t: Throwable) {
@@ -202,7 +203,7 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             AndroidbtkbmouseTheme {
-                MainScreen(viewModel)
+                MainScreen()
             }
         }
         // Defer starting/binding services until required runtime permissions are granted.
@@ -280,11 +281,12 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(viewModel: PairingViewModel) {
+fun MainScreen() {
     val navController = rememberNavController()
     val snackbarHostState = androidx.compose.material3.SnackbarHostState()
     val scope = rememberCoroutineScope()
-    val connected by viewModel.connectedDevice.collectAsState()
+    val appState by StoreProvider.asStateFlow().collectAsState()
+    val connected = appState.connection.connectedDevice
     // Proactively request notifications on 33+
     val context = LocalContext.current
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -404,8 +406,9 @@ fun MainScreen(viewModel: PairingViewModel) {
             }
         }
     ) { innerPadding ->
-        val message by viewModel.message.collectAsState()
-        val connected by viewModel.connectedDevice.collectAsState()
+    val appState by StoreProvider.asStateFlow().collectAsState()
+    val message = appState.connection.message
+    val connected = appState.connection.connectedDevice
         val navBack by navController.currentBackStackEntryAsState()
         val route = navBack?.destination?.route
         androidx.compose.runtime.LaunchedEffect(connected, route, settings.offlinePreview, settings.debugLogging) {
@@ -418,12 +421,12 @@ fun MainScreen(viewModel: PairingViewModel) {
         if (message != null) {
             androidx.compose.runtime.LaunchedEffect(message) {
                 snackbarHostState.showSnackbar(message!!)
-                viewModel.consumeMessage()
+                StoreProvider.dispatch(Action.UpdateMessage(null))
             }
         }
         NavHost(navController, startDestination = Screen.Pairing.route, Modifier) {
-            composable(Screen.Pairing.route) { PairingScreen(viewModel, contentPadding = innerPadding) }
-            composable(Screen.Keyboard.route) { KeyboardScreen(viewModel, navController, contentPadding = innerPadding) }
+            composable(Screen.Pairing.route) { PairingScreen(contentPadding = innerPadding) }
+            composable(Screen.Keyboard.route) { KeyboardScreen(navController, contentPadding = innerPadding) }
             composable(Screen.Mouse.route) { MouseScreen(contentPadding = innerPadding) }
             composable(Screen.Settings.route) { SettingsScreen(contentPadding = innerPadding, onOpenLogs = { navController.navigate("logs") }) }
             composable("extended") { ExtendedKeysScreen() }
@@ -433,10 +436,11 @@ fun MainScreen(viewModel: PairingViewModel) {
 }
 
 @Composable
-fun PairingScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = PaddingValues()) {
-    val discoveredDevices by viewModel.discoveredDevices.collectAsState()
-    val pairedDevices by viewModel.pairedDevices.collectAsState()
-    val connectedDevice by viewModel.connectedDevice.collectAsState()
+fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
+    val appState by StoreProvider.asStateFlow().collectAsState()
+    val discoveredDevices = appState.connection.discoveredDevices
+    val pairedDevices = appState.connection.pairedDevices
+    val connectedDevice = appState.connection.connectedDevice
 
     val context = LocalContext.current
     val activity = context as? android.app.Activity
@@ -520,7 +524,7 @@ fun PairingScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = P
                 },
                 confirmButton = {
                     Button(onClick = {
-                        viewModel.setAlias(dev, renameText.trim())
+                        ServiceAliasHelper.setAlias(dev, renameText.trim())
                         renaming = null
                     }) { Text("Save") }
                 },
@@ -546,7 +550,7 @@ fun PairingScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = P
                 },
                 confirmButton = {
                     Button(onClick = {
-                        viewModel.forgetDevice(dev, unpair)
+                        StoreProvider.dispatch(Action.ForgetDevice(dev, unpair))
                         toForget = null
                     }) { Text("Forget") }
                 },
@@ -593,13 +597,13 @@ fun PairingScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = P
                 }
             }
             Text(text = "Paired Devices", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
-            val defaultAddr by viewModel.defaultDeviceAddress.collectAsState()
+            val defaultAddr = appState.connection.defaultDeviceAddress
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxSize(),
                 contentPadding = PaddingValues(16.dp)
             ) {
                 items(pairedDevices) { dev: BluetoothDevice ->
-                    val display = viewModel.getAlias(dev) ?: (dev.name ?: dev.address)
+                    val display = ServiceAliasHelper.getAlias(dev) ?: (dev.name ?: dev.address)
                     val isConn = connectedDevice?.address == dev.address
                     val isDef = defaultAddr == dev.address
                     androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxSize().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -618,7 +622,7 @@ fun PairingScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = P
             }
         } else {
             Text(text = "Status: Connected to ${connectedDevice?.name}", modifier = Modifier.padding(16.dp))
-            Button(onClick = { viewModel.disconnectDevice() }) {
+            Button(onClick = { StoreProvider.dispatch(Action.DisconnectDevice) }) {
                 Text(text = "Disconnect")
             }
         }
@@ -626,7 +630,7 @@ fun PairingScreen(viewModel: PairingViewModel, contentPadding: PaddingValues = P
 }
 
 @Composable
-fun KeyboardScreen(viewModel: PairingViewModel, navController: NavHostController, contentPadding: PaddingValues = PaddingValues()) {
+fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValues = PaddingValues()) {
     // Minimal KeyboardScreen wired to Redux store for modifier demo.
     val appState by StoreProvider.asStateFlow().collectAsState()
     val kb = appState.keyboard
