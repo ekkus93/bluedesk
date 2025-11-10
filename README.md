@@ -42,12 +42,15 @@ The project will be developed using the following tools and technologies:
 
 This application targets standard Android devices (phones and tablets) that support the Bluetooth Human Interface Device (HID) profile. Amazon Fire HD tablets are not supported due to Fire OS limitations regarding Bluetooth HID peripheral functionality.
 
-Last updated: 2025-11-08T19:03:57.812Z
+Last updated: 2025-11-09T12:00:00.000Z
 
 ## Current Status
 
 - Core HID keyboard and mouse implemented; touchpad gesture stack implemented via Compose pointer APIs (multi-finger move, vertical/horizontal scroll, middle-click, right-click); media keys and settings available.
 - ReduxKotlin store scaffolding in place: keyboard modifiers and HID intents now dispatch through the store/middleware, with connection/settings slices defined for the upcoming migration of service state.
+ - Keyboard and Mouse screens migrated to use the central Redux store: Compose screens now read UI state via `StoreProvider.asStateFlow()` and dispatch HID intents (KeyDown/KeyUp/SendKey, MoveMouse/LeftClick/Scroll) so middleware handles platform side-effects.
+ - Added host JVM unit tests for `BluetoothKeySender` that verify forwarding to `IBluetoothService`, exception propagation, and use `verifyNoMoreInteractions` to prevent unexpected calls.
+ - Host JVM unit tests are passing locally (ran via `./gradlew :app:test`).
 - Foreground service with persistent notification, auto-reconnect, and connection UX (status in TopAppBar, brief “Disconnected” overlay) is in place.
 - Debug logging (toggle + viewer/export + level filter) is implemented; Quick Settings tile and permission UX added.
 - System IME integration: a "Use system keyboard" toggle and a small TextField that accepts committed characters from the Android IME and translates them to HID reports using the app's char→HID mapper. A runtime heuristic samples committed characters and auto-disables system IME when non-Latin input is detected to avoid sending incorrect HID keycodes.
