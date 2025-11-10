@@ -25,4 +25,5 @@ interface IBluetoothService {
     fun sendScrollH(delta: Int)
     fun pressKey(keyCode: Byte, modifiers: Int = 0)
     fun releaseKey(keyCode: Byte)
+    fun setModifiers(mods: Int)
 }

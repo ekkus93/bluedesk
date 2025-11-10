@@ -27,6 +27,8 @@ class HidQuickTileService : TileService() {
             } else {
                 // no last device; open app
                 val i = Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                // startActivityAndCollapse is deprecated on newer platforms; keep behavior but suppress warning
+                @Suppress("DEPRECATION")
                 startActivityAndCollapse(i)
             }
         }

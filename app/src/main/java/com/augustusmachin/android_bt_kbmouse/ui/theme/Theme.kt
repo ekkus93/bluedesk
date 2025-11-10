@@ -13,7 +13,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -55,10 +55,10 @@ fun AndroidbtkbmouseTheme(
     }
     val view = LocalView.current
     if (!view.isInEditMode) {
+        val systemUiController = rememberSystemUiController()
         SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            // Set status/navigation bar colors to match our theme
+            systemUiController.setSystemBarsColor(color = colorScheme.primary, darkIcons = !darkTheme)
         }
     }
 

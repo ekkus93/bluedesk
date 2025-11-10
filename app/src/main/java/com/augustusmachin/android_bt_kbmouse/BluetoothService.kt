@@ -2,6 +2,7 @@ package com.augustusmachin.android_bt_kbmouse
 
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
@@ -50,7 +51,12 @@ class BluetoothService : Service(), IBluetoothService {
         override fun onReceive(context: Context, intent: Intent) {
             when(intent.action) {
                 BluetoothDevice.ACTION_FOUND -> {
-                    val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                    val device: BluetoothDevice? = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE) as? BluetoothDevice
+                    }
                     device?.let {
                         if (!discoveredDevices.contains(it)) {
                             discoveredDevices.add(it)
@@ -60,7 +66,12 @@ class BluetoothService : Service(), IBluetoothService {
                 }
                 BluetoothDevice.ACTION_BOND_STATE_CHANGED -> {
                     val state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, -1)
-                    val dev: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                    val dev: BluetoothDevice? = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE) as? BluetoothDevice
+                    }
                     DebugLog.log("BluetoothService", "BOND_STATE_CHANGED=$state dev=${dev?.address}")
                     if (state == BluetoothDevice.BOND_BONDED && dev != null) {
                         // Remember and attempt HID connect automatically after pairing
@@ -197,7 +208,14 @@ class BluetoothService : Service(), IBluetoothService {
 
     override fun onCreate() {
         super.onCreate()
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        // Prefer BluetoothManager.adapter on newer platform versions. If unavailable, fall back
+        // to the older API but suppress the deprecation warning for the single fallback call
+        // so the code remains clean on modern toolchains while preserving compatibility.
+        val btMgr = getSystemService(BluetoothManager::class.java)
+        bluetoothAdapter = btMgr?.adapter ?: run {
+            @Suppress("DEPRECATION")
+            BluetoothAdapter.getDefaultAdapter()
+        }
         val filter = IntentFilter()
         filter.addAction(BluetoothDevice.ACTION_FOUND)
         filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
@@ -533,7 +551,7 @@ class BluetoothService : Service(), IBluetoothService {
     private val pressedKeys = LinkedHashSet<Byte>() // preserve insertion order
     private var currentModifiers: Int = 0
 
-    fun setModifiers(mods: Int) {
+    override fun setModifiers(mods: Int) {
         synchronized(this) { currentModifiers = mods and 0xFF }
         sendCurrentKeyboardReport()
     }

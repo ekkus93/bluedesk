@@ -34,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,6 +54,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.size
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -173,9 +179,8 @@ class MainActivity : ComponentActivity() {
 
                     override fun onLeds(leds: Int) {
                         val caps = (leds and 0x02) != 0
-                        val num = (leds and 0x01) != 0
                         val scroll = (leds and 0x04) != 0
-                        StoreProvider.dispatch(Action.UpdateLocks(caps, num, scroll))
+                        StoreProvider.dispatch(Action.UpdateLocks(caps, scroll))
                     }
                 })
             } catch (_: Exception) {}
@@ -352,48 +357,82 @@ fun MainScreen() {
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { 
-                val chip = if (settings.debugLogging) {
-                    val t = when (settings.logLevel) { 1 -> "Info"; 2 -> "Error"; else -> "All" }
-                    " • Log:" + t
-                } else ""
-                Column {
-                    Text(stringResource(id = R.string.app_name), style = MaterialTheme.typography.titleLarge)
-                    Text("Status: " + (connected?.name ?: "Disconnected") + chip, style = MaterialTheme.typography.bodySmall)
-                }
-            })
-        },
-        snackbarHost = { androidx.compose.material3.SnackbarHost(hostState = snackbarHostState) },
-        bottomBar = {
-            NavigationBar {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
-                Screen.values().forEach { screen ->
-                    // Allow access to keyboard/mouse screens when connected OR when in Pairing/Settings
-                    // Also allow access when debug logging is enabled so developers can use local preview
-                    // on emulator/no-BT without changing production behavior.
-                    // Allow offline access to keyboard/mouse when user enables Offline preview
-                    val isEnabled = connected != null || screen == Screen.Pairing || screen == Screen.Settings || settings.debugLogging || settings.offlinePreview
-                    NavigationBarItem(
-                        icon = { Icon(painterResource(id = screen.icon), contentDescription = screen.title) },
-                        label = { Text(screen.title) },
-                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                        enabled = isEnabled,
-                        onClick = {
-                            if (!isEnabled) {
-                                scope.launch { snackbarHostState.showSnackbar("Connect a device first") }
-                            } else {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+            Column {
+                // Move the navigation bar to the top so it's accessible even when the IME is visible.
+                NavigationBar {
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentDestination = navBackStackEntry?.destination
+                    Screen.values().forEach { screen ->
+                        val isEnabled = connected != null || screen == Screen.Pairing || screen == Screen.Settings || settings.debugLogging || settings.offlinePreview
+                        NavigationBarItem(
+                            icon = { Icon(painterResource(id = screen.icon), contentDescription = screen.title) },
+                            label = { Text(screen.title) },
+                            selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                            enabled = isEnabled,
+                            onClick = {
+                                if (!isEnabled) {
+                                    scope.launch { snackbarHostState.showSnackbar("Connect a device first") }
+                                } else {
+                                    navController.navigate(screen.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
+
+                // Compact status row (no app title) so the top area uses less vertical space.
+                CenterAlignedTopAppBar(
+                    title = {
+                        val chip = if (settings.debugLogging) {
+                            val t = when (settings.logLevel) { 1 -> "Info"; 2 -> "Error"; else -> "All" }
+                            " • Log:" + t
+                        } else ""
+                        // Compact status: indicator + device name; omit the large app title to save space.
+                        val connectedName = connected?.name
+                        val statusText = if (connectedName != null) "Connected to ${connectedName}" else "Disconnected"
+                        androidx.compose.foundation.layout.Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.semantics { this[SemanticsProperties.ContentDescription] = listOf(statusText) }
+                        ) {
+                            val indicatorColor = if (connectedName != null) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f)
+                            androidx.compose.foundation.layout.Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(indicatorColor)
+                            )
+                            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = connectedName ?: "Disconnected", style = MaterialTheme.typography.bodySmall)
+                            if (settings.debugLogging && chip.isNotEmpty()) {
+                                androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(6.dp))
+                                Text(chip, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    },
+                    actions = {
+                        // Scan action
+                        androidx.compose.material3.IconButton(
+                            onClick = { StoreProvider.dispatch(Action.StartDiscovery) },
+                            modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                        ) {
+                            Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Scan", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                        // Settings action
+                        androidx.compose.material3.IconButton(
+                            onClick = { navController.navigate(Screen.Settings.route) },
+                            modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                        ) {
+                            Icon(painter = painterResource(id = R.drawable.ic_settings), contentDescription = "Settings", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    }
+                )
             }
-        }
+        },
+        snackbarHost = { androidx.compose.material3.SnackbarHost(hostState = snackbarHostState) },
     ) { innerPadding ->
     val appState by StoreProvider.asStateFlow().collectAsState()
     val message = appState.connection.message
@@ -578,9 +617,28 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                 items(discoveredDevices) { dev: BluetoothDevice ->
                     val name = dev.name ?: "Unknown Device"
                     androidx.compose.material3.ListItem(
+                        leadingContent = {
+                            // small circular avatar with bluetooth icon
+                            androidx.compose.foundation.layout.Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_bluetooth),
+                                    contentDescription = name,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        },
                         headlineContent = { Text(name) },
                         supportingContent = { Text(dev.address) },
-                        modifier = Modifier.clickable { view.playSoundEffect(SoundEffectConstants.CLICK); StoreProvider.dispatch(Action.PairDevice(dev)) }
+                        modifier = Modifier
+                            .semantics { this[SemanticsProperties.Role] = Role.Button }
+                            .clickable { view.playSoundEffect(SoundEffectConstants.CLICK); StoreProvider.dispatch(Action.PairDevice(dev)) }
                     )
                     androidx.compose.material3.HorizontalDivider()
                 }
@@ -592,22 +650,57 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                 contentPadding = PaddingValues(16.dp)
             ) {
                 items(pairedDevices) { dev: BluetoothDevice ->
-                    val display = ServiceAliasHelper.getAlias(dev) ?: (dev.name ?: dev.address)
-                    val isConn = connectedDevice?.address == dev.address
-                    val isDef = defaultAddr == dev.address
-                    androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxSize().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = display + if (isDef) " ★" else "", modifier = Modifier.weight(1f))
-                        if (isConn) {
-                            Button(onClick = { StoreProvider.dispatch(Action.DisconnectDevice) }, modifier = Modifier.padding(end = 6.dp)) { Text("Disconnect") }
-                        } else {
-                            Button(onClick = { StoreProvider.dispatch(Action.ConnectDevice(dev)) }, modifier = Modifier.padding(end = 6.dp)) { Text("Connect") }
+                        val display = ServiceAliasHelper.getAlias(dev) ?: (dev.name ?: dev.address)
+                        val isConn = connectedDevice?.address == dev.address
+                        val isDef = defaultAddr == dev.address
+                        val cardDesc = "Paired device: $display. ${if (isConn) "Connected." else "Disconnected."} ${if (isDef) "Default device." else ""}"
+                        androidx.compose.material3.Card(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).semantics { this[SemanticsProperties.ContentDescription] = listOf(cardDesc) },
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                        ) {
+                            androidx.compose.material3.ListItem(
+                                leadingContent = {
+                                    androidx.compose.foundation.layout.Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)), contentAlignment = Alignment.Center) {
+                                        Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = display, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                                    }
+                                },
+                                headlineContent = { Text(text = display + if (isDef) " ★" else "", style = MaterialTheme.typography.titleMedium) },
+                                supportingContent = { Text(dev.address, style = MaterialTheme.typography.bodyMedium) },
+                                trailingContent = {
+                                    androidx.compose.foundation.layout.Row {
+                                        val iconTint = MaterialTheme.colorScheme.onSurface
+                                        if (isConn) {
+                                            androidx.compose.material3.IconButton(
+                                                onClick = { StoreProvider.dispatch(Action.DisconnectDevice) },
+                                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                            ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Disconnect", tint = iconTint) }
+                                        } else {
+                                            androidx.compose.material3.IconButton(
+                                                onClick = { StoreProvider.dispatch(Action.ConnectDevice(dev)) },
+                                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                            ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Connect", tint = iconTint) }
+                                        }
+                                        androidx.compose.material3.IconButton(
+                                            onClick = { StoreProvider.dispatch(Action.SetDefaultDevice(dev)) },
+                                            enabled = !isDef,
+                                            modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                        ) {
+                                            val starRes = if (isDef) R.drawable.ic_star_filled else R.drawable.ic_star_outline
+                                            Icon(painterResource(id = starRes), contentDescription = if (isDef) "Default device" else "Set default device", tint = if (isDef) MaterialTheme.colorScheme.primary else iconTint)
+                                        }
+                                        androidx.compose.material3.IconButton(
+                                            onClick = { renaming = dev; renameText = display },
+                                            modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                        ) { Icon(painterResource(id = R.drawable.ic_edit), contentDescription = "Rename", tint = iconTint) }
+                                        androidx.compose.material3.IconButton(
+                                            onClick = { toForget = dev },
+                                            modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                        ) { Icon(painterResource(id = R.drawable.ic_delete), contentDescription = "Forget", tint = MaterialTheme.colorScheme.error) }
+                                    }
+                                }
+                            )
                         }
-                        Button(onClick = { StoreProvider.dispatch(Action.SetDefaultDevice(dev)) }, modifier = Modifier.padding(end = 6.dp), enabled = !isDef) { Text(if (isDef) "Default" else "Make default") }
-                        Button(onClick = { renaming = dev; renameText = display }, modifier = Modifier.padding(end = 6.dp)) { Text("Rename") }
-                        Button(onClick = { toForget = dev }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("Forget") }
                     }
-                    androidx.compose.material3.HorizontalDivider()
-                }
             }
         } else {
             Text(text = "Status: Connected to ${connectedDevice?.name}", modifier = Modifier.padding(16.dp))
@@ -620,116 +713,11 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
 
 @Composable
 fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValues = PaddingValues()) {
-    // Minimal KeyboardScreen wired to Redux store for modifier demo.
-    val appState by StoreProvider.asStateFlow().collectAsState()
-    val kb = appState.keyboard
-    val context = LocalContext.current
-    val settingsViewModel: SettingsViewModel = viewModel()
-    val settings by settingsViewModel.settings.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
-    val connected = appState.connection.connectedDevice != null
-    Column(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(16.dp).navigationBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
-        // Minimal keyboard demo UI. System IME is used for main text input; committed characters are
-        // mapped to HID usage codes (via charToHid) and dispatched through the Redux middleware.
-        // For characters not present in the IME or special keys, use the Extended pages (split across
-        // logical groups) accessible from Settings -> Extended Keys.
-        var imeText by remember { mutableStateOf(TextFieldValue("")) }
-        // Keep a committed-string snapshot so we can detect inserts vs deletes when composition finishes
-        var prevCommitted by remember { mutableStateOf("") }
-        val imeFocusRequester = remember { FocusRequester() }
-        androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = { imeFocusRequester.requestFocus() }) { Text("Open system keyboard") }
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(12.dp))
-            androidx.compose.material3.Text(text = "Use system IME for main input; committed characters are sent as HID events")
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
-            Button(onClick = { navController.navigate("extended") }, enabled = (connected || settings.debugLogging || settings.offlinePreview)) { Text("Extended keys") }
-        }
-        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
-        androidx.compose.material3.TextField(
-            value = imeText,
-            onValueChange = { newValue ->
-                // Update the visible value first so composition works as expected
-                imeText = newValue
-                // Only act when composition is finished (composition == null)
-                if (newValue.composition == null) {
-                    val newText = newValue.text
-                    // If text grew, treat appended characters as committed input
-                    if (newText.length > prevCommitted.length) {
-                        val added = newText.substring(prevCommitted.length)
-                        for (ch in added) {
-                            val mapped = charToHid(ch)
-                            if (mapped != null) {
-                                val code = mapped.first
-                                // combine IME-derived shift with the user's modifier toggles
-                                val mods = mapped.second or run {
-                                    var m = 0
-                                    if (kb.ctrl) m = m or 0x01
-                                    if (kb.shift) m = m or 0x02
-                                    if (kb.alt) m = m or 0x04
-                                    if (kb.gui) m = m or 0x08
-                                    m
-                                }
-                                StoreProvider.dispatch(Action.SendKey(code, mods))
-                            } else {
-                                DebugLog.log("IME", "Unmapped char: ${'$'}{ch}")
-                            }
-                        }
-                    } else if (newText.length < prevCommitted.length) {
-                        // deletion happened - send Backspace HID (0x2A)
-                        StoreProvider.dispatch(Action.SendKey(0x2A.toByte(), mods = run {
-                            var m = 0
-                            if (kb.ctrl) m = m or 0x01
-                            if (kb.shift) m = m or 0x02
-                            if (kb.alt) m = m or 0x04
-                            if (kb.gui) m = m or 0x08
-                            m
-                        }))
-                    }
-                    prevCommitted = newText
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(imeFocusRequester),
-            singleLine = true,
-            placeholder = { Text("Tap to open Android keyboard") }
-        )
-        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
-        // Modifier switches (persist and active state handled in store)
-        androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Ctrl:")
-            androidx.compose.material3.Switch(checked = kb.ctrl, onCheckedChange = { StoreProvider.dispatch(Action.ToggleCtrl) })
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(12.dp))
-            Text("Shift:")
-            androidx.compose.material3.Switch(checked = kb.shift, onCheckedChange = { StoreProvider.dispatch(Action.ToggleShift) })
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(12.dp))
-            Text("Alt:")
-            androidx.compose.material3.Switch(checked = kb.alt, onCheckedChange = { StoreProvider.dispatch(Action.ToggleAlt) })
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(12.dp))
-            Text("Gui:")
-            androidx.compose.material3.Switch(checked = kb.gui, onCheckedChange = { StoreProvider.dispatch(Action.ToggleGui) })
-        }
-        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
-
-        // Helper to compute current modifier bitmap used by middleware (ctrl=0x01, shift=0x02, alt=0x04, gui=0x08)
-        fun currentMods(): Int {
-            var m = 0
-            if (kb.ctrl) m = m or 0x01
-            if (kb.shift) m = m or 0x02
-            if (kb.alt) m = m or 0x04
-            if (kb.gui) m = m or 0x08
-            return m
-        }
-
-        // Small demonstration row: A/B/C - press/release send KeyDown/KeyUp, click sends a short SendKey
-        androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
-            KeyButton(label = "A", onPress = { StoreProvider.dispatch(Action.KeyDown(0x04.toByte(), currentMods())) }, onRelease = { StoreProvider.dispatch(Action.KeyUp(0x04.toByte())) }, onClick = { StoreProvider.dispatch(Action.SendKey(0x04.toByte(), mods = currentMods())) })
-            KeyButton(label = "B", onPress = { StoreProvider.dispatch(Action.KeyDown(0x05.toByte(), currentMods())) }, onRelease = { StoreProvider.dispatch(Action.KeyUp(0x05.toByte())) }, onClick = { StoreProvider.dispatch(Action.SendKey(0x05.toByte(), mods = currentMods())) })
-            KeyButton(label = "C", onPress = { StoreProvider.dispatch(Action.KeyDown(0x06.toByte(), currentMods())) }, onRelease = { StoreProvider.dispatch(Action.KeyUp(0x06.toByte())) }, onClick = { StoreProvider.dispatch(Action.SendKey(0x06.toByte(), mods = currentMods())) })
-        }
-
-        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
-        // Space bar / Enter demo
-        KeyButton(label = "Space", modifier = Modifier.fillMaxWidth(), repeatable = true, onPress = { StoreProvider.dispatch(Action.KeyDown(0x2C.toByte(), currentMods())) }, onRelease = { StoreProvider.dispatch(Action.KeyUp(0x2C.toByte())) }, onClick = { StoreProvider.dispatch(Action.SendKey(0x2C.toByte(), mods = currentMods())) })
+    // Replace the tiny demo with the full Extended Keys UI by default.
+    // The ExtendedKeysScreen already handles modifier toggles and connected-state gating.
+    Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+        // Automatically show the system keyboard when the Keyboard screen is visible
+        ExtendedKeysScreen(autoShowKeyboard = true)
     }
 }
 
@@ -767,36 +755,40 @@ private fun KeyButton(
     val containerColor = if (pressed || toggled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
     val contentColor = if (pressed || toggled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
     val colors = ButtonDefaults.buttonColors(containerColor = containerColor, contentColor = contentColor)
-    Button(
-        modifier = if (repeatable) modifier.pointerInput(Unit) {
-            awaitPointerEventScope {
-                var isDown = false
-                var repeatJob: kotlinx.coroutines.Job? = null
-                while (true) {
-                    val event = awaitPointerEvent()
-                    val anyDown = event.changes.any { it.pressed }
-                    if (anyDown && !isDown) {
-                        isDown = true
-                        pressed = true
-                        onPress?.invoke()
-                        repeatJob = scope.launch {
-                            delay(repeatDelayMs.toLong())
-                            while (isDown) {
-                                onPress?.invoke()
-                                delay(70)
-                            }
+    // Provide a consistent height and rounded shape for key buttons; keep repeatable pointer logic
+    val buttonModifier = if (repeatable) modifier.pointerInput(Unit) {
+        awaitPointerEventScope {
+            var isDown = false
+            var repeatJob: kotlinx.coroutines.Job? = null
+            while (true) {
+                val event = awaitPointerEvent()
+                val anyDown = event.changes.any { it.pressed }
+                if (anyDown && !isDown) {
+                    isDown = true
+                    pressed = true
+                    onPress?.invoke()
+                    repeatJob = scope.launch {
+                        delay(repeatDelayMs.toLong())
+                        while (isDown) {
+                            onPress?.invoke()
+                            delay(70)
                         }
-                    } else if (!anyDown && isDown) {
-                        isDown = false
-                        pressed = false
-                        repeatJob?.cancel()
-                        onRelease?.invoke()
                     }
-                    event.changes.forEach { it.consume() }
+                } else if (!anyDown && isDown) {
+                    isDown = false
+                    pressed = false
+                    repeatJob?.cancel()
+                    onRelease?.invoke()
                 }
+                event.changes.forEach { it.consume() }
             }
-        } else modifier,
+        }
+    } else modifier.height(44.dp)
+
+    androidx.compose.material3.Button(
+        modifier = buttonModifier,
         colors = colors,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
         onClick = {
             scope.launch {
                 pressed = true
@@ -805,7 +797,7 @@ private fun KeyButton(
                 pressed = false
             }
         }
-    ) { Text(label) }
+    ) { Text(label, style = MaterialTheme.typography.bodyMedium) }
 }
 
 @Composable
@@ -825,6 +817,7 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
                 .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline), androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                .semantics { this[SemanticsProperties.Role] = Role.Button }
                 .pointerInput(settings) {
                     awaitEachGesture {
                         val down = awaitFirstDown()
@@ -902,9 +895,9 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
         ) {
-            Button(modifier = Modifier.weight(1f), onClick = { StoreProvider.dispatch(Action.LeftClick) }) { Text("Left") }
-            Button(modifier = Modifier.weight(1f), enabled = settings.enableMiddleClick, onClick = { if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick) }) { Text("Middle") }
-            Button(modifier = Modifier.weight(1f), onClick = { StoreProvider.dispatch(Action.RightClick) }) { Text("Right") }
+            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), onClick = { StoreProvider.dispatch(Action.LeftClick) }) { Text("Left") }
+            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), enabled = settings.enableMiddleClick, onClick = { if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick) }) { Text("Middle") }
+            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), onClick = { StoreProvider.dispatch(Action.RightClick) }) { Text("Right") }
         }
     }
 }

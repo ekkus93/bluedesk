@@ -30,7 +30,6 @@ sealed class Action {
     data class ScrollVertical(val delta: Int) : Action()
     data class ScrollHorizontal(val delta: Int) : Action()
     object ToggleCapsLock : Action()
-    object ToggleNumLock : Action()
     object ToggleScrollLock : Action()
 
     // Connection updates (dispatched by middleware/service listeners)
@@ -39,7 +38,7 @@ sealed class Action {
     data class UpdateConnectedDevice(val device: BluetoothDevice?) : Action()
     data class UpdateMessage(val message: String?) : Action()
     data class UpdateDefaultDevice(val address: String?) : Action()
-    data class UpdateLocks(val caps: Boolean, val num: Boolean, val scroll: Boolean) : Action()
+    data class UpdateLocks(val caps: Boolean, val scroll: Boolean) : Action()
     data class UpdateIsScanning(val scanning: Boolean) : Action()
 
     // Commands that trigger side-effects via middleware

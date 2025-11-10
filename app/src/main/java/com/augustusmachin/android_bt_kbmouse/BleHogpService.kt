@@ -58,6 +58,7 @@ class BleHogpService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = LocalBinder()
 
+    @Suppress("DEPRECATION")
     override fun onCreate() {
         super.onCreate()
         // Require BLUETOOTH_CONNECT permission to interact with GATT/advertising.
@@ -90,6 +91,7 @@ class BleHogpService : Service() {
         try { val mgr = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager; val ad = mgr.adapter; previousName?.let { ad.name = it } } catch (_: Exception) {}
     }
 
+    @Suppress("DEPRECATION")
     private fun setupGattServices() {
         val hidService = BluetoothGattService(UUID_HID_SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY)
 
@@ -99,7 +101,7 @@ class BleHogpService : Service() {
             BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,
             BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE
         )
-        proto.value = byteArrayOf(protocolMode)
+    proto.setValue(byteArrayOf(protocolMode))
         hidService.addCharacteristic(proto)
 
         // HID Information (bcdHID=0x0111, bCountryCode=0, flags=0x02)
@@ -108,7 +110,7 @@ class BleHogpService : Service() {
             BluetoothGattCharacteristic.PROPERTY_READ,
             BluetoothGattCharacteristic.PERMISSION_READ
         )
-        hidInfo.value = byteArrayOf(0x11, 0x01, 0x00, 0x02)
+    hidInfo.setValue(byteArrayOf(0x11, 0x01, 0x00, 0x02))
         hidService.addCharacteristic(hidInfo)
 
         // HID Control Point (write without response)
@@ -125,7 +127,7 @@ class BleHogpService : Service() {
             BluetoothGattCharacteristic.PROPERTY_READ,
             BluetoothGattCharacteristic.PERMISSION_READ
         )
-        reportMap.value = HID_REPORT_MAP
+    reportMap.setValue(HID_REPORT_MAP)
         hidService.addCharacteristic(reportMap)
 
         // Boot Keyboard Input (notify)
@@ -145,7 +147,7 @@ class BleHogpService : Service() {
             BluetoothGattCharacteristic.PERMISSION_READ
         )
         val kbRepRef = BluetoothGattDescriptor(UUID_REPORT_REF, BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED)
-        kbRepRef.value = byteArrayOf(0x01, 0x01) // reportId=1, type=Input(1)
+    kbRepRef.setValue(byteArrayOf(0x01, 0x01)) // reportId=1, type=Input(1)
         val kbRepCcc = BluetoothGattDescriptor(UUID_CCC, BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED)
         kbInputReportChar!!.addDescriptor(kbRepRef)
         kbInputReportChar!!.addDescriptor(kbRepCcc)
@@ -176,7 +178,7 @@ class BleHogpService : Service() {
             BluetoothGattCharacteristic.PERMISSION_READ
         )
         val mouseRepRef = BluetoothGattDescriptor(UUID_REPORT_REF, BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED)
-        mouseRepRef.value = byteArrayOf(0x02, 0x01) // reportId=2, type=Input
+    mouseRepRef.setValue(byteArrayOf(0x02, 0x01)) // reportId=2, type=Input
         val mouseRepCcc = BluetoothGattDescriptor(UUID_CCC, BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED)
         mouseInputReportChar!!.addDescriptor(mouseRepRef)
         mouseInputReportChar!!.addDescriptor(mouseRepCcc)
@@ -190,7 +192,7 @@ class BleHogpService : Service() {
             BluetoothGattCharacteristic.PERMISSION_READ
         )
         val battCcc = BluetoothGattDescriptor(UUID_CCC, BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED)
-        batteryLevelChar!!.value = byteArrayOf(100.toByte())
+    batteryLevelChar!!.setValue(byteArrayOf(100.toByte()))
         batteryLevelChar!!.addDescriptor(battCcc)
         battService.addCharacteristic(batteryLevelChar)
 
@@ -231,6 +233,7 @@ class BleHogpService : Service() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private val gattCb = object : BluetoothGattServerCallback() {
         override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
             android.util.Log.d("BTKB", "GATT conn state=$newState status=$status dev=${device.address}")
@@ -243,9 +246,9 @@ class BleHogpService : Service() {
             gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, slice)
         }
         override fun onCharacteristicWriteRequest(device: BluetoothDevice, requestId: Int, characteristic: BluetoothGattCharacteristic, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray) {
-            if (characteristic.uuid == UUID_PROTOCOL_MODE) {
+                if (characteristic.uuid == UUID_PROTOCOL_MODE) {
                 protocolMode = value.firstOrNull() ?: 0
-                characteristic.value = byteArrayOf(protocolMode)
+                characteristic.setValue(byteArrayOf(protocolMode))
             } else if (characteristic.uuid == UUID_HID_CONTROL_POINT) {
                 // 0=Suspend, 1=Exit Suspend
             }
@@ -258,27 +261,57 @@ class BleHogpService : Service() {
             gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, slice)
         }
         override fun onDescriptorWriteRequest(device: BluetoothDevice, requestId: Int, descriptor: BluetoothGattDescriptor, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray) {
-            descriptor.value = value
+            descriptor.setValue(value)
             if (responseNeeded) gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
         }
     }
 
+    @Suppress("DEPRECATION")
     fun notifyKeyboard(report8: ByteArray) {
         val snapshot = synchronized(connected) { connected.toList() }
-        kbInputChar?.value = report8
-        kbInputReportChar?.value = report8
+        kbInputChar?.setValue(report8)
+        kbInputReportChar?.setValue(report8)
         snapshot.forEach {
-            kbInputChar?.let { ch -> gattServer?.notifyCharacteristicChanged(it, ch, false) }
-            kbInputReportChar?.let { ch -> gattServer?.notifyCharacteristicChanged(it, ch, false) }
+            kbInputChar?.let { ch ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    gattServer?.notifyCharacteristicChanged(it, ch, false, report8)
+                } else {
+                    @Suppress("DEPRECATION")
+                    gattServer?.notifyCharacteristicChanged(it, ch, false)
+                }
+            }
+            kbInputReportChar?.let { ch ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    gattServer?.notifyCharacteristicChanged(it, ch, false, report8)
+                } else {
+                    @Suppress("DEPRECATION")
+                    gattServer?.notifyCharacteristicChanged(it, ch, false)
+                }
+            }
         }
     }
+    @Suppress("DEPRECATION")
     fun notifyMouse(report5: ByteArray) {
         val snapshot = synchronized(connected) { connected.toList() }
-        mouseInputChar?.value = report5
-        mouseInputReportChar?.value = report5
+        mouseInputChar?.setValue(report5)
+        mouseInputReportChar?.setValue(report5)
         snapshot.forEach {
-            mouseInputChar?.let { ch -> gattServer?.notifyCharacteristicChanged(it, ch, false) }
-            mouseInputReportChar?.let { ch -> gattServer?.notifyCharacteristicChanged(it, ch, false) }
+            mouseInputChar?.let { ch ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    gattServer?.notifyCharacteristicChanged(it, ch, false, report5)
+                } else {
+                    @Suppress("DEPRECATION")
+                    gattServer?.notifyCharacteristicChanged(it, ch, false)
+                }
+            }
+            mouseInputReportChar?.let { ch ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    gattServer?.notifyCharacteristicChanged(it, ch, false, report5)
+                } else {
+                    @Suppress("DEPRECATION")
+                    gattServer?.notifyCharacteristicChanged(it, ch, false)
+                }
+            }
         }
     }
 

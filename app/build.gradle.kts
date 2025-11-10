@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.accompanist.systemuicontroller)
     implementation(libs.androidx.datastore.preferences)
     // ReduxKotlin for app-wide state management (attempt 0.5.5)
     implementation("org.reduxkotlin:redux-kotlin:0.5.5")

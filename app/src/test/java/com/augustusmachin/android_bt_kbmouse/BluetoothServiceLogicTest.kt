@@ -36,6 +36,7 @@ class BluetoothServiceLogicTest {
             override fun sendScrollH(delta: Int) {}
             override fun pressKey(keyCode: Byte, modifiers: Int) {}
             override fun releaseKey(keyCode: Byte) {}
+            override fun setModifiers(mods: Int) {}
         }
         val device = Mockito.mock(BluetoothDevice::class.java)
         Mockito.`when`(device.address).thenReturn("FE:ED:FA:CE:00:01")

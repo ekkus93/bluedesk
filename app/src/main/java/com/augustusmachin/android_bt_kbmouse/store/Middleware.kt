@@ -17,6 +17,19 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
     var sender: KeySender? = null
 
     fun create() = middleware<AppState> { store: Store<AppState>, next, action ->
+        // Modifier toggles need to update store state first, then push modifier mask to device
+        if (action == Action.ToggleCtrl || action == Action.ToggleShift || action == Action.ToggleAlt || action == Action.ToggleGui) {
+            val res = next(action)
+            val k = store.state.keyboard
+            var mods = 0
+            if (k.ctrl) mods = mods or 0x01
+            if (k.shift) mods = mods or 0x02
+            if (k.alt) mods = mods or 0x04
+            if (k.gui) mods = mods or 0x08
+            sender?.setModifiers(mods)
+            return@middleware res
+        }
+
         when (action) {
             is Action.SendKey -> {
                 val s = sender
@@ -40,7 +53,6 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
             is Action.ScrollVertical -> sender?.scrollVertical(action.delta)
             is Action.ScrollHorizontal -> sender?.scrollHorizontal(action.delta)
             Action.ToggleCapsLock -> sender?.toggleCapsLock()
-            Action.ToggleNumLock -> sender?.toggleNumLock()
             Action.ToggleScrollLock -> sender?.toggleScrollLock()
 
             Action.StartDiscovery -> {
@@ -79,7 +91,6 @@ interface KeySender {
     fun scrollVertical(delta: Int) {}
     fun scrollHorizontal(delta: Int) {}
     fun toggleCapsLock() {}
-    fun toggleNumLock() {}
     fun toggleScrollLock() {}
 
     fun startDiscovery() {}
@@ -90,4 +101,5 @@ interface KeySender {
     fun forgetDevice(device: android.bluetooth.BluetoothDevice, unpair: Boolean) {}
     fun setDefaultDevice(device: android.bluetooth.BluetoothDevice) {}
     fun renameDevice(device: android.bluetooth.BluetoothDevice, alias: String) {}
+    fun setModifiers(mods: Int) {}
 }

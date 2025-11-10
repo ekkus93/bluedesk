@@ -57,9 +57,8 @@ class BluetoothKeySenderTest {
     fun `toggle locks sendKeyPress with correct codes`() {
         val svc = Mockito.mock(IBluetoothService::class.java)
         val s = BluetoothKeySender(svc)
-        s.toggleCapsLock(); Mockito.verify(svc).sendKeyPress(0x39.toByte(), 0)
-        s.toggleNumLock(); Mockito.verify(svc).sendKeyPress(0x53.toByte(), 0)
-        s.toggleScrollLock(); Mockito.verify(svc).sendKeyPress(0x47.toByte(), 0)
+    s.toggleCapsLock(); Mockito.verify(svc).sendKeyPress(0x39.toByte(), 0)
+    s.toggleScrollLock(); Mockito.verify(svc).sendKeyPress(0x47.toByte(), 0)
         Mockito.verifyNoMoreInteractions(svc)
     }
 

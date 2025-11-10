@@ -24,9 +24,8 @@ val appReducer: Reducer<AppState> = { state, action ->
         is Action.MiddleClick -> state
         is Action.ScrollVertical -> state
         is Action.ScrollHorizontal -> state
-        is Action.ToggleCapsLock -> state
-        is Action.ToggleNumLock -> state
-        is Action.ToggleScrollLock -> state
+    is Action.ToggleCapsLock -> state
+    is Action.ToggleScrollLock -> state
         is Action.UpdateDiscoveredDevices -> state.copy(
             connection = state.connection.copy(discoveredDevices = action.devices)
         )
@@ -45,7 +44,6 @@ val appReducer: Reducer<AppState> = { state, action ->
         is Action.UpdateLocks -> state.copy(
             connection = state.connection.copy(
                 capsLock = action.caps,
-                numLock = action.num,
                 scrollLock = action.scroll
             )
         )

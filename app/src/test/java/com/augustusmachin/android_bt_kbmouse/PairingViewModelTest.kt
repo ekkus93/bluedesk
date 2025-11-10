@@ -16,7 +16,7 @@ import org.junit.Test
 import com.augustusmachin.android_bt_kbmouse.store.Action
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class PairingStoreTest {
+class PairingViewModelTest {
     private class FakeService: IBluetoothService {
         var startCalls = 0
         var stopCalls = 0
@@ -328,3 +328,4 @@ class PairingStoreTest {
     assertNull(com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)
     }
 }
+

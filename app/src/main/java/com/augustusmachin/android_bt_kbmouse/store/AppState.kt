@@ -27,7 +27,6 @@ data class ConnectionState(
     val message: String? = null,
     val defaultDeviceAddress: String? = null,
     val capsLock: Boolean = false,
-    val numLock: Boolean = false,
     val scrollLock: Boolean = false,
     val isScanning: Boolean = false
 )
