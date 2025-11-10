@@ -45,17 +45,20 @@ class UiComposeTests {
     }
 
     @Composable
-    private fun TestScan(viewModel: PairingViewModel) {
-        Button(onClick = { viewModel.startDiscovery() }) { Text("Scan for devices") }
-        val msg by viewModel.message.collectAsState()
-        if (msg != null) Text(msg!!)
+    private fun TestScan() {
+        Button(onClick = { com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.StartDiscovery) }) { Text("Scan for devices") }
+        val appState by com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().collectAsState()
+        val msg = appState.connection.message
+        if (msg != null) Text(msg)
     }
 
     @Test
     fun scanButtonShowsMessage() {
-        val vm = PairingViewModel()
-        vm.setBluetoothService(FakeService())
-        composeRule.setContent { TestScan(vm) }
+        // install a fake KeySender so StartDiscovery actually calls our fake service
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(object : com.augustusmachin.android_bt_kbmouse.store.KeySender {
+            override fun startDiscovery() { FakeService().startDiscovery() }
+        })
+        composeRule.setContent { TestScan() }
         composeRule.onNodeWithText("Scan for devices").performClick()
         composeRule.onNodeWithText("Scanning for devices...").assertExists()
     }

@@ -37,14 +37,13 @@ class BluetoothServiceLogicTest {
             override fun pressKey(keyCode: Byte, modifiers: Int) {}
             override fun releaseKey(keyCode: Byte) {}
         }
-    val vm = PairingViewModel()
         val device = Mockito.mock(BluetoothDevice::class.java)
         Mockito.`when`(device.address).thenReturn("FE:ED:FA:CE:00:01")
     // Simulate service callbacks by dispatching canonical store actions (MainActivity does this in production)
     StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
-    assertEquals(device, vm.connectedDevice.value)
+    assertEquals(device, StoreProvider.asStateFlow().value.connection.connectedDevice)
     StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
-    assertNull(vm.connectedDevice.value)
+    assertNull(StoreProvider.asStateFlow().value.connection.connectedDevice)
     }
 
     @Test

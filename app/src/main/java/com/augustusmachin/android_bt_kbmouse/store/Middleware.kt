@@ -43,8 +43,21 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
             Action.ToggleNumLock -> sender?.toggleNumLock()
             Action.ToggleScrollLock -> sender?.toggleScrollLock()
 
-            Action.StartDiscovery -> sender?.startDiscovery()
-            Action.StopDiscovery -> sender?.stopDiscovery()
+            Action.StartDiscovery -> {
+                // Update UI state in the store so UIs/tests see the scanning message
+                try {
+                    store.dispatch(Action.UpdateMessage("Scanning for devices..."))
+                    store.dispatch(Action.UpdateIsScanning(true))
+                } catch (_: Exception) {}
+                sender?.startDiscovery()
+            }
+            Action.StopDiscovery -> {
+                try {
+                    store.dispatch(Action.UpdateMessage(null))
+                    store.dispatch(Action.UpdateIsScanning(false))
+                } catch (_: Exception) {}
+                sender?.stopDiscovery()
+            }
             is Action.PairDevice -> sender?.pairDevice(action.device)
             is Action.ConnectDevice -> sender?.connectDevice(action.device)
             Action.DisconnectDevice -> sender?.disconnectDevice()
