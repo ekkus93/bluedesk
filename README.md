@@ -46,6 +46,15 @@ Last updated: 2025-11-09T12:00:00.000Z
 
 ## Current Status
 
+### 2025-11-10 — Recent progress
+
+- Added non-numpad extended keys in the Extended Keys UI and mapping: PrintScreen (`PRTSC`), Pause/Break (`PAUSE`) and Insert (`INS`).
+- Extracted `labelToHid` mapping helper and added `ExtendedKeyMappingsTest` (positive, negative and boundary cases).
+- Removed NumLock support across UI, actions, middleware and sender implementations (per project decision). CapsLock and ScrollLock remain.
+- Host JVM unit tests (including the new mapping tests and existing `BluetoothKeySender` tests) run locally and are passing.
+
+The rest of the status section below describes the broader project surface; the bullets above are the most recent, repo-level changes.
+
 - Core HID keyboard and mouse implemented; touchpad gesture stack implemented via Compose pointer APIs (multi-finger move, vertical/horizontal scroll, middle-click, right-click); media keys and settings available.
 - ReduxKotlin store scaffolding in place: keyboard modifiers and HID intents now dispatch through the store/middleware, with connection/settings slices defined for the upcoming migration of service state.
  - Keyboard and Mouse screens migrated to use the central Redux store: Compose screens now read UI state via `StoreProvider.asStateFlow()` and dispatch HID intents (KeyDown/KeyUp/SendKey, MoveMouse/LeftClick/Scroll) so middleware handles platform side-effects.
