@@ -1,0 +1,4 @@
+- [x] Drop modifier canvas indicator dots to free label width
+- [x] Rebuild debug APK
+- [x] Reinstall, capture keyboard screenshot
+- [ ] Run OCR on modifier strip to confirm full label detection

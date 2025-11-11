@@ -42,14 +42,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -67,6 +70,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
@@ -105,6 +118,10 @@ import android.view.inputmethod.InputMethodManager
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 import com.augustusmachin.android_bt_kbmouse.store.ServiceAliasHelper
+
+//private const val KEY_FONT_SCALE = 3900
+private const val KEY_FONT_SCALE = 4200
+private val LocalKeyFontSize = staticCompositionLocalOf { 16.sp }
 
 class MainActivity : ComponentActivity() {
 
@@ -732,8 +749,12 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
     val appState by StoreProvider.asStateFlow().collectAsState()
     val ks = appState.keyboard
     val connected = appState.connection.connectedDevice != null
+    val configuration = LocalConfiguration.current
+    val screenWidthDp = configuration.screenWidthDp.toFloat().coerceAtLeast(1f)
+    val keyFontSize = remember(screenWidthDp) { (KEY_FONT_SCALE / screenWidthDp).sp }
 
-    Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+    CompositionLocalProvider(LocalKeyFontSize provides keyFontSize) {
+        Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
         // TabRow to switch between Extended and Function keys while keeping shared controls fixed
         TabRow(selectedTabIndex = selectedTab) {
             tabs.forEachIndexed { idx, title ->
@@ -759,35 +780,105 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
             keyboardController?.show()
         }
 
-        // Shared modifier toggles (fixed across tabs)
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Button(onClick = { StoreProvider.dispatch(Action.ToggleScrollLock) }, modifier = Modifier.weight(1f)) {
-                Text(if (appState.connection.scrollLock) "Scrl ⬤" else "Scrl")
-            }
-            Button(onClick = {
+    // Shared modifier toggles (fixed across tabs)
+    // Reduce horizontal padding and spacing slightly so labels have more room.
+    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        val inactiveColors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        )
+        val activeColors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        )
+
+            // Order: Shift, CAPS, Alt, Meta, Scrl (Scrl moved to far right)
+            val shiftActive = ks.shift
+            Button(
+                onClick = {
                 StoreProvider.dispatch(Action.ToggleShift)
                 if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Shift toggled"))
-            }, modifier = Modifier.weight(1f)) {
-                Text(if (ks.shift) "Shift ⬤" else "Shift")
+                },
+                modifier = Modifier.weight(1f),
+                colors = if (shiftActive) activeColors else inactiveColors
+            ) {
+                ResponsiveText(
+                    text = "Shift",
+                    minSize = keyFontSize,
+                    maxSize = keyFontSize,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.4.sp
+                )
             }
+
             // CAPS lock toggle (shared between Extended and Function tabs)
-            Button(onClick = {
+            val capsActive = appState.connection.capsLock
+            Button(
+                onClick = {
                 StoreProvider.dispatch(Action.ToggleCapsLock)
                 if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Caps toggled"))
-            }, modifier = Modifier.weight(1f)) {
-                Text(if (appState.connection.capsLock) "CAPS ⬤" else "CAPS")
+                },
+                modifier = Modifier.weight(1f),
+                colors = if (capsActive) activeColors else inactiveColors
+            ) {
+                ResponsiveText(
+                    text = "CAPS",
+                    minSize = keyFontSize,
+                    maxSize = keyFontSize,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.4.sp
+                )
             }
-            Button(onClick = {
+
+            val altActive = ks.alt
+            Button(
+                onClick = {
                 StoreProvider.dispatch(Action.ToggleAlt)
                 if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Alt toggled"))
-            }, modifier = Modifier.weight(1f)) {
-                Text(if (ks.alt) "Alt ⬤" else "Alt")
+                },
+                modifier = Modifier.weight(1f),
+                colors = if (altActive) activeColors else inactiveColors
+            ) {
+                ResponsiveText(
+                    text = "Alt",
+                    minSize = keyFontSize,
+                    maxSize = keyFontSize,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.4.sp
+                )
             }
-            Button(onClick = {
+
+            val metaActive = ks.gui
+            Button(
+                onClick = {
                 StoreProvider.dispatch(Action.ToggleGui)
                 if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Meta toggled"))
-            }, modifier = Modifier.weight(1f)) {
-                Text(if (ks.gui) "Meta ⬤" else "Meta")
+                },
+                modifier = Modifier.weight(1f),
+                colors = if (metaActive) activeColors else inactiveColors
+            ) {
+                ResponsiveText(
+                    text = "Meta",
+                    minSize = keyFontSize,
+                    maxSize = keyFontSize,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.4.sp
+                )
+            }
+
+            val scrollActive = appState.connection.scrollLock
+            Button(
+                onClick = { StoreProvider.dispatch(Action.ToggleScrollLock) },
+                modifier = Modifier.weight(1f),
+                colors = if (scrollActive) activeColors else inactiveColors
+            ) {
+                ResponsiveText(
+                    text = "Scrl",
+                    minSize = keyFontSize,
+                    maxSize = keyFontSize,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.4.sp
+                )
             }
         }
 
@@ -796,6 +887,7 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
             0 -> ExtendedKeysScreen()
             1 -> FunctionKeysScreen()
         }
+        }
     }
 }
 
@@ -803,7 +895,9 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
 fun ExtendedModButton(label: String, active: Boolean, persist: Boolean, onClick: () -> Unit, onLong: () -> Unit) {
     androidx.compose.material3.Button(onClick = onClick, modifier = Modifier.height(40.dp)) {
         androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(label)
+            Box(modifier = Modifier.weight(1f)) {
+                ResponsiveText(text = label, minSize = 12.sp, maxSize = 16.sp)
+            }
             androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(6.dp))
             val color = when {
                 persist -> androidx.compose.ui.graphics.Color.Red
@@ -814,6 +908,50 @@ fun ExtendedModButton(label: String, active: Boolean, persist: Boolean, onClick:
                 drawCircle(color = color)
             }
         }
+    }
+}
+
+@Composable
+fun ResponsiveText(
+    text: String,
+    minSize: TextUnit = 10.sp,
+    maxSize: TextUnit = 16.sp,
+    fontWeight: FontWeight? = null,
+    letterSpacing: TextUnit = TextUnit.Unspecified
+) {
+    BoxWithConstraints {
+        val density = LocalDensity.current
+        val measurer = rememberTextMeasurer()
+        // Convert available width to pixels for measurement
+        val maxWidthPx = with(density) { maxWidth.toPx().roundToInt().coerceAtLeast(1) }
+
+        // Binary search for largest font size (in sp) that fits within maxWidth and single line
+        val minSp = minSize.value
+        val maxSp = maxSize.value
+        var best = minSp
+        var lo = minSp
+        var hi = maxSp
+        while (lo <= hi) {
+            val mid = (lo + hi) / 2f
+            val style = TextStyle(fontSize = mid.sp, fontWeight = fontWeight, letterSpacing = letterSpacing)
+            val result = measurer.measure(AnnotatedString(text), style = style, constraints = Constraints(maxWidth = maxWidthPx))
+            val fits = result.size.width <= maxWidthPx && result.lineCount <= 1
+            if (fits) {
+                best = mid
+                lo = mid + 0.5f
+            } else {
+                hi = mid - 0.5f
+            }
+        }
+
+        Text(
+            text = text,
+            fontSize = best.sp,
+            fontWeight = fontWeight,
+            letterSpacing = letterSpacing,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -875,7 +1013,10 @@ private fun KeyButton(
                 pressed = false
             }
         }
-    ) { Text(label, style = MaterialTheme.typography.bodyMedium) }
+    ) {
+        val keyFontSize = LocalKeyFontSize.current
+        ResponsiveText(text = label, minSize = keyFontSize, maxSize = keyFontSize)
+    }
 }
 
 @Composable
