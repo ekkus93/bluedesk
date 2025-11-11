@@ -21,4 +21,14 @@ class ScrollLockReducerTest {
         val updated = appReducer(toggled, Action.UpdateLocks(caps = false, scroll = false))
         assertFalse(updated.connection.scrollLock)
     }
+
+    @Test
+    fun toggleCapsLockFlipsFlag() {
+        val initial = AppState()
+        val first = appReducer(initial, Action.ToggleCapsLock)
+        assertTrue(first.connection.capsLock)
+
+        val second = appReducer(first, Action.ToggleCapsLock)
+        assertFalse(second.connection.capsLock)
+    }
 }

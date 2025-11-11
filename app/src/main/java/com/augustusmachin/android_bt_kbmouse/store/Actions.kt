@@ -34,6 +34,7 @@ sealed class Action {
     data class ScrollHorizontal(val delta: Int) : Action()
     object ToggleCapsLock : Action()
     object ToggleScrollLock : Action()
+    object ReleaseLockedModifiers : Action()
 
     // Connection updates (dispatched by middleware/service listeners)
     data class UpdateDiscoveredDevices(val devices: List<BluetoothDevice>) : Action()

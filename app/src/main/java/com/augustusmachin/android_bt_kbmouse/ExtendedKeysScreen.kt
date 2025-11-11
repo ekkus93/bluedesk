@@ -56,6 +56,10 @@ fun ExtendedKeysScreen() {
                                     previewHistory.add(0, "${java.text.SimpleDateFormat("HH:mm:ss").format(java.util.Date())} $msg")
                                     if (previewHistory.size > 200) previewHistory.removeAt(previewHistory.lastIndex)
                                 }
+                                if (!connected) {
+                                    // ensure sticky modifiers release even in offline preview
+                                    StoreProvider.dispatch(Action.ReleaseLockedModifiers)
+                                }
                             }
                         },
                         enabled = code != null,

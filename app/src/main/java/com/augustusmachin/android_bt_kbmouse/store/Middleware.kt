@@ -32,17 +32,39 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
 
         when (action) {
             is Action.SendKey -> {
+                val k = store.state.keyboard
+                var mods = action.mods
+                if (k.ctrl) mods = mods or 0x01
+                if (k.shift) mods = mods or 0x02
+                if (k.alt) mods = mods or 0x04
+                if (k.gui) mods = mods or 0x08
                 val s = sender
                 if (s != null) {
                     scope.launch {
                         try {
-                            s.sendKeyDown(action.code, action.mods)
+                            s.sendKeyDown(action.code, mods)
                             delay(40)
                         } finally {
                             s.sendKeyUp(action.code)
                         }
                     }
                 }
+                val result = next(action.copy(mods = mods))
+                if (k.shift || k.alt || k.gui) {
+                    store.dispatch(Action.ReleaseLockedModifiers)
+                }
+                return@middleware result
+            }
+            Action.ReleaseLockedModifiers -> {
+                val res = next(action)
+                val k = store.state.keyboard
+                var mods = 0
+                if (k.ctrl) mods = mods or 0x01
+                if (k.shift) mods = mods or 0x02
+                if (k.alt) mods = mods or 0x04
+                if (k.gui) mods = mods or 0x08
+                sender?.setModifiers(mods)
+                return@middleware res
             }
             is Action.KeyDown -> sender?.sendKeyDown(action.code, action.mods)
             is Action.KeyUp -> sender?.sendKeyUp(action.code)

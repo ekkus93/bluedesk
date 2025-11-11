@@ -805,6 +805,12 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
                                 else -> char.toString()
                             }
                             StoreProvider.dispatch(Action.TrackPreviewKey(label, decorate = false))
+                            val mapping = charToHid(char)
+                            if (connected && mapping != null) {
+                                StoreProvider.dispatch(Action.SendKey(mapping.first, mapping.second))
+                            } else {
+                                StoreProvider.dispatch(Action.ReleaseLockedModifiers)
+                            }
                         }
                     }
                     previewText = ""
@@ -839,6 +845,7 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
             val shiftActive = ks.shift
             Button(
                 onClick = {
+                StoreProvider.dispatch(Action.TrackPreviewKey("Shift"))
                 StoreProvider.dispatch(Action.ToggleShift)
                 if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Shift toggled"))
                 },
@@ -858,6 +865,7 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
             val capsActive = appState.connection.capsLock
             Button(
                 onClick = {
+                StoreProvider.dispatch(Action.TrackPreviewKey("CAPS"))
                 StoreProvider.dispatch(Action.ToggleCapsLock)
                 if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Caps toggled"))
                 },
@@ -876,6 +884,7 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
             val altActive = ks.alt
             Button(
                 onClick = {
+                StoreProvider.dispatch(Action.TrackPreviewKey("Alt"))
                 StoreProvider.dispatch(Action.ToggleAlt)
                 if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Alt toggled"))
                 },
@@ -894,6 +903,7 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
             val metaActive = ks.gui
             Button(
                 onClick = {
+                StoreProvider.dispatch(Action.TrackPreviewKey("Meta"))
                 StoreProvider.dispatch(Action.ToggleGui)
                 if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Meta toggled"))
                 },

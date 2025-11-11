@@ -143,6 +143,7 @@ private fun NavigationKeyButton(
                     val msg = "Preview: $label -> $hex"
                     StoreProvider.dispatch(Action.UpdateMessage(msg))
                     DebugLog.log("NavigationKeys", msg)
+                    StoreProvider.dispatch(Action.ReleaseLockedModifiers)
                 }
             }
         },

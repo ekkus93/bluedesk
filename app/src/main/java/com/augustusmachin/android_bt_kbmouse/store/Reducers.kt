@@ -10,6 +10,16 @@ val appReducer: Reducer<AppState> = { state, action ->
         is Action.ToggleShift -> state.copy(keyboard = state.keyboard.copy(shift = !state.keyboard.shift))
         is Action.ToggleAlt -> state.copy(keyboard = state.keyboard.copy(alt = !state.keyboard.alt))
         is Action.ToggleGui -> state.copy(keyboard = state.keyboard.copy(gui = !state.keyboard.gui))
+        Action.ReleaseLockedModifiers -> {
+            val kb = state.keyboard
+            state.copy(
+                keyboard = kb.copy(
+                    shift = if (kb.shiftPersist) kb.shift else false,
+                    alt = if (kb.altPersist) kb.alt else false,
+                    gui = if (kb.guiPersist) kb.gui else false
+                )
+            )
+        }
         is Action.SetCtrlPersist -> state.copy(keyboard = state.keyboard.copy(ctrlPersist = action.persist))
         is Action.SetShiftPersist -> state.copy(keyboard = state.keyboard.copy(shiftPersist = action.persist))
         is Action.SetAltPersist -> state.copy(keyboard = state.keyboard.copy(altPersist = action.persist))
@@ -35,7 +45,9 @@ val appReducer: Reducer<AppState> = { state, action ->
         is Action.MiddleClick -> state
         is Action.ScrollVertical -> state
         is Action.ScrollHorizontal -> state
-    is Action.ToggleCapsLock -> state
+    is Action.ToggleCapsLock -> state.copy(
+        connection = state.connection.copy(capsLock = !state.connection.capsLock)
+    )
     is Action.ToggleScrollLock -> state.copy(
         connection = state.connection.copy(scrollLock = !state.connection.scrollLock)
     )

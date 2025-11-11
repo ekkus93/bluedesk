@@ -51,6 +51,7 @@ fun FunctionKeysScreen(onBack: () -> Unit = {}) {
                                         val msg = "Preview: $label -> $hex"
                                         StoreProvider.dispatch(Action.UpdateMessage(msg))
                                         DebugLog.log("FunctionKeys", msg)
+                                        StoreProvider.dispatch(Action.ReleaseLockedModifiers)
                                     }
                                 }
                             },
