@@ -158,7 +158,8 @@ class MainActivity : ComponentActivity() {
                     override fun onConnected(device: BluetoothDevice) {
                         DebugLog.log("MainActivity", "onConnected ${device.address}")
                         StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
-                        StoreProvider.dispatch(Action.UpdateMessage("Connected to ${device.name ?: device.address}"))
+                        // Avoid reading device.name here to prevent BLUETOOTH_CONNECT permission lint in non-UI contexts; use address for message
+                        StoreProvider.dispatch(Action.UpdateMessage("Connected to ${device.address}"))
                     }
 
                     override fun onDisconnected(device: BluetoothDevice?) {
@@ -196,7 +197,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Register receiver for permission-error reports from services
         try {
-            registerReceiver(permReceiver, IntentFilter(BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT))
+            androidx.core.content.ContextCompat.registerReceiver(this, permReceiver, IntentFilter(BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
         } catch (_: Exception) {}
         // Force enable debug logging for diagnostics; SettingsViewModel updates DebugLog level from persisted settings.
         DebugLog.setEnabled(true)

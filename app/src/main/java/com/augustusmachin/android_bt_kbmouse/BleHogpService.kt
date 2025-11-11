@@ -85,7 +85,18 @@ class BleHogpService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        try { advertiser?.stopAdvertising(adCb) } catch (_: Exception) {}
+        // Stop advertising; perform explicit permission checks so lint can verify we handled runtime permissions.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val hasAdvertise = checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) == PackageManager.PERMISSION_GRANTED
+            val hasConnect = checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+            if (hasAdvertise && hasConnect) {
+                try { advertiser?.stopAdvertising(adCb) } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "stopAdvertising SecurityException: ${e.message}") }
+            } else {
+                android.util.Log.w("BleHogpService", "Missing BLUETOOTH_ADVERTISE/CONNECT permission on destroy; skipping stopAdvertising")
+            }
+        } else {
+            try { advertiser?.stopAdvertising(adCb) } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "stopAdvertising SecurityException: ${e.message}") }
+        }
         try { gattServer?.close() } catch (_: Exception) {}
         // Restore device name
         try { val mgr = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager; val ad = mgr.adapter; previousName?.let { ad.name = it } } catch (_: Exception) {}
@@ -93,6 +104,13 @@ class BleHogpService : Service() {
 
     @Suppress("DEPRECATION")
     private fun setupGattServices() {
+        // Ensure we have BLUETOOTH_CONNECT permission before interacting with GATT server.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                android.util.Log.w("BleHogpService", "BLUETOOTH_CONNECT not granted; skipping GATT service setup")
+                return
+            }
+        }
         val hidService = BluetoothGattService(UUID_HID_SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY)
 
         // Protocol Mode
@@ -218,10 +236,32 @@ class BleHogpService : Service() {
         val scanResp = AdvertiseData.Builder()
             .addServiceUuid(ParcelUuid(UUID_HID_SERVICE))
             .build()
-        advertiser?.startAdvertising(settings, data, adCb)
-        // Attempt to also set scan response (appearance cannot be set via API)
-        try { advertiser?.startAdvertising(settings, scanResp, adCb) } catch (_: Exception) {}
-        advertiser?.startAdvertising(settings, data, adCb)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val hasAdvertise = checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) == PackageManager.PERMISSION_GRANTED
+            val hasConnect = checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+            if (hasAdvertise && hasConnect) {
+                advertiser?.startAdvertising(settings, data, adCb)
+                // Attempt to also set scan response (appearance cannot be set via API)
+                try { advertiser?.startAdvertising(settings, scanResp, adCb) } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "startAdvertising SecurityException: ${e.message}") }
+                advertiser?.startAdvertising(settings, data, adCb)
+            } else {
+                android.util.Log.w("BleHogpService", "Missing BLUETOOTH_ADVERTISE/CONNECT permission; not starting BLE advertising")
+            }
+        } else {
+            advertiser?.startAdvertising(settings, data, adCb)
+            try { advertiser?.startAdvertising(settings, scanResp, adCb) } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "startAdvertising SecurityException: ${e.message}") }
+            advertiser?.startAdvertising(settings, data, adCb)
+        }
+    }
+
+    private fun hasAdvertisePermissions(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // On Android 12+ both BLUETOOTH_ADVERTISE and BLUETOOTH_CONNECT are required for advertising control
+            checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) == PackageManager.PERMISSION_GRANTED &&
+                    checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
     }
 
     private val adCb = object : AdvertiseCallback() {
@@ -243,7 +283,15 @@ class BleHogpService : Service() {
             val v = characteristic.value ?: byteArrayOf()
             val start = offset.coerceAtMost(v.size)
             val slice = v.copyOfRange(start, v.size)
-            gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, slice)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                    try { gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, slice) } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "sendResponse SecurityException: ${e.message}") }
+                } else {
+                    android.util.Log.w("BleHogpService", "Missing BLUETOOTH_CONNECT permission; cannot sendResponse")
+                }
+            } else {
+                try { gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, slice) } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "sendResponse SecurityException: ${e.message}") }
+            }
         }
         override fun onCharacteristicWriteRequest(device: BluetoothDevice, requestId: Int, characteristic: BluetoothGattCharacteristic, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray) {
                 if (characteristic.uuid == UUID_PROTOCOL_MODE) {
@@ -252,17 +300,45 @@ class BleHogpService : Service() {
             } else if (characteristic.uuid == UUID_HID_CONTROL_POINT) {
                 // 0=Suspend, 1=Exit Suspend
             }
-            if (responseNeeded) gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
+            if (responseNeeded) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                        try { gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null) } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "sendResponse SecurityException: ${e.message}") }
+                    } else {
+                        android.util.Log.w("BleHogpService", "Missing BLUETOOTH_CONNECT permission; cannot sendResponse")
+                    }
+                } else {
+                    try { gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null) } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "sendResponse SecurityException: ${e.message}") }
+                }
+            }
         }
         override fun onDescriptorReadRequest(device: BluetoothDevice, requestId: Int, offset: Int, descriptor: BluetoothGattDescriptor) {
             val v = descriptor.value ?: byteArrayOf()
             val start = offset.coerceAtMost(v.size)
             val slice = v.copyOfRange(start, v.size)
-            gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, slice)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                    try { gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, slice) } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "sendResponse SecurityException: ${e.message}") }
+                } else {
+                    android.util.Log.w("BleHogpService", "Missing BLUETOOTH_CONNECT permission; cannot sendResponse")
+                }
+            } else {
+                try { gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, slice) } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "sendResponse SecurityException: ${e.message}") }
+            }
         }
         override fun onDescriptorWriteRequest(device: BluetoothDevice, requestId: Int, descriptor: BluetoothGattDescriptor, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray) {
             descriptor.setValue(value)
-            if (responseNeeded) gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
+            if (responseNeeded) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                        try { gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null) } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "sendResponse SecurityException: ${e.message}") }
+                    } else {
+                        android.util.Log.w("BleHogpService", "Missing BLUETOOTH_CONNECT permission; cannot sendResponse")
+                    }
+                } else {
+                    try { gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null) } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "sendResponse SecurityException: ${e.message}") }
+                }
+            }
         }
     }
 
@@ -273,19 +349,53 @@ class BleHogpService : Service() {
         kbInputReportChar?.setValue(report8)
         snapshot.forEach {
             kbInputChar?.let { ch ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    gattServer?.notifyCharacteristicChanged(it, ch, false, report8)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                        try {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                gattServer?.notifyCharacteristicChanged(it, ch, false, report8)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                gattServer?.notifyCharacteristicChanged(it, ch, false)
+                            }
+                        } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "notifyCharacteristicChanged SecurityException: ${e.message}") }
+                    } else {
+                        android.util.Log.w("BleHogpService", "Missing BLUETOOTH_CONNECT permission; cannot notifyCharacteristicChanged")
+                    }
                 } else {
-                    @Suppress("DEPRECATION")
-                    gattServer?.notifyCharacteristicChanged(it, ch, false)
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            gattServer?.notifyCharacteristicChanged(it, ch, false, report8)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            gattServer?.notifyCharacteristicChanged(it, ch, false)
+                        }
+                    } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "notifyCharacteristicChanged SecurityException: ${e.message}") }
                 }
             }
             kbInputReportChar?.let { ch ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    gattServer?.notifyCharacteristicChanged(it, ch, false, report8)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                        try {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                gattServer?.notifyCharacteristicChanged(it, ch, false, report8)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                gattServer?.notifyCharacteristicChanged(it, ch, false)
+                            }
+                        } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "notifyCharacteristicChanged SecurityException: ${e.message}") }
+                    } else {
+                        android.util.Log.w("BleHogpService", "Missing BLUETOOTH_CONNECT permission; cannot notifyCharacteristicChanged")
+                    }
                 } else {
-                    @Suppress("DEPRECATION")
-                    gattServer?.notifyCharacteristicChanged(it, ch, false)
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            gattServer?.notifyCharacteristicChanged(it, ch, false, report8)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            gattServer?.notifyCharacteristicChanged(it, ch, false)
+                        }
+                    } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "notifyCharacteristicChanged SecurityException: ${e.message}") }
                 }
             }
         }
@@ -297,19 +407,53 @@ class BleHogpService : Service() {
         mouseInputReportChar?.setValue(report5)
         snapshot.forEach {
             mouseInputChar?.let { ch ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    gattServer?.notifyCharacteristicChanged(it, ch, false, report5)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                        try {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                gattServer?.notifyCharacteristicChanged(it, ch, false, report5)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                gattServer?.notifyCharacteristicChanged(it, ch, false)
+                            }
+                        } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "notifyCharacteristicChanged SecurityException: ${e.message}") }
+                    } else {
+                        android.util.Log.w("BleHogpService", "Missing BLUETOOTH_CONNECT permission; cannot notifyCharacteristicChanged")
+                    }
                 } else {
-                    @Suppress("DEPRECATION")
-                    gattServer?.notifyCharacteristicChanged(it, ch, false)
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            gattServer?.notifyCharacteristicChanged(it, ch, false, report5)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            gattServer?.notifyCharacteristicChanged(it, ch, false)
+                        }
+                    } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "notifyCharacteristicChanged SecurityException: ${e.message}") }
                 }
             }
             mouseInputReportChar?.let { ch ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    gattServer?.notifyCharacteristicChanged(it, ch, false, report5)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                        try {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                gattServer?.notifyCharacteristicChanged(it, ch, false, report5)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                gattServer?.notifyCharacteristicChanged(it, ch, false)
+                            }
+                        } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "notifyCharacteristicChanged SecurityException: ${e.message}") }
+                    } else {
+                        android.util.Log.w("BleHogpService", "Missing BLUETOOTH_CONNECT permission; cannot notifyCharacteristicChanged")
+                    }
                 } else {
-                    @Suppress("DEPRECATION")
-                    gattServer?.notifyCharacteristicChanged(it, ch, false)
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            gattServer?.notifyCharacteristicChanged(it, ch, false, report5)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            gattServer?.notifyCharacteristicChanged(it, ch, false)
+                        }
+                    } catch (e: SecurityException) { android.util.Log.w("BleHogpService", "notifyCharacteristicChanged SecurityException: ${e.message}") }
                 }
             }
         }

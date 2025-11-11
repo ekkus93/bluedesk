@@ -3,8 +3,11 @@ package com.augustusmachin.android_bt_kbmouse
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.app.PendingIntent
+import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import android.annotation.SuppressLint
 
 class HidQuickTileService : TileService() {
     override fun onStartListening() {
@@ -12,6 +15,7 @@ class HidQuickTileService : TileService() {
         updateTile()
     }
 
+    @SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
         super.onClick()
         val sp = getSharedPreferences("bt_hid", Context.MODE_PRIVATE)
@@ -27,9 +31,16 @@ class HidQuickTileService : TileService() {
             } else {
                 // no last device; open app
                 val i = Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                // startActivityAndCollapse is deprecated on newer platforms; keep behavior but suppress warning
-                @Suppress("DEPRECATION")
-                startActivityAndCollapse(i)
+                // Use the PendingIntent overload on newer platforms to avoid UnsupportedOperationException
+                val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
+                val pi = PendingIntent.getActivity(this, 0, i, flags)
+                if (Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    // Preferred new API
+                    startActivityAndCollapse(pi)
+                } else {
+                    @Suppress("DEPRECATION")
+                    startActivityAndCollapse(i)
+                }
             }
         }
         // optimistic UI update

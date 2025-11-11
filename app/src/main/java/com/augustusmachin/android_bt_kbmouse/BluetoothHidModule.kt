@@ -3,6 +3,7 @@ package com.augustusmachin.android_bt_kbmouse
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothHidDevice
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothHidDeviceAppSdpSettings
 import android.bluetooth.BluetoothProfile
 
@@ -83,6 +84,7 @@ class BluetoothHidModule(private val bluetoothAdapter: BluetoothAdapter) {
         0xC0.toByte()              // End Collection
     )
 
+    @SuppressLint("NewApi")
     private val callback = object : BluetoothHidDevice.Callback() {
         override fun onAppStatusChanged(pluggedDevice: BluetoothDevice?, registered: Boolean) {
             DebugLog.log("BluetoothHidModule", "onAppStatusChanged registered=" + registered)
@@ -90,7 +92,8 @@ class BluetoothHidModule(private val bluetoothAdapter: BluetoothAdapter) {
             listener?.onAppStatus(registered)
         }
         override fun onConnectionStateChanged(device: BluetoothDevice, state: Int) {
-            DebugLog.log("BluetoothHidModule", "onConnectionStateChanged state=" + state + " dev=" + (device.name ?: device.address))
+            // Avoid accessing device.name which requires BLUETOOTH_CONNECT on newer Android; use address for logs.
+            DebugLog.log("BluetoothHidModule", "onConnectionStateChanged state=" + state + " dev=" + device.address)
              android.util.Log.d("BTKB", "onConnectionStateChanged state="+state+" dev="+(device.address))
             listener?.onConnectionStateChanged(device, state)
         }
@@ -103,6 +106,7 @@ class BluetoothHidModule(private val bluetoothAdapter: BluetoothAdapter) {
         }
     }
 
+    @SuppressLint("NewApi")
     fun registerApp(proxy: BluetoothProfile) {
         val subclass: Byte = 0x40.toByte() // Keyboard only (boot)
         val sdpSettings = BluetoothHidDeviceAppSdpSettings(
@@ -114,6 +118,11 @@ class BluetoothHidModule(private val bluetoothAdapter: BluetoothAdapter) {
         )
 
         DebugLog.log("BluetoothHidModule", "registerApp")
-        (proxy as BluetoothHidDevice).registerApp(sdpSettings, null, null, { it.run() }, callback)
+        try {
+            (proxy as BluetoothHidDevice).registerApp(sdpSettings, null, null, { it.run() }, callback)
+        } catch (e: SecurityException) {
+            android.util.Log.w("BluetoothHidModule", "registerApp SecurityException: ${e.message}")
+            listener?.onError("registerApp failed: ${e.message}")
+        }
     }
 }

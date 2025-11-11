@@ -120,7 +120,7 @@ fun ExtendedKeysScreen(autoShowKeyboard: Boolean = false) {
                                     DebugLog.log("ExtendedKeys", msg)
                                     // append to local preview console (limit size)
                                     previewHistory.add(0, "${java.text.SimpleDateFormat("HH:mm:ss").format(java.util.Date())} $msg")
-                                    if (previewHistory.size > 200) previewHistory.removeLast()
+                                    if (previewHistory.size > 200) previewHistory.removeAt(previewHistory.lastIndex)
                                 }
                             }
                         },

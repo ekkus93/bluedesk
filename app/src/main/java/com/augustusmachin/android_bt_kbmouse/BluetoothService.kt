@@ -13,6 +13,7 @@ import android.os.Binder
 import android.os.IBinder
 import android.bluetooth.BluetoothHidDevice
 import android.Manifest
+import android.annotation.SuppressLint
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.first
 import android.app.Notification
@@ -60,7 +61,8 @@ class BluetoothService : Service(), IBluetoothService {
                     device?.let {
                         if (!discoveredDevices.contains(it)) {
                             discoveredDevices.add(it)
-                            DebugLog.log("BluetoothService", "FOUND ${it.name ?: "?"} ${it.address}")
+                            // Avoid accessing device.name which requires BLUETOOTH_CONNECT on newer Android
+                            DebugLog.log("BluetoothService", "FOUND ${it.address}")
                         }
                     }
                 }
@@ -120,6 +122,12 @@ class BluetoothService : Service(), IBluetoothService {
     private val profileListener = object : BluetoothProfile.ServiceListener {
         override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
             if (profile == BluetoothProfile.HID_DEVICE) {
+                // HID APIs require API level 28+. If running on older platforms, skip HID initialization.
+                if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.P) {
+                    DebugLog.e("BluetoothService", "HID profile requires API 28+; skipping HID initialization on this OS")
+                    eventListener?.onError("HID not supported on this Android version")
+                    return
+                }
                 // Require BLUETOOTH_CONNECT permission before using HID APIs
                 val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
                 if (!hasBtConnect) {
@@ -150,7 +158,26 @@ class BluetoothService : Service(), IBluetoothService {
                                             DebugLog.log("BluetoothService", "auto reconnect now to $addr")
                                             eventListener?.onInfo("Immediate auto-connect to $addr")
                                             eventListener?.onInfo("hid.connect($addr) immediate")
-                                            hid?.connect(dev)
+                                            // Ensure BLUETOOTH_CONNECT is available before attempting connect
+                                            val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                            if (hasBtConnect) {
+                                                try {
+                                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                                                        hid?.connect(dev)
+                                                    } else {
+                                                        DebugLog.e("BluetoothService", "HID connect not supported on API < 28; skipping")
+                                                    }
+                                                } catch (se: SecurityException) {
+                                                    DebugLog.e("BluetoothService", "hid.connect SecurityException: ${se.message}")
+                                                    eventListener?.onError("HID connect failed due to missing permission")
+                                                } catch (e: Exception) {
+                                                    DebugLog.e("BluetoothService", "immediate reconnect error: ${e.message}")
+                                                    scheduleReconnect()
+                                                }
+                                            } else {
+                                                DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; skipping immediate auto-connect")
+                                                reportMissingBluetoothConnect()
+                                            }
                                         }
                                     } catch (e: Exception) {
                                         DebugLog.e("BluetoothService", "immediate reconnect error: ${e.message}")
@@ -164,9 +191,15 @@ class BluetoothService : Service(), IBluetoothService {
                                 eventListener?.onInfo("HID state CONNECTED ${device.address}")
                                 connectedDevice = device
                                 reconnectAttempt = 0
-                                bluetoothAdapter?.cancelDiscovery()
-                                // persist connected name for QS tile
-                                getSharedPreferences("bt_hid", MODE_PRIVATE).edit().putString("connected_name", device.name ?: device.address).apply()
+                                // Cancel discovery only if BLUETOOTH_SCAN is granted to avoid SecurityException
+                                val hasBtScanCancel = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_SCAN) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                if (hasBtScanCancel) {
+                                    try { bluetoothAdapter?.cancelDiscovery() } catch (se: SecurityException) { DebugLog.e("BluetoothService", "cancelDiscovery SecurityException: ${se.message}") }
+                                } else {
+                                    DebugLog.e("BluetoothService", "BLUETOOTH_SCAN not granted; skipping cancelDiscovery")
+                                }
+                                // persist connected address for QS tile (avoid device.name which requires BLUETOOTH_CONNECT)
+                                getSharedPreferences("bt_hid", MODE_PRIVATE).edit().putString("connected_name", device.address).apply()
                                 // notify tile to refresh
                                 refreshQsTile()
                                 eventListener?.onConnected(device)
@@ -191,7 +224,7 @@ class BluetoothService : Service(), IBluetoothService {
                         SettingsManager.flow(this@BluetoothService).first().hidSimplified
                     }
                 } catch (e: Exception) { true }
-                eventListener?.onInfo("Registering HID app (simplified=$simplified)")
+            eventListener?.onInfo("Registering HID app (simplified=$simplified)")
                 // registerApp currently takes only the proxy; descriptor selection
                 // is handled inside BluetoothHidModule.registerApp
                 bluetoothHidModule?.registerApp(proxy)
@@ -206,6 +239,7 @@ class BluetoothService : Service(), IBluetoothService {
         }
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
         super.onCreate()
         // Prefer BluetoothManager.adapter on newer platform versions. If unavailable, fall back
@@ -260,7 +294,13 @@ class BluetoothService : Service(), IBluetoothService {
         super.onDestroy()
         try { unregisterReceiver(receiver) } catch (_: Exception) {}
         try { unregisterReceiver(notifActionReceiver) } catch (_: Exception) {}
-        try { hid?.unregisterApp() } catch (_: Exception) {}
+        // Unregister HID app only on supported platforms (API 28+) and if BLUETOOTH_CONNECT is available; guard against SecurityException
+        val hasBtConnectDestroy = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P && hasBtConnectDestroy) {
+            try { hid?.unregisterApp() } catch (se: SecurityException) { DebugLog.e("BluetoothService", "unregisterApp SecurityException: ${se.message}") } catch (_: Exception) {}
+        } else {
+            DebugLog.e("BluetoothService", "Skipping hid.unregisterApp: either BLUETOOTH_CONNECT not granted or API < 28")
+        }
         bluetoothAdapter?.closeProfileProxy(BluetoothProfile.HID_DEVICE, bluetoothHidProfile)
         refreshQsTile()
     }
@@ -268,7 +308,13 @@ class BluetoothService : Service(), IBluetoothService {
     override fun startDiscovery() {
         if (bluetoothAdapter?.isDiscovering == true) {
             DebugLog.log("BluetoothService", "cancelDiscovery (was discovering)")
-            bluetoothAdapter?.cancelDiscovery()
+                // Cancel discovery only if BLUETOOTH_SCAN is granted to avoid SecurityException
+                val hasBtScan = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_SCAN) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (hasBtScan) {
+                    try { bluetoothAdapter?.cancelDiscovery() } catch (se: SecurityException) { DebugLog.e("BluetoothService", "cancelDiscovery SecurityException: ${se.message}") }
+                } else {
+                    DebugLog.e("BluetoothService", "BLUETOOTH_SCAN not granted; skipping cancelDiscovery")
+                }
         }
         // Clear previous results so UI refreshes immediately
         discoveredDevices.clear()
@@ -279,7 +325,13 @@ class BluetoothService : Service(), IBluetoothService {
 
     override fun stopDiscovery() {
         DebugLog.log("BluetoothService", "stopDiscovery")
-        bluetoothAdapter?.cancelDiscovery()
+        // Cancel discovery only if BLUETOOTH_SCAN is granted to avoid SecurityException
+        val hasBtScan2 = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_SCAN) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (hasBtScan2) {
+            try { bluetoothAdapter?.cancelDiscovery() } catch (se: SecurityException) { DebugLog.e("BluetoothService", "cancelDiscovery SecurityException: ${se.message}") }
+        } else {
+            DebugLog.e("BluetoothService", "BLUETOOTH_SCAN not granted; skipping cancelDiscovery")
+        }
     }
 
     override fun getDiscoveredDevices(): List<BluetoothDevice> {
@@ -288,11 +340,37 @@ class BluetoothService : Service(), IBluetoothService {
     }
 
     override fun getPairedDevices(): List<BluetoothDevice> {
-        return bluetoothAdapter?.bondedDevices?.toList() ?: emptyList()
+        // Access to bondedDevices requires BLUETOOTH_CONNECT on newer Android; check permission
+        val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        return if (hasBtConnect) {
+            try {
+                bluetoothAdapter?.bondedDevices?.toList() ?: emptyList()
+            } catch (se: SecurityException) {
+                DebugLog.e("BluetoothService", "getPairedDevices SecurityException: ${se.message}")
+                emptyList()
+            }
+        } else {
+            DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; returning empty paired list")
+            emptyList()
+        }
     }
 
     override fun pairDevice(device: BluetoothDevice) {
-        device.createBond()
+        // Creating a bond may require BLUETOOTH_CONNECT on newer Android; guard the call
+        val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (hasBtConnect) {
+            try {
+                device.createBond()
+            } catch (se: SecurityException) {
+                DebugLog.e("BluetoothService", "createBond SecurityException: ${se.message}")
+                eventListener?.onError("Pairing failed due to missing permission")
+            } catch (e: Exception) {
+                DebugLog.e("BluetoothService", "createBond error: ${e.message}")
+            }
+        } else {
+            DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; cannot create bond")
+            eventListener?.onError("Missing BLUETOOTH_CONNECT permission; pairing not allowed")
+        }
     }
 
     private var connectedDevice: BluetoothDevice? = null
@@ -319,7 +397,26 @@ class BluetoothService : Service(), IBluetoothService {
             try {
                 DebugLog.log("BluetoothService", "auto reconnect attempt #${attempt} to ${target.address}")
                 eventListener?.onInfo("hid.connect(${target.address}) attempt #${attempt}")
-                hid?.connect(target)
+        // Ensure BLUETOOTH_CONNECT is available before attempting connect
+        val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (hasBtConnect) {
+                    try {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                            hid?.connect(target)
+                        } else {
+                            DebugLog.e("BluetoothService", "HID connect not supported on API < 28; skipping auto reconnect")
+                        }
+                    } catch (se: SecurityException) {
+                        DebugLog.e("BluetoothService", "hid.connect SecurityException: ${se.message}")
+                        eventListener?.onError("HID connect failed due to missing permission")
+                    } catch (e: Exception) {
+                        DebugLog.e("BluetoothService", "reconnect error: ${e.message}")
+                        scheduleReconnect()
+                    }
+                } else {
+                    DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; skipping auto reconnect")
+                    reportMissingBluetoothConnect()
+                }
             } catch (e: Exception) {
                 DebugLog.e("BluetoothService", "reconnect error: ${e.message}")
                 scheduleReconnect()
@@ -336,17 +433,33 @@ class BluetoothService : Service(), IBluetoothService {
         reconnectAttempt = 0
         lastTargetDevice = device
         DebugLog.log("BluetoothService", "connectDevice ${device.address}")
-        eventListener?.onInfo("Connecting to ${device.name ?: device.address} (manual)")
+        // Avoid accessing device.name which requires BLUETOOTH_CONNECT; show address instead
+        eventListener?.onInfo("Connecting to ${device.address} (manual)")
         getSharedPreferences("bt_hid", MODE_PRIVATE).edit().putString("last_device", device.address).apply()
         lastDeviceAddress = device.address
-        try {
-            DebugLog.log("BluetoothService", "hid.connect immediate manual ${device.address}")
-            eventListener?.onInfo("hid.connect(${device.address})")
-            hid?.connect(device)
-        } catch (e: Exception) {
-            DebugLog.e("BluetoothService", "connect error: ${e.message}")
-            e.printStackTrace()
-            scheduleReconnect()
+        // Ensure BLUETOOTH_CONNECT is available before attempting connect
+        val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (hasBtConnect) {
+            try {
+                DebugLog.log("BluetoothService", "hid.connect immediate manual ${device.address}")
+                eventListener?.onInfo("hid.connect(${device.address})")
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    hid?.connect(device)
+                } else {
+                    DebugLog.e("BluetoothService", "HID connect not supported on API < 28; manual connect skipped")
+                }
+            } catch (se: SecurityException) {
+                DebugLog.e("BluetoothService", "hid.connect SecurityException: ${se.message}")
+                eventListener?.onError("HID connect failed due to missing permission")
+            } catch (e: Exception) {
+                DebugLog.e("BluetoothService", "connect error: ${e.message}")
+                e.printStackTrace()
+                scheduleReconnect()
+            }
+        } else {
+            DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; cannot connect")
+            eventListener?.onError("Missing BLUETOOTH_CONNECT permission; connect aborted")
+            reportMissingBluetoothConnect()
         }
     }
 
@@ -355,7 +468,20 @@ class BluetoothService : Service(), IBluetoothService {
         try {
             val target = connectedDevice ?: lastTargetDevice
             DebugLog.log("BluetoothService", "disconnectDevice target=${target?.address}")
-            if (target != null) hid?.disconnect(target)
+            if (target != null) {
+                val hasBtConnectDisc = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (hasBtConnectDisc) {
+                    try {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                            hid?.disconnect(target)
+                        } else {
+                            DebugLog.e("BluetoothService", "HID disconnect not supported on API < 28; skipping")
+                        }
+                    } catch (se: SecurityException) { DebugLog.e("BluetoothService", "hid.disconnect SecurityException: ${se.message}") }
+                } else {
+                    DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; skipping disconnect")
+                }
+            }
         } catch (e: Exception) {
             DebugLog.e("BluetoothService", "disconnect error: ${e.message}")
             e.printStackTrace()
@@ -367,7 +493,14 @@ class BluetoothService : Service(), IBluetoothService {
     }
 
     // HID report helpers
-    private fun hidDevice(): BluetoothHidDevice? = hid ?: bluetoothHidProfile as? BluetoothHidDevice
+    @SuppressLint("NewApi")
+    private fun hidDevice(): BluetoothHidDevice? {
+        // Only resolve the profile proxy as a BluetoothHidDevice on supported platforms.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            return hid ?: bluetoothHidProfile as? BluetoothHidDevice
+        }
+        return null
+    }
 
     private fun connectLast(): Boolean {
         val addr = lastDeviceAddress ?: return false
@@ -499,9 +632,10 @@ class BluetoothService : Service(), IBluetoothService {
     override fun setDefaultDevice(device: BluetoothDevice) {
         DebugLog.log("BluetoothService", "setDefaultDevice ${device.address}")
         getSharedPreferences("bt_hid", MODE_PRIVATE).edit().putString("last_device", device.address).apply()
-        lastDeviceAddress = device.address
-        lastTargetDevice = device
-        eventListener?.onInfo("Default device: ${device.name ?: device.address}")
+    lastDeviceAddress = device.address
+    lastTargetDevice = device
+    // Avoid accessing device.name (requires BLUETOOTH_CONNECT on newer Android) — use address in UI messages
+    eventListener?.onInfo("Default device: ${device.address}")
         refreshQsTile()
     }
 
@@ -520,7 +654,19 @@ class BluetoothService : Service(), IBluetoothService {
         try {
             if (connectedDevice?.address == device.address) {
                 manualDisconnect = true
-                try { hid?.disconnect(device) } catch (_: Exception) {}
+                // Guard hid.disconnect with BLUETOOTH_CONNECT check
+                val hasBtConnectForget = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (hasBtConnectForget) {
+                    try {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                            hid?.disconnect(device)
+                        } else {
+                            DebugLog.e("BluetoothService", "HID disconnect not supported on API < 28; skipping forget-device disconnect")
+                        }
+                    } catch (se: SecurityException) { DebugLog.e("BluetoothService", "hid.disconnect SecurityException: ${se.message}") } catch (_: Exception) {}
+                } else {
+                    DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; skipping disconnect in forgetDevice")
+                }
                 connectedDevice = null
                 getSharedPreferences("bt_hid", MODE_PRIVATE).edit().remove("connected_name").apply()
                 refreshQsTile()
@@ -542,8 +688,8 @@ class BluetoothService : Service(), IBluetoothService {
                 }
             }
         } finally {
-            // refresh paired list on UI by emitting info
-            eventListener?.onInfo("Forgot ${device.name ?: device.address}")
+            // refresh paired list on UI by emitting info (avoid device.name access)
+            eventListener?.onInfo("Forgot ${device.address}")
         }
     }
 
@@ -592,7 +738,19 @@ class BluetoothService : Service(), IBluetoothService {
             report[2 + i] = keys[i]
         }
         DebugLog.log("BluetoothService", "kbd mods=" + currentModifiers + " keys=" + keys)
-        try { hid.sendReport(device, 0, report) } catch (e: Exception) { DebugLog.e("BluetoothService", "kbd report error: ${e.message}"); e.printStackTrace(); eventListener?.onError("HID report failed: ${e.message}") }
+        // Ensure BLUETOOTH_CONNECT before sending HID report
+        val hasBtConnectReport = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (hasBtConnectReport) {
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    hid.sendReport(device, 0, report)
+                } else {
+                    DebugLog.e("BluetoothService", "HID sendReport not supported on API < 28; skipping keyboard report")
+                }
+            } catch (se: SecurityException) { DebugLog.e("BluetoothService", "sendReport SecurityException: ${se.message}"); eventListener?.onError("HID report failed due to missing permission") } catch (e: Exception) { DebugLog.e("BluetoothService", "kbd report error: ${e.message}"); e.printStackTrace(); eventListener?.onError("HID report failed: ${e.message}") }
+        } else {
+            DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; cannot send keyboard report")
+        }
     }
 
     override fun sendMouseMove(dx: Int, dy: Int) {
@@ -620,9 +778,26 @@ class BluetoothService : Service(), IBluetoothService {
         val hid = hidDevice() ?: return
         try {
             DebugLog.log("BluetoothService", "mouse click mask=" + buttonMask)
-            hid.sendReport(device, 0, byteArrayOf(buttonMask.toByte(), 0x00, 0x00, 0x00, 0x00))
-            Thread.sleep(10)
-            hid.sendReport(device, 0, byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00))
+            val hasBtConnectMouse = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (hasBtConnectMouse) {
+                try {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                        hid.sendReport(device, 0, byteArrayOf(buttonMask.toByte(), 0x00, 0x00, 0x00, 0x00))
+                        Thread.sleep(10)
+                        hid.sendReport(device, 0, byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00))
+                    } else {
+                        DebugLog.e("BluetoothService", "HID sendReport not supported on API < 28; skipping mouse click reports")
+                    }
+                } catch (se: SecurityException) {
+                    DebugLog.e("BluetoothService", "mouse sendReport SecurityException: ${se.message}")
+                    eventListener?.onError("Mouse click failed due to missing permission")
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    eventListener?.onError("Mouse click failed: ${e.message}")
+                }
+            } else {
+                DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; cannot perform mouse click")
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             eventListener?.onError("Mouse click failed: ${e.message}")
@@ -642,7 +817,18 @@ class BluetoothService : Service(), IBluetoothService {
         )
         try {
             DebugLog.log("BluetoothService", "mouse btn=" + buttons + " dx=" + dx + " dy=" + dy + " wheel=" + wheel + " hwheel=" + hWheel)
-            hid.sendReport(device, 0, report)
+            val hasBtConnectMouseReport = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (hasBtConnectMouseReport) {
+                try {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                        hid.sendReport(device, 0, report)
+                    } else {
+                        DebugLog.e("BluetoothService", "HID sendReport not supported on API < 28; skipping mouse report")
+                    }
+                } catch (se: SecurityException) { DebugLog.e("BluetoothService", "mouse sendReport SecurityException: ${se.message}"); se.printStackTrace() } catch (e: Exception) { DebugLog.e("BluetoothService", "mouse report error: ${e.message}"); e.printStackTrace() }
+            } else {
+                DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; cannot send mouse report")
+            }
         } catch (e: Exception) {
             DebugLog.e("BluetoothService", "mouse report error: ${e.message}")
             e.printStackTrace()
