@@ -81,7 +81,10 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Button(
-                    onClick = { StoreProvider.dispatch(Action.ToggleScrollLock) },
+                    onClick = {
+                        StoreProvider.dispatch(Action.TrackPreviewKey("Scroll Lock"))
+                        StoreProvider.dispatch(Action.ToggleScrollLock)
+                    },
                     modifier = Modifier
                         .width(navKeyWidth)
                         .height(navKeyHeight)
