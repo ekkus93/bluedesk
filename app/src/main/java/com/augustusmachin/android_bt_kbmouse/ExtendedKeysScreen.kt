@@ -33,6 +33,7 @@ import com.augustusmachin.android_bt_kbmouse.store.Action
 fun ExtendedKeysScreen() {
     val appState by StoreProvider.asStateFlow().collectAsState()
     val connected = appState.connection.connectedDevice != null
+    val keyFontSize = LocalKeyFontSize.current
     val rows = listOf(
         listOf("ESC","TAB","ENTER"),
         listOf("PRTSC","PAUSE","INS"),
@@ -80,7 +81,11 @@ fun ExtendedKeysScreen() {
                         enabled = code != null,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(label, maxLines = 1)
+                        ResponsiveText(
+                            text = label,
+                            minSize = keyFontSize,
+                            maxSize = keyFontSize
+                        )
                     }
                 }
             }

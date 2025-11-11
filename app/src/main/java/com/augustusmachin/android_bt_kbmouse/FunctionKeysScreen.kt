@@ -24,6 +24,7 @@ import com.augustusmachin.android_bt_kbmouse.store.Action
 fun FunctionKeysScreen(onBack: () -> Unit = {}) {
     val appState by StoreProvider.asStateFlow().collectAsState()
     val connected = appState.connection.connectedDevice != null
+    val keyFontSize = LocalKeyFontSize.current
 
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // Title only; modifier toggles are hosted by the parent container so they remain fixed across tabs
@@ -56,7 +57,11 @@ fun FunctionKeysScreen(onBack: () -> Unit = {}) {
                             enabled = code != null,
                             modifier = Modifier.weight(1f).height(56.dp)
                         ) {
-                            Text(label, fontSize = 18.sp)
+                            ResponsiveText(
+                                text = label,
+                                minSize = keyFontSize,
+                                maxSize = keyFontSize
+                            )
                         }
                     } else {
                         Spacer(modifier = Modifier.weight(1f))
