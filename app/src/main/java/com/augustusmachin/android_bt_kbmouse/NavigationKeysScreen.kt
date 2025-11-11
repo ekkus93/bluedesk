@@ -2,14 +2,13 @@ package com.augustusmachin.android_bt_kbmouse
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.augustusmachin.android_bt_kbmouse.DebugLog
 import com.augustusmachin.android_bt_kbmouse.store.Action
@@ -21,6 +20,9 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
     val connected = appState.connection.connectedDevice != null
     val keyFontSize = LocalKeyFontSize.current
     val arrowFontSize = (keyFontSize.value * 2f).sp
+    val scrollActive = appState.connection.scrollLock
+    val navKeyWidth = 120.dp
+    val navKeyHeight = 56.dp
 
     Column(
         modifier = Modifier
@@ -29,7 +31,7 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Text("Navigation keys", style = MaterialTheme.typography.titleMedium)
+    // Text("Navigation keys")
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -78,17 +80,39 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Button(
+                    onClick = { StoreProvider.dispatch(Action.ToggleScrollLock) },
+                    modifier = Modifier
+                        .width(navKeyWidth)
+                        .height(navKeyHeight)
+                ) {
+                    ResponsiveText(
+                        text = if (scrollActive) "Scroll Lock (On)" else "Scroll Lock",
+                        minSize = keyFontSize,
+                        maxSize = keyFontSize,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.4.sp
+                    )
+                }
                 NavigationKeyButton(
                     label = "PGUP",
                     keyFontSize = keyFontSize,
                     connected = connected,
-                    modifier = Modifier.width(96.dp)
+                    modifier = Modifier
+                        .width(navKeyWidth)
+                        .height(navKeyHeight),
+                    width = navKeyWidth,
+                    height = navKeyHeight
                 )
                 NavigationKeyButton(
                     label = "PGDN",
                     keyFontSize = keyFontSize,
                     connected = connected,
-                    modifier = Modifier.width(96.dp)
+                    modifier = Modifier
+                        .width(navKeyWidth)
+                        .height(navKeyHeight),
+                    width = navKeyWidth,
+                    height = navKeyHeight
                 )
             }
         }
@@ -100,7 +124,9 @@ private fun NavigationKeyButton(
     label: String,
     keyFontSize: androidx.compose.ui.unit.TextUnit,
     connected: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    width: androidx.compose.ui.unit.Dp = 72.dp,
+    height: androidx.compose.ui.unit.Dp = 56.dp
 ) {
     val code = labelToHid(label)
     Button(
@@ -118,7 +144,7 @@ private fun NavigationKeyButton(
             }
         },
         enabled = code != null,
-        modifier = modifier.defaultMinSize(minWidth = 72.dp, minHeight = 56.dp)
+        modifier = modifier.defaultMinSize(minWidth = width, minHeight = height)
     ) {
         ResponsiveText(
             text = label,

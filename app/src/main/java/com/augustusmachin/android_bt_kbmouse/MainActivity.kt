@@ -909,20 +909,6 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
                 )
             }
 
-            val scrollActive = appState.connection.scrollLock
-            Button(
-                onClick = { StoreProvider.dispatch(Action.ToggleScrollLock) },
-                modifier = Modifier.weight(1f),
-                colors = if (scrollActive) activeColors else inactiveColors
-            ) {
-                ResponsiveText(
-                    text = "Scroll",
-                    minSize = keyFontSize,
-                    maxSize = keyFontSize,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.4.sp
-                )
-            }
         }
 
         // Content area: render the selected tab's screen
