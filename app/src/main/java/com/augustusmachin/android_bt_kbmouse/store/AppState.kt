@@ -14,10 +14,17 @@ data class KeyboardState(
     val guiPersist: Boolean = false
 )
 
+data class PreviewKeyEntry(
+    val id: Long,
+    val label: String,
+    val decorate: Boolean
+)
+
 data class UiState(
     val offlinePreview: Boolean = false,
     val showExtended: Boolean = false,
-    val extendedPage: Int = 0
+    val extendedPage: Int = 0,
+    val previewKeys: List<PreviewKeyEntry> = emptyList()
 )
 
 data class ConnectionState(

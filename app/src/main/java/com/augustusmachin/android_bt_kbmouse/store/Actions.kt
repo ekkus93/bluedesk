@@ -18,6 +18,9 @@ sealed class Action {
     data class SetOfflinePreview(val enabled: Boolean) : Action()
     data class SetShowExtended(val show: Boolean) : Action()
     data class SetExtendedPage(val page: Int) : Action()
+    data class TrackPreviewKey(val label: String, val ttlMillis: Long = 5_000L, val decorate: Boolean = true) : Action()
+    data class AddPreviewKey(val id: Long, val label: String, val decorate: Boolean) : Action()
+    data class RemovePreviewKey(val id: Long) : Action()
 
     // HID key/mouse actions handled by middleware
     data class SendKey(val code: Byte, val mods: Int = 0) : Action()

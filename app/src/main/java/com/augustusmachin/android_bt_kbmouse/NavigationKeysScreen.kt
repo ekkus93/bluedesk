@@ -106,6 +106,7 @@ private fun NavigationKeyButton(
     Button(
         onClick = {
             if (code != null) {
+                StoreProvider.dispatch(Action.TrackPreviewKey(label))
                 if (connected) {
                     StoreProvider.dispatch(Action.SendKey(code))
                 } else {

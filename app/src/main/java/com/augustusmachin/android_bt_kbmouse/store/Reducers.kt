@@ -2,6 +2,8 @@ package com.augustusmachin.android_bt_kbmouse.store
 
 import org.reduxkotlin.Reducer
 
+private const val MAX_PREVIEW_KEYS = 24
+
 val appReducer: Reducer<AppState> = { state, action ->
     when (action) {
         is Action.ToggleCtrl -> state.copy(keyboard = state.keyboard.copy(ctrl = !state.keyboard.ctrl))
@@ -15,6 +17,15 @@ val appReducer: Reducer<AppState> = { state, action ->
         is Action.SetOfflinePreview -> state.copy(ui = state.ui.copy(offlinePreview = action.enabled))
         is Action.SetShowExtended -> state.copy(ui = state.ui.copy(showExtended = action.show))
         is Action.SetExtendedPage -> state.copy(ui = state.ui.copy(extendedPage = action.page))
+        is Action.TrackPreviewKey -> state
+        is Action.AddPreviewKey -> {
+            val updated = (state.ui.previewKeys + PreviewKeyEntry(action.id, action.label, action.decorate)).takeLast(MAX_PREVIEW_KEYS)
+            state.copy(ui = state.ui.copy(previewKeys = updated))
+        }
+        is Action.RemovePreviewKey -> {
+            val updated = state.ui.previewKeys.filterNot { it.id == action.id }
+            if (updated.size == state.ui.previewKeys.size) state else state.copy(ui = state.ui.copy(previewKeys = updated))
+        }
         is Action.SendKey -> state
         is Action.KeyDown -> state
         is Action.KeyUp -> state

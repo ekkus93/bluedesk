@@ -8,7 +8,12 @@ import org.reduxkotlin.applyMiddleware
 
 object StoreProvider {
     private val keySenderMiddleware = KeySenderMiddleware()
-    private val store: Store<AppState> = createStore(appReducer, AppState(), applyMiddleware(keySenderMiddleware.create()))
+    private val previewMiddleware = PreviewMiddleware()
+    private val store: Store<AppState> = createStore(
+        appReducer,
+        AppState(),
+        applyMiddleware(previewMiddleware.create(), keySenderMiddleware.create())
+    )
     private val _stateFlow = MutableStateFlow(store.state)
 
     init {

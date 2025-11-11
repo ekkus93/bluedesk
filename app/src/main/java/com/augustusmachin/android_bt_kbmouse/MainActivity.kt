@@ -80,6 +80,9 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
@@ -118,6 +121,7 @@ import android.view.inputmethod.InputMethodManager
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 import com.augustusmachin.android_bt_kbmouse.store.ServiceAliasHelper
+import com.augustusmachin.android_bt_kbmouse.store.PreviewKeyEntry
 
 private const val KEY_FONT_SCALE = 4200
 val LocalKeyFontSize = staticCompositionLocalOf { 16.sp }
@@ -742,10 +746,36 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
     // The ExtendedKeysScreen already handles modifier toggles and connected-state gating.
     val tabs = listOf("Extended", "Function", "Navigation")
     var selectedTab by remember { mutableStateOf(0) }
+    val appState by StoreProvider.asStateFlow().collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
     var previewText by remember { mutableStateOf("") }
-    val appState by StoreProvider.asStateFlow().collectAsState()
+    val previewKeys = appState.ui.previewKeys
+    val previewSuffix = remember(previewKeys) {
+        if (previewKeys.isEmpty()) {
+            ""
+        } else buildString {
+            previewKeys.forEachIndexed { index, entry ->
+                val decoratedText = if (entry.decorate) "[${entry.label}]" else entry.label
+                val previous = previewKeys.getOrNull(index - 1)
+                val currentRequiresSpace = entry.decorate || entry.label.length > 1
+                val previousRequiresSpace = previous?.decorate == true || ((previous?.label?.length ?: 0) > 1)
+                val currentIsSpace = !entry.decorate && entry.label == " "
+                val previousIsSpace = previous?.let { !it.decorate && it.label == " " } == true
+                val needsSeparator = when {
+                    isEmpty() -> false
+                    currentIsSpace || previousIsSpace -> false
+                    currentRequiresSpace || previousRequiresSpace -> true
+                    else -> false
+                }
+                if (needsSeparator) append(' ')
+                append(decoratedText)
+            }
+        }
+    }
+    val previewTransformation = remember(previewSuffix) {
+        if (previewSuffix.isEmpty()) VisualTransformation.None else PreviewSuffixVisualTransformation(previewSuffix)
+    }
     val ks = appState.keyboard
     val connected = appState.connection.connectedDevice != null
     val configuration = LocalConfiguration.current
@@ -765,10 +795,24 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
         Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             androidx.compose.material3.TextField(
                 value = previewText,
-                onValueChange = { previewText = it },
+                onValueChange = { newValue ->
+                    if (newValue.isNotEmpty()) {
+                        newValue.forEach { char ->
+                            val label = when (char) {
+                                ' ' -> " "
+                                '\n' -> "ENTER"
+                                '\t' -> "TAB"
+                                else -> char.toString()
+                            }
+                            StoreProvider.dispatch(Action.TrackPreviewKey(label, decorate = false))
+                        }
+                    }
+                    previewText = ""
+                },
                 modifier = Modifier
                     .weight(1f)
                     .focusRequester(focusRequester),
+                visualTransformation = previewTransformation,
                 placeholder = { Text("System keyboard input") }
             )
         }
@@ -952,6 +996,24 @@ fun ResponsiveText(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+    }
+}
+
+private class PreviewSuffixVisualTransformation(
+    private val suffix: String
+) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        if (suffix.isEmpty()) {
+            return TransformedText(text, OffsetMapping.Identity)
+        }
+        val builder = AnnotatedString.Builder()
+        builder.append(text)
+        builder.append(suffix)
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int = offset
+            override fun transformedToOriginal(offset: Int): Int = offset.coerceAtMost(text.length)
+        }
+        return TransformedText(builder.toAnnotatedString(), offsetMapping)
     }
 }
 

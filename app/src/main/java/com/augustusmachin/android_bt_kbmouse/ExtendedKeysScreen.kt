@@ -5,20 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.LocalContext
-import android.content.Context
-import android.view.inputmethod.InputMethodManager
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.material3.TextField
 import com.augustusmachin.android_bt_kbmouse.DebugLog
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -41,15 +30,6 @@ fun ExtendedKeysScreen() {
     )
     // Use top-level helper so mapping logic can be unit tested
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-    // Small system keyboard helper: a visible TextField. We no longer expose a manual
-    // Show/Hide button (was confusing/reliability hazard). Auto-show is handled by
-    // the `autoShowKeyboard` flag below.
-    val keyboardController = LocalSoftwareKeyboardController.current
-    val focusRequester = remember { FocusRequester() }
-    var previewText by remember { mutableStateOf("") }
-    val context = LocalContext.current
-    val view = LocalView.current
-
     // NOTE: The system keyboard TextField and modifier toggle row are now hosted in the parent
     // (KeyboardScreen / MainActivity) so that they remain fixed when switching between tabs.
     // Local preview console collects preview actions when not connected so developers can
@@ -63,6 +43,7 @@ fun ExtendedKeysScreen() {
                     Button(
                         onClick = {
                             if (code != null) {
+                                StoreProvider.dispatch(Action.TrackPreviewKey(label))
                                 if (connected) {
                                     StoreProvider.dispatch(Action.SendKey(code))
                                 } else {
