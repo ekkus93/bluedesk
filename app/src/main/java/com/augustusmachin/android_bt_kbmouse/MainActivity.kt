@@ -14,6 +14,10 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
+// NOTE: Do not import the 'weight' symbol explicitly to avoid internal visibility issues; use Modifier.weight as available from layout package
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -30,6 +34,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.material3.TextField
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -75,6 +82,7 @@ import android.os.Build
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.core.content.ContextCompat
 import android.view.SoundEffectConstants
 import kotlinx.coroutines.delay
@@ -716,9 +724,71 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
 fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValues = PaddingValues()) {
     // Replace the tiny demo with the full Extended Keys UI by default.
     // The ExtendedKeysScreen already handles modifier toggles and connected-state gating.
+    val tabs = listOf("Extended", "Function")
+    var selectedTab by remember { mutableStateOf(0) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
+    var previewText by remember { mutableStateOf("") }
+    val appState by StoreProvider.asStateFlow().collectAsState()
+    val ks = appState.keyboard
+    val connected = appState.connection.connectedDevice != null
+
     Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-        // Automatically show the system keyboard when the Keyboard screen is visible
-        ExtendedKeysScreen(autoShowKeyboard = true)
+        // TabRow to switch between Extended and Function keys while keeping shared controls fixed
+        TabRow(selectedTabIndex = selectedTab) {
+            tabs.forEachIndexed { idx, title ->
+                Tab(selected = selectedTab == idx, onClick = { selectedTab = idx }, text = { Text(title) })
+            }
+        }
+
+        // Shared system keyboard input (fixed across tabs)
+        Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            androidx.compose.material3.TextField(
+                value = previewText,
+                onValueChange = { previewText = it },
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focusRequester),
+                placeholder = { Text("System keyboard input") }
+            )
+        }
+
+        // Auto-show IME when entering the Keyboard screen
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
+
+        // Shared modifier toggles (fixed across tabs)
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Button(onClick = { StoreProvider.dispatch(Action.ToggleScrollLock) }, modifier = Modifier.weight(1f)) {
+                Text(if (appState.connection.scrollLock) "Scrl ⬤" else "Scrl")
+            }
+            Button(onClick = {
+                StoreProvider.dispatch(Action.ToggleShift)
+                if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Shift toggled"))
+            }, modifier = Modifier.weight(1f)) {
+                Text(if (ks.shift) "Shift ⬤" else "Shift")
+            }
+            Button(onClick = {
+                StoreProvider.dispatch(Action.ToggleAlt)
+                if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Alt toggled"))
+            }, modifier = Modifier.weight(1f)) {
+                Text(if (ks.alt) "Alt ⬤" else "Alt")
+            }
+            Button(onClick = {
+                StoreProvider.dispatch(Action.ToggleGui)
+                if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Meta toggled"))
+            }, modifier = Modifier.weight(1f)) {
+                Text(if (ks.gui) "Meta ⬤" else "Meta")
+            }
+        }
+
+        // Content area: render the selected tab's screen
+        when (selectedTab) {
+            0 -> ExtendedKeysScreen()
+            1 -> FunctionKeysScreen()
+        }
     }
 }
 

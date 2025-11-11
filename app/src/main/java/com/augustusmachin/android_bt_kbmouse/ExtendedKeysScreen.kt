@@ -30,7 +30,7 @@ import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 import com.augustusmachin.android_bt_kbmouse.store.Action
 
 @Composable
-fun ExtendedKeysScreen(autoShowKeyboard: Boolean = false) {
+fun ExtendedKeysScreen() {
     val appState by StoreProvider.asStateFlow().collectAsState()
     val connected = appState.connection.connectedDevice != null
     val rows = listOf(
@@ -51,58 +51,12 @@ fun ExtendedKeysScreen(autoShowKeyboard: Boolean = false) {
     val context = LocalContext.current
     val view = LocalView.current
 
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        TextField(
-            value = previewText,
-            onValueChange = { previewText = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester),
-            placeholder = { Text("System keyboard input") }
-        )
-    }
-
-        // If requested, automatically focus the preview TextField and show the IME when this screen
-        // enters composition (useful so the system keyboard is visible whenever the Keyboard tab is open).
-        if (autoShowKeyboard) {
-            val imm = remember { context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager }
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                focusRequester.requestFocus()
-                keyboardController?.show()
-                // Also request via IMM for compatibility
-                try { imm?.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT) } catch (_: Throwable) {}
-            }
-        }
+    // NOTE: The system keyboard TextField and modifier toggle row are now hosted in the parent
+    // (KeyboardScreen / MainActivity) so that they remain fixed when switching between tabs.
     // Local preview console collects preview actions when not connected so developers can
     // visually verify key presses without a Bluetooth host.
     val previewHistory = remember { mutableStateListOf<String>() }
-        // Toggle buttons row: scroll lock, shift, alt, gui/windows
-        val ks = appState.keyboard
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            // Allow modifier toggles in preview mode as well – middleware will only emit HID when a sender
-            // is installed (i.e. when connected). In preview mode we surface a brief message.
-            Button(onClick = { StoreProvider.dispatch(Action.ToggleScrollLock) }, modifier = Modifier.weight(1f)) {
-                Text(if (appState.connection.scrollLock) "Scrl ⬤" else "Scrl")
-            }
-            Button(onClick = {
-                StoreProvider.dispatch(Action.ToggleShift)
-                if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Shift toggled"))
-            }, modifier = Modifier.weight(1f)) {
-                Text(if (ks.shift) "Shift ⬤" else "Shift")
-            }
-            Button(onClick = {
-                StoreProvider.dispatch(Action.ToggleAlt)
-                if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Alt toggled"))
-            }, modifier = Modifier.weight(1f)) {
-                Text(if (ks.alt) "Alt ⬤" else "Alt")
-            }
-            Button(onClick = {
-                StoreProvider.dispatch(Action.ToggleGui)
-                if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Meta toggled"))
-            }, modifier = Modifier.weight(1f)) {
-                Text(if (ks.gui) "Meta ⬤" else "Meta")
-            }
-        }
+    // Modifier toggles removed from here; they are provided by the parent container.
         rows.forEach { r ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 r.forEach { label ->
