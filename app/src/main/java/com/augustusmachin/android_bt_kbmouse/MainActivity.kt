@@ -57,7 +57,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.material3.TextField
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -109,6 +108,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 
 
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.geometry.Offset
 import kotlin.math.roundToInt
 import kotlin.math.abs
@@ -798,14 +798,13 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
                 onValueChange = { newValue ->
                     if (newValue.isNotEmpty()) {
                         newValue.forEach { char ->
-                            val label = when (char) {
-                                ' ' -> " "
-                                '\n' -> "ENTER"
-                                '\t' -> "TAB"
-                                else -> char.toString()
+                            val (label, decorate, mapping) = when (char) {
+                                ' ' -> Triple(" ", false, charToHid(char))
+                                '\n' -> Triple("ENTER", false, charToHid(char))
+                                '\t' -> Triple("TAB", false, charToHid(char))
+                                else -> Triple(char.toString(), false, charToHid(char))
                             }
-                            StoreProvider.dispatch(Action.TrackPreviewKey(label, decorate = false))
-                            val mapping = charToHid(char)
+                            StoreProvider.dispatch(Action.TrackPreviewKey(label, decorate = decorate))
                             if (connected && mapping != null) {
                                 StoreProvider.dispatch(Action.SendKey(mapping.first, mapping.second))
                             } else {
@@ -817,7 +816,21 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .focusRequester(focusRequester),
+                    .focusRequester(focusRequester)
+                    .onPreviewKeyEvent { event ->
+                        val native = event.nativeKeyEvent
+                        if (native.keyCode == android.view.KeyEvent.KEYCODE_DEL && native.action == android.view.KeyEvent.ACTION_DOWN) {
+                            StoreProvider.dispatch(Action.TrackPreviewKey("DEL"))
+                            if (connected) {
+                                StoreProvider.dispatch(Action.SendKey(0x2A.toByte(), 0))
+                            } else {
+                                StoreProvider.dispatch(Action.ReleaseLockedModifiers)
+                            }
+                            true
+                        } else {
+                            false
+                        }
+                    },
                 visualTransformation = previewTransformation,
                 placeholder = { Text("System keyboard input") }
             )
