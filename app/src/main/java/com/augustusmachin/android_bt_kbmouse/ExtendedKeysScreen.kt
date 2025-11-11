@@ -37,8 +37,7 @@ fun ExtendedKeysScreen() {
     val rows = listOf(
         listOf("ESC","TAB","ENTER"),
         listOf("PRTSC","PAUSE","INS"),
-        listOf("HOME","END","PGUP","PGDN","DEL"),
-        listOf("\u2190","\u2191","\u2193","\u2192")
+        listOf("HOME","END","DEL")
     )
     // Use top-level helper so mapping logic can be unit tested
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

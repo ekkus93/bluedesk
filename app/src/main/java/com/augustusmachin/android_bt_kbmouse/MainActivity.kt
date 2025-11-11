@@ -741,7 +741,7 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
 fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValues = PaddingValues()) {
     // Replace the tiny demo with the full Extended Keys UI by default.
     // The ExtendedKeysScreen already handles modifier toggles and connected-state gating.
-    val tabs = listOf("Extended", "Function")
+    val tabs = listOf("Extended", "Function", "Navigation")
     var selectedTab by remember { mutableStateOf(0) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
@@ -886,6 +886,7 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
         when (selectedTab) {
             0 -> ExtendedKeysScreen()
             1 -> FunctionKeysScreen()
+            2 -> NavigationKeysScreen()
         }
         }
     }
