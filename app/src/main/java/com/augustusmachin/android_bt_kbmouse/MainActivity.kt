@@ -119,8 +119,7 @@ import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 import com.augustusmachin.android_bt_kbmouse.store.ServiceAliasHelper
 
-private const val KEY_FONT_SCALE = 3900
-//private const val KEY_FONT_SCALE = 4200
+private const val KEY_FONT_SCALE = 4200
 val LocalKeyFontSize = staticCompositionLocalOf { 16.sp }
 
 class MainActivity : ComponentActivity() {
@@ -873,7 +872,7 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
                 colors = if (scrollActive) activeColors else inactiveColors
             ) {
                 ResponsiveText(
-                    text = "Scrl",
+                    text = "Scroll",
                     minSize = keyFontSize,
                     maxSize = keyFontSize,
                     fontWeight = FontWeight.Bold,

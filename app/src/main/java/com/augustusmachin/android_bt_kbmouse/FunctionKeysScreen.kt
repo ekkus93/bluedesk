@@ -28,9 +28,11 @@ fun FunctionKeysScreen(onBack: () -> Unit = {}) {
 
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // Title only; modifier toggles are hosted by the parent container so they remain fixed across tabs
+        /*
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
             Text("Function keys", style = MaterialTheme.typography.titleMedium)
         }
+        */
         // Function keys laid out larger for readability
         val functions = (1..12).map { "F$it" }
         // We'll render 4 per row with larger font

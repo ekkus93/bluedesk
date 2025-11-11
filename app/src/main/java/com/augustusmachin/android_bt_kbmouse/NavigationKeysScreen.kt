@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.augustusmachin.android_bt_kbmouse.DebugLog
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
@@ -19,6 +20,7 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
     val appState by StoreProvider.asStateFlow().collectAsState()
     val connected = appState.connection.connectedDevice != null
     val keyFontSize = LocalKeyFontSize.current
+    val arrowFontSize = (keyFontSize.value * 2f).sp
 
     Column(
         modifier = Modifier
@@ -27,7 +29,7 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Navigation keys", style = MaterialTheme.typography.titleMedium)
+        // Text("Navigation keys", style = MaterialTheme.typography.titleMedium)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -41,7 +43,7 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
             ) {
                 NavigationKeyButton(
                     label = "\u2191",
-                    keyFontSize = keyFontSize,
+                    keyFontSize = arrowFontSize,
                     connected = connected
                 )
 
@@ -51,20 +53,20 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
                 ) {
                     NavigationKeyButton(
                         label = "\u2190",
-                        keyFontSize = keyFontSize,
+                        keyFontSize = arrowFontSize,
                         connected = connected
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     NavigationKeyButton(
                         label = "\u2192",
-                        keyFontSize = keyFontSize,
+                        keyFontSize = arrowFontSize,
                         connected = connected
                     )
                 }
 
                 NavigationKeyButton(
                     label = "\u2193",
-                    keyFontSize = keyFontSize,
+                    keyFontSize = arrowFontSize,
                     connected = connected
                 )
             }
