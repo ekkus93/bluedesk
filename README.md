@@ -42,7 +42,7 @@ The project will be developed using the following tools and technologies:
 
 This application targets standard Android devices (phones and tablets) that support the Bluetooth Human Interface Device (HID) profile. Amazon Fire HD tablets are not supported due to Fire OS limitations regarding Bluetooth HID peripheral functionality.
 
-Last updated: 2025-11-10T12:00:00.000Z
+Last updated: 2025-11-10T19:35:00.000Z
 
 ## Current Status
 
@@ -61,6 +61,11 @@ Last updated: 2025-11-10T12:00:00.000Z
   - Artifacts captured during verification and included in the workspace:
     - `uidump_after_install.xml` / `uidump_after_tap2.xml` — uiAutomator UI dumps showing the Keyboard screen and top navigation.
     - `keyboard_ime.png` — screenshot taken while the Keyboard screen's `TextField` was focused (system IME visible) showing the top navigation remains accessible.
+
+- Additional verification notes (latest):
+  - The full Gradle build completes successfully (BUILD SUCCESSFUL) and Android Lint reports were generated — the project is currently lint-clean for the issues addressed during the recent iteration. The lint HTML report is available at `app/build/reports/lint-results-debug.html`.
+  - The debug APK was installed on a running emulator (example: `emulator-5554`) and the installed package is `com.augustusmachin.android_bt_kbmouse`.
+  - Runtime verification artifacts captured during this session are available in the workspace (or in `./tmp` if you collect them there): `uidump_after_install.xml`, `uidump_after_tap2.xml`, and `keyboard_ime.png`.
 
 - Forced the Android soft keyboard to appear on the emulator for testing by setting `show_ime_with_physical_keyboard=1` via ADB when needed. The verification screenshot is available at `./keyboard_ime.png` (and `keyboard_now.png` from prior runs).
 
