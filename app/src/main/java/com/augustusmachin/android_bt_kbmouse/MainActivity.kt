@@ -770,6 +770,13 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
             }, modifier = Modifier.weight(1f)) {
                 Text(if (ks.shift) "Shift ⬤" else "Shift")
             }
+            // CAPS lock toggle (shared between Extended and Function tabs)
+            Button(onClick = {
+                StoreProvider.dispatch(Action.ToggleCapsLock)
+                if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Caps toggled"))
+            }, modifier = Modifier.weight(1f)) {
+                Text(if (appState.connection.capsLock) "CAPS ⬤" else "CAPS")
+            }
             Button(onClick = {
                 StoreProvider.dispatch(Action.ToggleAlt)
                 if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Alt toggled"))

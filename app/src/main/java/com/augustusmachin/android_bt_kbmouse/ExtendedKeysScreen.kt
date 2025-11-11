@@ -34,8 +34,7 @@ fun ExtendedKeysScreen() {
     val appState by StoreProvider.asStateFlow().collectAsState()
     val connected = appState.connection.connectedDevice != null
     val rows = listOf(
-        listOf("ESC","TAB","CAPS","ENTER"),
-        listOf("F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12"),
+        listOf("ESC","TAB","ENTER"),
         listOf("PRTSC","PAUSE","INS"),
         listOf("HOME","END","PGUP","PGDN","DEL"),
         listOf("\u2190","\u2191","\u2193","\u2192")
