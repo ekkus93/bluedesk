@@ -134,7 +134,7 @@ Subtasks:
 **Problem (B7):** `java.text.SimpleDateFormat("HH:mm:ss")` uses the device locale for formatting, which can produce unexpected results in non-Latin locales and triggers a lint warning.
 
 Subtasks:
-- [ ] Change:
+- [x] Change:
   ```kotlin
   java.text.SimpleDateFormat("HH:mm:ss").format(java.util.Date())
   ```
@@ -142,7 +142,7 @@ Subtasks:
   ```kotlin
   java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())
   ```
-- [ ] Verify lint passes clean after the fix.
+- [x] Verify lint passes clean after the fix.
 
 ---
 
@@ -240,7 +240,7 @@ Subtasks:
 | TASK-04 | Eliminate `runBlocking` on Bluetooth profile callback thread | Medium | [x] |
 | TASK-05 | Fix `discoveredDevices` list thread safety (CopyOnWriteArrayList) | Medium | [x] |
 | TASK-06 | Remove 3 remaining `android.util.Log.d` calls in HidModule + Service | Medium | [x] |
-| TASK-07 | Fix missing `Locale` in `SimpleDateFormat` in `ExtendedKeysScreen` | Low | [ ] |
+| TASK-07 | Fix missing `Locale` in `SimpleDateFormat` in `ExtendedKeysScreen` | Low | [x] |
 | TASK-08 | Remove dead `"extended"` composable route from NavHost | Low | [ ] |
 | TASK-09 | Factor out `getSharedPreferences("bt_hid", ...)` repeated calls | Low | [ ] |
 | TASK-10 | Integrate or remove `BleHogpService` (currently started but unconnected to store) | Medium | [ ] |

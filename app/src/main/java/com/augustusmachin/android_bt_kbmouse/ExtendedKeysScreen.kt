@@ -53,7 +53,7 @@ fun ExtendedKeysScreen() {
                                     StoreProvider.dispatch(Action.UpdateMessage(msg))
                                     DebugLog.log("ExtendedKeys", msg)
                                     // append to local preview console (limit size)
-                                    previewHistory.add(0, "${java.text.SimpleDateFormat("HH:mm:ss").format(java.util.Date())} $msg")
+                                    previewHistory.add(0, "${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())} $msg")
                                     if (previewHistory.size > 200) previewHistory.removeAt(previewHistory.lastIndex)
                                 }
                                 if (!connected) {
