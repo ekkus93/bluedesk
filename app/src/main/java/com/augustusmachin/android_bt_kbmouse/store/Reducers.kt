@@ -14,6 +14,7 @@ val appReducer: Reducer<AppState> = { state, action ->
             val kb = state.keyboard
             state.copy(
                 keyboard = kb.copy(
+                    ctrl = if (kb.ctrlPersist) kb.ctrl else false,
                     shift = if (kb.shiftPersist) kb.shift else false,
                     alt = if (kb.altPersist) kb.alt else false,
                     gui = if (kb.guiPersist) kb.gui else false

@@ -854,7 +854,26 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
             contentColor = MaterialTheme.colorScheme.onPrimary
         )
 
-            // Order: Shift, CAPS, Alt, Meta, Scrl (Scrl moved to far right)
+            // Order: Ctrl, Shift, CAPS, Alt, Meta
+            val ctrlActive = ks.ctrl
+            Button(
+                onClick = {
+                    StoreProvider.dispatch(Action.TrackPreviewKey("Ctrl"))
+                    StoreProvider.dispatch(Action.ToggleCtrl)
+                    if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Ctrl toggled"))
+                },
+                modifier = Modifier.weight(1f),
+                colors = if (ctrlActive) activeColors else inactiveColors
+            ) {
+                ResponsiveText(
+                    text = "Ctrl",
+                    minSize = keyFontSize,
+                    maxSize = keyFontSize,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.4.sp
+                )
+            }
+
             val shiftActive = ks.shift
             Button(
                 onClick = {

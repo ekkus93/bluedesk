@@ -50,7 +50,7 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
                     }
                 }
                 val result = next(action.copy(mods = mods))
-                if (k.shift || k.alt || k.gui) {
+                if (k.ctrl || k.shift || k.alt || k.gui) {
                     store.dispatch(Action.ReleaseLockedModifiers)
                 }
                 return@middleware result
