@@ -13,7 +13,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import androidx.core.view.WindowInsetsControllerCompat
 
 private val DarkColorScheme = darkColorScheme(
     primary = TealLight,
@@ -40,8 +40,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun AndroidbtkbmouseTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -55,10 +54,13 @@ fun AndroidbtkbmouseTheme(
     }
     val view = LocalView.current
     if (!view.isInEditMode) {
-        val systemUiController = rememberSystemUiController()
+        val window = (view.context as Activity).window
         SideEffect {
-            // Set status/navigation bar colors to match our theme
-            systemUiController.setSystemBarsColor(color = colorScheme.primary, darkIcons = !darkTheme)
+            window.statusBarColor = colorScheme.primary.toArgb()
+            window.navigationBarColor = colorScheme.primary.toArgb()
+            val wic = WindowInsetsControllerCompat(window, view)
+            wic.isAppearanceLightStatusBars = !darkTheme
+            wic.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 

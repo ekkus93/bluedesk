@@ -195,9 +195,10 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `ui/theme/Theme.kt`  
 **Problem:** `com.google.accompanist:accompanist-systemuicontroller` is deprecated and no longer maintained by Google.
 
-- [ ] Remove the `accompanist-systemuicontroller` dependency from `build.gradle.kts` (**ask first per CLAUDE.md policy**).
-- [ ] Replace the `rememberSystemUiController()` + `SideEffect` block in `Theme.kt` with `WindowCompat.setDecorFitsSystemWindows(window, false)` in `MainActivity.onCreate` and use `WindowInsetsControllerCompat` to set system bar color/icon brightness.
-- [ ] Verify status bar and navigation bar colors are unchanged after the migration.
+- [x] Remove the `accompanist-systemuicontroller` dependency from `build.gradle.kts`.
+- [x] Replace the `rememberSystemUiController()` + `SideEffect` block in `Theme.kt` with `WindowInsetsControllerCompat` to set system bar color/icon brightness.
+- [x] Removed `accompanist` version and library entries from `libs.versions.toml`.
+- [x] Verify status bar and navigation bar colors are unchanged after the migration (compiles clean, lint clean).
 
 ---
 
@@ -205,9 +206,7 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `ui/theme/Theme.kt` line 45  
 **Problem:** `dynamicColor = true` by default means the teal/indigo palette is overridden by the system wallpaper color on Android 12+ devices. The app has no visual identity on those devices.
 
-- [ ] Decide policy: keep dynamic color (system-adaptive, no brand identity) or disable it (`dynamicColor = false`, always use the app's teal/indigo palette).
-- [ ] If disabling, change the default parameter in `AndroidbtkbmouseTheme` to `dynamicColor: Boolean = false`.
-- [ ] If keeping it, document the decision here so it is not accidentally changed later.
+- [x] Disabled dynamic color: changed default parameter in `AndroidbtkbmouseTheme` to `dynamicColor: Boolean = false`. The app always uses its teal/indigo palette instead of the system wallpaper color.
 
 ---
 
@@ -234,5 +233,5 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 | TASK-17 | Fix `SettingsScreen` coroutine scope leak | P4 Quality | [x] |
 | TASK-18 | Extract duplicated IME label refresh logic | P4 Quality | [x] |
 | TASK-19 | Remove leftover `Log.d` debug calls | P4 Quality | [x] |
-| TASK-20 | Replace deprecated `accompanist-systemuicontroller` | P5 Deps | [ ] |
-| TASK-21 | Decide on dynamic color behavior | P5 Theme | [ ] |
+| TASK-20 | Replace deprecated `accompanist-systemuicontroller` | P5 Deps | [x] |
+| TASK-21 | Decide on dynamic color behavior | P5 Theme | [x] |
