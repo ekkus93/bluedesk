@@ -143,7 +143,7 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `MainActivity.kt` lines 948–965  
 **Problem:** `ExtendedModButton` is defined but never called anywhere.
 
-- [ ] Delete the entire `ExtendedModButton` composable.
+- [x] Delete the entire `ExtendedModButton` composable.
 
 ---
 
@@ -151,8 +151,8 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `FunctionKeysScreen.kt` line 21  
 **Problem:** `onBack: () -> Unit = {}` is declared but never invoked within the function.
 
-- [ ] Remove the `onBack` parameter from `FunctionKeysScreen`.
-- [ ] Remove all call-sites that pass the parameter (search for `FunctionKeysScreen(` to find any).
+- [x] Remove the `onBack` parameter from `FunctionKeysScreen`.
+- [x] Removed stale docstring referencing `onBack`.
 
 ---
 
@@ -160,10 +160,8 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `NavigationKeysScreen.kt` lines 127–159  
 **Problem:** `NavigationKeyButton` accepts both a `modifier` (with `.width()/.height()` from the caller) and separate `width`/`height` parameters fed into `defaultMinSize`. This results in redundant size constraints being applied.
 
-- [ ] Remove the `width` and `height` parameters from `NavigationKeyButton`.
-- [ ] Remove the `defaultMinSize` call inside the function.
-- [ ] Let the caller's `modifier` fully control size (as it already does via `.width()/.height()` at call sites).
-- [ ] Update all call sites accordingly.
+- [x] Removed `width` and `height` parameters and `defaultMinSize` from `NavigationKeyButton`.
+- [x] Updated all call sites to pass size only via `modifier`.
 
 ---
 
@@ -171,8 +169,7 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `SettingsScreen.kt` line 34  
 **Problem:** `val scope = remember { CoroutineScope(Dispatchers.IO) }` creates a scope not bound to the composable lifecycle. Coroutines launched on this scope will never be cancelled when the composable leaves composition.
 
-- [ ] Replace `remember { CoroutineScope(Dispatchers.IO) }` with `rememberCoroutineScope()`.
-- [ ] If IO dispatching is needed, wrap launches with `withContext(Dispatchers.IO)` inside the coroutine body.
+- [x] Replaced `remember { CoroutineScope(Dispatchers.IO) }` with `rememberCoroutineScope()`. DataStore handles its own dispatcher internally so no withContext needed.
 
 ---
 
@@ -180,8 +177,7 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `SettingsScreen.kt` — `LaunchedEffect` block (lines 38–57) and Remove button `onClick` (lines 176–193)  
 **Problem:** The logic that resolves package names to human-friendly IME labels is duplicated in two places.
 
-- [ ] Extract a private suspend function `loadImeLabels(context: Context, overrides: Map<String, Boolean>): Map<String, String>`.
-- [ ] Call it from both `LaunchedEffect(Unit)` and the Remove button's `onClick`.
+- [x] Extracted `private suspend fun loadImeLabels(context, overrides)` and replaced both inline duplicates with calls to it.
 
 ---
 
@@ -189,7 +185,7 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `MainActivity.kt` — Scan button `onClick`, lines 626–629  
 **Problem:** Raw `android.util.Log.d("BTKB", ...)` calls are left in production code. All logging should go through `DebugLog`.
 
-- [ ] Delete or replace the two `android.util.Log.d` calls with `DebugLog.log(...)` equivalents, or remove them entirely if the information is redundant.
+- [x] `android.util.Log.d` calls were already removed as part of the TASK-13 PairingScreen refactor.
 
 ---
 
@@ -232,11 +228,11 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 | TASK-11 | Replace hardcoded green connection color | P3 Polish | [x] |
 | TASK-12 | Rename theme color variables | P3 Polish | [x] |
 | TASK-13 | Improve connected-device view in PairingScreen | P3 Polish | [x] |
-| TASK-14 | Remove dead `ExtendedModButton` | P4 Quality | [ ] |
-| TASK-15 | Remove dead `onBack` parameter | P4 Quality | [ ] |
-| TASK-16 | Simplify `NavigationKeyButton` sizing API | P4 Quality | [ ] |
-| TASK-17 | Fix `SettingsScreen` coroutine scope leak | P4 Quality | [ ] |
-| TASK-18 | Extract duplicated IME label refresh logic | P4 Quality | [ ] |
-| TASK-19 | Remove leftover `Log.d` debug calls | P4 Quality | [ ] |
+| TASK-14 | Remove dead `ExtendedModButton` | P4 Quality | [x] |
+| TASK-15 | Remove dead `onBack` parameter | P4 Quality | [x] |
+| TASK-16 | Simplify `NavigationKeyButton` sizing API | P4 Quality | [x] |
+| TASK-17 | Fix `SettingsScreen` coroutine scope leak | P4 Quality | [x] |
+| TASK-18 | Extract duplicated IME label refresh logic | P4 Quality | [x] |
+| TASK-19 | Remove leftover `Log.d` debug calls | P4 Quality | [x] |
 | TASK-20 | Replace deprecated `accompanist-systemuicontroller` | P5 Deps | [ ] |
 | TASK-21 | Decide on dynamic color behavior | P5 Theme | [ ] |

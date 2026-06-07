@@ -22,35 +22,36 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+
+private suspend fun loadImeLabels(
+    context: android.content.Context,
+    overrides: Map<String, Boolean>
+): Map<String, String> {
+    val pm = context.packageManager
+    return overrides.keys.associateWith { pkg ->
+        try {
+            pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0))?.toString() ?: pkg
+        } catch (_: Exception) {
+            pkg
+        }
+    }
+}
 
 @Composable
 fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: (() -> Unit)? = null) {
     val context = LocalContext.current
     val flow = remember { SettingsManager.flow(context) }
     val settings by flow.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
-    val scope = remember { CoroutineScope(Dispatchers.IO) }
+    val scope = rememberCoroutineScope()
     var imeOverrides by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var imeLabels by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
     LaunchedEffect(Unit) {
         try {
             imeOverrides = SettingsManager.getAllImeOverrides(context)
-            // resolve package names to human-friendly labels
-            val pm = context.packageManager
-            val labels = mutableMapOf<String, String>()
-            imeOverrides.keys.forEach { pkg ->
-                try {
-                    val ai = pm.getApplicationInfo(pkg, 0)
-                    val lbl = pm.getApplicationLabel(ai)?.toString() ?: pkg
-                    labels[pkg] = lbl
-                } catch (_: Exception) {
-                    labels[pkg] = pkg
-                }
-            }
-            imeLabels = labels
+            imeLabels = loadImeLabels(context, imeOverrides)
         } catch (_: Exception) {
             imeOverrides = emptyMap()
             imeLabels = emptyMap()
@@ -187,19 +188,7 @@ fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: 
                         scope.launch {
                             SettingsManager.removeImeOverride(context, pkg)
                             imeOverrides = SettingsManager.getAllImeOverrides(context)
-                            // refresh labels
-                            val pm = context.packageManager
-                            val labels = mutableMapOf<String, String>()
-                            imeOverrides.keys.forEach { p ->
-                                try {
-                                    val ai = pm.getApplicationInfo(p, 0)
-                                    val lbl = pm.getApplicationLabel(ai)?.toString() ?: p
-                                    labels[p] = lbl
-                                } catch (_: Exception) {
-                                    labels[p] = p
-                                }
-                            }
-                            imeLabels = labels
+                            imeLabels = loadImeLabels(context, imeOverrides)
                         }
                     }) { Text("Remove") }
                 }

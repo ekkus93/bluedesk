@@ -12,13 +12,8 @@ import androidx.compose.ui.Alignment
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 import com.augustusmachin.android_bt_kbmouse.store.Action
 
-/**
- * Dedicated Function Keys screen. Includes modifier toggles (Shift/Alt/Meta/CAPS)
- * which mirror the ones on the Extended keys screen. The parent can supply
- * onBack to allow switching back to the Extended screen.
- */
 @Composable
-fun FunctionKeysScreen(onBack: () -> Unit = {}) {
+fun FunctionKeysScreen() {
     val appState by StoreProvider.asStateFlow().collectAsState()
     val connected = appState.connection.connectedDevice != null
     val keyFontSize = LocalKeyFontSize.current

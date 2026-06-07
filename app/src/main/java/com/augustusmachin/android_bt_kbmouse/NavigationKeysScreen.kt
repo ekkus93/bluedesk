@@ -112,9 +112,7 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
                     connected = connected,
                     modifier = Modifier
                         .width(navKeyWidth)
-                        .height(navKeyHeight),
-                    width = navKeyWidth,
-                    height = navKeyHeight
+                        .height(navKeyHeight)
                 )
                 NavigationKeyButton(
                     label = "PGDN",
@@ -122,9 +120,7 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
                     connected = connected,
                     modifier = Modifier
                         .width(navKeyWidth)
-                        .height(navKeyHeight),
-                    width = navKeyWidth,
-                    height = navKeyHeight
+                        .height(navKeyHeight)
                 )
             }
         }
@@ -136,9 +132,7 @@ private fun NavigationKeyButton(
     label: String,
     keyFontSize: androidx.compose.ui.unit.TextUnit,
     connected: Boolean,
-    modifier: Modifier = Modifier,
-    width: androidx.compose.ui.unit.Dp = 72.dp,
-    height: androidx.compose.ui.unit.Dp = 56.dp
+    modifier: Modifier = Modifier
 ) {
     val code = labelToHid(label)
     Button(
@@ -157,7 +151,7 @@ private fun NavigationKeyButton(
             }
         },
         enabled = code != null,
-        modifier = modifier.defaultMinSize(minWidth = width, minHeight = height)
+        modifier = modifier
     ) {
         ResponsiveText(
             text = label,

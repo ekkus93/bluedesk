@@ -976,26 +976,6 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
 }
 
 @Composable
-fun ExtendedModButton(label: String, active: Boolean, persist: Boolean, onClick: () -> Unit, onLong: () -> Unit) {
-    androidx.compose.material3.Button(onClick = onClick, modifier = Modifier.height(40.dp)) {
-        androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.weight(1f)) {
-                ResponsiveText(text = label, minSize = 12.sp, maxSize = 16.sp)
-            }
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(6.dp))
-            val color = when {
-                persist -> androidx.compose.ui.graphics.Color.Red
-                active -> androidx.compose.ui.graphics.Color.Green
-                else -> androidx.compose.ui.graphics.Color.LightGray
-            }
-            androidx.compose.foundation.Canvas(modifier = Modifier.size(10.dp)) {
-                drawCircle(color = color)
-            }
-        }
-    }
-}
-
-@Composable
 fun ResponsiveText(
     text: String,
     minSize: TextUnit = 10.sp,
