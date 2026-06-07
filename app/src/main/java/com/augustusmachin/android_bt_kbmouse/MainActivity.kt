@@ -494,7 +494,6 @@ fun MainScreen() {
             composable(Screen.Keyboard.route) { KeyboardScreen(navController, contentPadding = innerPadding) }
             composable(Screen.Mouse.route) { MouseScreen(contentPadding = innerPadding) }
             composable(Screen.Settings.route) { SettingsScreen(contentPadding = innerPadding, onOpenLogs = { navController.navigate("logs") }) }
-            composable("extended") { ExtendedKeysScreen() }
             composable("logs") { LogsScreen(contentPadding = innerPadding) }
         }
     }

@@ -153,9 +153,9 @@ Subtasks:
 **Problem (Q4):** `NavHost` registers `composable("extended") { ExtendedKeysScreen() }` but no navigation item in the `Screen` enum, no `navController.navigate("extended")` call, and no back-stack pop targets this route. The `ExtendedKeysScreen` is rendered inline as `selectedTab == 0` inside `KeyboardScreen`. This route is orphaned.
 
 Subtasks:
-- [ ] Delete `composable("extended") { ExtendedKeysScreen() }` from the `NavHost` block.
-- [ ] Search for any remaining `navigate("extended")` or `route == "extended"` references and remove them.
-- [ ] Verify that `ExtendedKeysScreen` still renders correctly as an inline tab composable (it does — the route deletion doesn't affect the tab rendering path).
+- [x] Delete `composable("extended") { ExtendedKeysScreen() }` from the `NavHost` block.
+- [x] Search for any remaining `navigate("extended")` or `route == "extended"` references and remove them.
+- [x] Verify that `ExtendedKeysScreen` still renders correctly as an inline tab composable (it does — the route deletion doesn't affect the tab rendering path).
 
 ---
 
@@ -241,7 +241,7 @@ Subtasks:
 | TASK-05 | Fix `discoveredDevices` list thread safety (CopyOnWriteArrayList) | Medium | [x] |
 | TASK-06 | Remove 3 remaining `android.util.Log.d` calls in HidModule + Service | Medium | [x] |
 | TASK-07 | Fix missing `Locale` in `SimpleDateFormat` in `ExtendedKeysScreen` | Low | [x] |
-| TASK-08 | Remove dead `"extended"` composable route from NavHost | Low | [ ] |
+| TASK-08 | Remove dead `"extended"` composable route from NavHost | Low | [x] |
 | TASK-09 | Factor out `getSharedPreferences("bt_hid", ...)` repeated calls | Low | [ ] |
 | TASK-10 | Integrate or remove `BleHogpService` (currently started but unconnected to store) | Medium | [ ] |
 | TASK-11 | Resolve three-parallel-settings-sources (DataStore vs ViewModel vs Redux store) | Medium | [ ] |
