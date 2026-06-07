@@ -159,6 +159,7 @@ class MainActivity : ComponentActivity() {
     // Pairing view model removed in production: UI reads/writes canonical state via StoreProvider
 
     private var serviceBound = false
+    private var bleHogpBound = false
 
     // Settings are collected in SettingsViewModel which performs global side-effects (DebugLog)
     private val settingsViewModel: SettingsViewModel by viewModels()
@@ -223,6 +224,49 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val bleHogpConnection = object : android.content.ServiceConnection {
+        override fun onServiceConnected(name: ComponentName, service: IBinder) {
+            val svc = (service as BleHogpService.LocalBinder).getService()
+            if (!settingsViewModel.settings.value.useBleHogp) return
+            // useBleHogp is enabled — install BleHogpKeySender and wire store events
+            try {
+                StoreProvider.setKeySender(com.augustusmachin.android_bt_kbmouse.store.BleHogpKeySender(svc))
+            } catch (t: Throwable) {
+                DebugLog.e("MainActivity", "BleHogp setKeySender failed: ${t.message}")
+            }
+            svc.eventListener = object : BleHogpService.ServiceEventListener {
+                override fun onConnected(device: BluetoothDevice) {
+                    DebugLog.log("MainActivity", "BleHogp onConnected ${device.address}")
+                    StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
+                    StoreProvider.dispatch(Action.UpdateMessage("BLE connected to ${device.address}"))
+                }
+                override fun onDisconnected(device: BluetoothDevice?) {
+                    DebugLog.log("MainActivity", "BleHogp onDisconnected")
+                    StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
+                    StoreProvider.dispatch(Action.UpdateMessage("BLE disconnected"))
+                }
+                override fun onInfo(message: String) {
+                    DebugLog.log("MainActivity", "BleHogp info: $message")
+                    StoreProvider.dispatch(Action.UpdateMessage(message))
+                }
+                override fun onError(message: String) {
+                    DebugLog.e("MainActivity", "BleHogp error: $message")
+                    StoreProvider.dispatch(Action.UpdateMessage(message))
+                }
+                override fun onLeds(leds: Int) {
+                    val caps = (leds and 0x02) != 0
+                    val scroll = (leds and 0x04) != 0
+                    StoreProvider.dispatch(Action.UpdateLocks(caps, scroll))
+                }
+            }
+        }
+        override fun onServiceDisconnected(name: ComponentName) {
+            if (settingsViewModel.settings.value.useBleHogp) {
+                try { StoreProvider.setKeySender(null) } catch (_: Exception) {}
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Register receiver for permission-error reports from services
@@ -266,6 +310,10 @@ class MainActivity : ComponentActivity() {
             unbindService(connection)
             serviceBound = false
         }
+        if (bleHogpBound) {
+            try { unbindService(bleHogpConnection) } catch (_: Exception) {}
+            bleHogpBound = false
+        }
     }
 
     private fun requiredStartupPermissions(): Array<String> {
@@ -286,7 +334,8 @@ class MainActivity : ComponentActivity() {
         if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(serviceIntent) else startService(serviceIntent)
         val bleIntent = Intent(this, BleHogpService::class.java)
         if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(bleIntent) else startService(bleIntent)
-        try { serviceBound = bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE) } catch (e: Exception) { DebugLog.e("MainActivity", "bind service failed: ${e.message}") }
+        try { serviceBound = bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE) } catch (e: Exception) { DebugLog.e("MainActivity", "bind BluetoothService failed: ${e.message}") }
+        try { bleHogpBound = bindService(bleIntent, bleHogpConnection, Context.BIND_AUTO_CREATE) } catch (e: Exception) { DebugLog.e("MainActivity", "bind BleHogpService failed: ${e.message}") }
     }
 
     private fun showPermissionNeededDialog() {

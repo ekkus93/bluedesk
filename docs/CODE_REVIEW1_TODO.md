@@ -182,12 +182,12 @@ Two options — choose one:
 - [ ] Delete `BleHogpService.kt` and `BleHogpLogic.kt`.
 - [ ] Update `CLAUDE.md` Known Issues to note BLE HOGP was removed pending a proper implementation.
 
-**Option B: Integrate (if BLE HOGP is the desired Windows fix path)**
-- [ ] Add `BleHogpService.ServiceEventListener` (mirroring `BluetoothService.ServiceEventListener`) and dispatch the same `Action.UpdateConnectedDevice`, `Action.UpdateMessage`, `Action.UpdateLocks` actions from it.
-- [ ] Wire `BleHogpService` key/mouse send calls through a second `KeySender` or extend `StoreProvider` to hold two senders and fan out.
-- [ ] Add a Settings toggle ("Use BLE HOGP instead of Classic BT") that controls which service is started and bound.
-- [ ] Add a `ServiceConnection` for `BleHogpService` in `MainActivity` (same pattern as `BluetoothService`).
-- [ ] Document the trade-offs (BLE HOGP: better Windows compatibility but higher latency; Classic: lower latency but Windows driver issues).
+**Option B: Integrate (if BLE HOGP is the desired Windows fix path)** ← chosen
+- [x] Add `BleHogpService.ServiceEventListener` (mirroring `BluetoothService.ServiceEventListener`) and dispatch the same `Action.UpdateConnectedDevice`, `Action.UpdateMessage`, `Action.UpdateLocks` actions from it.
+- [x] Wire `BleHogpService` key/mouse send calls through `BleHogpKeySender` implementing `KeySender`; installed via `StoreProvider.setKeySender` when `useBleHogp` is true.
+- [x] Add a Settings toggle ("Use BLE HOGP (experimental)") that controls which service is wired to the Redux store. Restart required after toggling.
+- [x] Add a `ServiceConnection` for `BleHogpService` in `MainActivity` (same pattern as `BluetoothService`).
+- [x] Trade-offs documented in settings description: BLE HOGP = experimental, may improve Windows pairing; Classic BT = default, lower latency.
 
 ---
 
@@ -243,7 +243,7 @@ Subtasks:
 | TASK-07 | Fix missing `Locale` in `SimpleDateFormat` in `ExtendedKeysScreen` | Low | [x] |
 | TASK-08 | Remove dead `"extended"` composable route from NavHost | Low | [x] |
 | TASK-09 | Factor out `getSharedPreferences("bt_hid", ...)` repeated calls | Low | [x] |
-| TASK-10 | Integrate or remove `BleHogpService` (currently started but unconnected to store) | Medium | [ ] |
+| TASK-10 | Integrate or remove `BleHogpService` (currently started but unconnected to store) | Medium | [x] |
 | TASK-11 | Resolve three-parallel-settings-sources (DataStore vs ViewModel vs Redux store) | Medium | [x] |
 | TASK-12 | Fix Caps/Scroll Lock dual-state-update (speculative reducer toggle vs LED callback) | Low | [x] |
 

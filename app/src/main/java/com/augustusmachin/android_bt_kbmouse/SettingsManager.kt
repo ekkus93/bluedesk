@@ -28,6 +28,8 @@ data class Settings(
     val startOnBoot: Boolean = false,
     // Descriptor variant toggle: true = simplified (Windows workaround), false = full
     val hidSimplified: Boolean = true,
+    // Use BLE HOGP instead of Classic BT HID (experimental; may improve Windows compatibility)
+    val useBleHogp: Boolean = false,
     // Per-device: key remapping table (HID usage -> HID usage)
     val keyMap: Map<Int, Int> = emptyMap(),
 )
@@ -46,6 +48,7 @@ object SettingsManager {
     private val KEY_OFFLINE_PREVIEW = booleanPreferencesKey("offline_preview")
     private val KEY_START_ON_BOOT = booleanPreferencesKey("start_on_boot")
     private val KEY_HID_SIMPLE = booleanPreferencesKey("hid_simplified")
+    private val KEY_USE_BLE_HOGP = booleanPreferencesKey("use_ble_hogp")
 
     fun fromPreferences(p: androidx.datastore.preferences.core.Preferences): Settings = Settings(
         touchpadSensitivity = p[KEY_SENS] ?: 1.5f,
@@ -61,6 +64,7 @@ object SettingsManager {
         offlinePreview = p[KEY_OFFLINE_PREVIEW] ?: false,
         startOnBoot = p[KEY_START_ON_BOOT] ?: false,
         hidSimplified = p[KEY_HID_SIMPLE] ?: true,
+        useBleHogp = p[KEY_USE_BLE_HOGP] ?: false,
         keyMap = emptyMap(),
     )
 
@@ -152,6 +156,10 @@ object SettingsManager {
 
     suspend fun setHidSimplified(context: Context, v: Boolean) {
         context.settingsDataStore.edit { it[KEY_HID_SIMPLE] = v }
+    }
+
+    suspend fun setUseBleHogp(context: Context, v: Boolean) {
+        context.settingsDataStore.edit { it[KEY_USE_BLE_HOGP] = v }
     }
 
     // Per-device setters

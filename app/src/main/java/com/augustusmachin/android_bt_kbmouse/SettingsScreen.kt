@@ -163,6 +163,20 @@ fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: 
                 scope.launch { SettingsManager.setHidSimplified(context, it) }
             })
         }
+        Row(Modifier.padding(top = 8.dp)) {
+            androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
+                Text("Use BLE HOGP (experimental)")
+                Text(
+                    "Uses Bluetooth Low Energy instead of Classic BT. Restart the app after changing. May improve Windows compatibility.",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+            Switch(checked = settings.useBleHogp, onCheckedChange = {
+                scope.launch { SettingsManager.setUseBleHogp(context, it) }
+            })
+        }
 
         if (onOpenLogs != null) {
             Button(modifier = Modifier.padding(top = 8.dp), onClick = onOpenLogs) {
