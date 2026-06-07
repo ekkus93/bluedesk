@@ -38,10 +38,10 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `SettingsScreen.kt` lines 141–147  
 **Problem:** This compatibility setting is only visible when debug logging is on. Windows users who need it will never find it.
 
-- [ ] Move the "Use simplified HID descriptor (Windows)" `Row`/`Switch` out of the `if (settings.debugLogging)` block.
-- [ ] Place it under a new `Text("Compatibility")` section header near the bottom of the settings list, before the "Start service on boot" row.
-- [ ] Add a one-line helper text below the label: `"Enable if your Windows host shows a 'Driver error' after pairing."` (use `MaterialTheme.typography.bodySmall` and `onSurfaceVariant` color).
-- [ ] Confirm the setting is visible regardless of debug logging state.
+- [x] Move the "Use simplified HID descriptor (Windows)" `Row`/`Switch` out of the `if (settings.debugLogging)` block.
+- [x] Place it under a new `Text("Compatibility")` section header near the bottom of the settings list, after the "Start service on boot" row.
+- [x] Add a one-line helper text below the label: `"Enable if your Windows host shows a 'Driver error' after pairing."` (use `MaterialTheme.typography.bodySmall` and `onSurfaceVariant` color).
+- [x] Confirm the setting is visible regardless of debug logging state.
 
 ---
 
@@ -239,7 +239,7 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 |----|-------------|----------|--------|
 | TASK-01 | Add Ctrl modifier key | P1 Functional | [x] |
 | TASK-02 | Fix unreachable nav snackbar | P1 Bug | [x] |
-| TASK-03 | Move HID descriptor setting out of debug section | P1 Functional | [ ] |
+| TASK-03 | Move HID descriptor setting out of debug section | P1 Functional | [x] |
 | TASK-04 | Fix `KeyButton` repeatable height | P2 Bug | [ ] |
 | TASK-05 | Fix null-safe call in connected branch | P2 Bug | [ ] |
 | TASK-06 | Fix double `appState` collection in `MainScreen` | P2 Bug | [ ] |

@@ -138,17 +138,28 @@ fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: 
                 Button(onClick = { scope.launch { SettingsManager.setLogLevel(context, 1) } }, modifier = Modifier.padding(end = 4.dp), enabled = sel != 1) { Text("Info") }
                 Button(onClick = { scope.launch { SettingsManager.setLogLevel(context, 2) } }, enabled = sel != 2) { Text("Error") }
             }
-            Row(Modifier.padding(top = 8.dp)) {
-                Text("Use simplified HID descriptor (Windows)", modifier = Modifier.weight(1f))
-                Switch(checked = settings.hidSimplified, onCheckedChange = {
-                    scope.launch { SettingsManager.setHidSimplified(context, it) }
-                })
-            }
         }
         Row(Modifier.padding(top = 16.dp)) {
             Text("Start service on boot", modifier = Modifier.weight(1f))
             Switch(checked = settings.startOnBoot, onCheckedChange = {
                 scope.launch { SettingsManager.setStartOnBoot(context, it) }
+            })
+        }
+
+        // Compatibility
+        Text("Compatibility", style = androidx.compose.material3.MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 24.dp, bottom = 4.dp))
+        Row(Modifier.padding(top = 4.dp)) {
+            androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
+                Text("Use simplified HID descriptor (Windows)")
+                Text(
+                    "Enable if your Windows host shows a \"Driver error\" after pairing.",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+            Switch(checked = settings.hidSimplified, onCheckedChange = {
+                scope.launch { SettingsManager.setHidSimplified(context, it) }
             })
         }
 
