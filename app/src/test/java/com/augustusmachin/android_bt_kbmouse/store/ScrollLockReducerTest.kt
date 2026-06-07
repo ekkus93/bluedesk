@@ -5,30 +5,33 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ScrollLockReducerTest {
-    @Test
-    fun toggleScrollLockFlipsFlag() {
-        val initial = AppState()
-        val first = appReducer(initial, Action.ToggleScrollLock)
-        assertTrue(first.connection.scrollLock)
 
-        val second = appReducer(first, Action.ToggleScrollLock)
-        assertFalse(second.connection.scrollLock)
+    @Test
+    fun toggleCapsLockIsPassthroughInReducer() {
+        // ToggleCapsLock must NOT speculatively flip capsLock in the reducer.
+        // The authoritative state comes from UpdateLocks (host LED report).
+        val after = appReducer(AppState(), Action.ToggleCapsLock)
+        assertFalse(after.connection.capsLock)
     }
 
     @Test
-    fun updateLocksOverridesToggle() {
-        val toggled = appReducer(AppState(), Action.ToggleScrollLock)
-        val updated = appReducer(toggled, Action.UpdateLocks(caps = false, scroll = false))
-        assertFalse(updated.connection.scrollLock)
+    fun toggleScrollLockIsPassthroughInReducer() {
+        val after = appReducer(AppState(), Action.ToggleScrollLock)
+        assertFalse(after.connection.scrollLock)
     }
 
     @Test
-    fun toggleCapsLockFlipsFlag() {
-        val initial = AppState()
-        val first = appReducer(initial, Action.ToggleCapsLock)
-        assertTrue(first.connection.capsLock)
+    fun updateLocksSetsCapsAndScrollLock() {
+        val updated = appReducer(AppState(), Action.UpdateLocks(caps = true, scroll = true))
+        assertTrue(updated.connection.capsLock)
+        assertTrue(updated.connection.scrollLock)
+    }
 
-        val second = appReducer(first, Action.ToggleCapsLock)
-        assertFalse(second.connection.capsLock)
+    @Test
+    fun updateLocksOverridesAnyPriorState() {
+        val withLocks = appReducer(AppState(), Action.UpdateLocks(caps = true, scroll = true))
+        val cleared = appReducer(withLocks, Action.UpdateLocks(caps = false, scroll = false))
+        assertFalse(cleared.connection.capsLock)
+        assertFalse(cleared.connection.scrollLock)
     }
 }

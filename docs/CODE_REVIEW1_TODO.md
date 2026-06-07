@@ -222,11 +222,11 @@ Steps 1 and 4 both write `capsLock`. Step 1's toggle is speculative; if the host
 This is not a crash but a correctness gap. The authoritative caps lock state is the host's LED, not the app's toggle.
 
 Subtasks:
-- [ ] Remove the `ToggleCapsLock` case from `Reducers.kt` (the reducer should not speculatively toggle — only `UpdateLocks` from the LED feedback should drive `capsLock`).
-- [ ] In `Middleware.kt`, after forwarding `ToggleCapsLock` to `sender?.toggleCapsLock()`, do NOT call `next(action)` in a way that triggers the reducer's speculative toggle. Instead, only call `next(action)` to let it pass through, and let `UpdateLocks` arrive from the LED callback to update the state.
-- [ ] Apply the same fix to `ToggleScrollLock`.
+- [x] Remove the `ToggleCapsLock` case from `Reducers.kt` (the reducer should not speculatively toggle — only `UpdateLocks` from the LED feedback should drive `capsLock`).
+- [x] In `Middleware.kt`, after forwarding `ToggleCapsLock` to `sender?.toggleCapsLock()`, do NOT call `next(action)` in a way that triggers the reducer's speculative toggle. Instead, only call `next(action)` to let it pass through, and let `UpdateLocks` arrive from the LED callback to update the state.
+- [x] Apply the same fix to `ToggleScrollLock`.
 - [ ] If hosts that don't send LED updates are a real concern, add a `private const val LED_TIMEOUT_MS = 500L` and optimistically apply the toggle if no `UpdateLocks` arrives within that window. This is optional but improves reliability on non-conforming hosts.
-- [ ] Update `ModifierReducerTest` to verify that `ToggleCapsLock` no longer directly modifies `capsLock` in the reducer (it becomes a passthrough that middleware intercepts).
+- [x] Update `ModifierReducerTest` to verify that `ToggleCapsLock` no longer directly modifies `capsLock` in the reducer (it becomes a passthrough that middleware intercepts).
 
 ---
 
@@ -245,7 +245,7 @@ Subtasks:
 | TASK-09 | Factor out `getSharedPreferences("bt_hid", ...)` repeated calls | Low | [x] |
 | TASK-10 | Integrate or remove `BleHogpService` (currently started but unconnected to store) | Medium | [ ] |
 | TASK-11 | Resolve three-parallel-settings-sources (DataStore vs ViewModel vs Redux store) | Medium | [x] |
-| TASK-12 | Fix Caps/Scroll Lock dual-state-update (speculative reducer toggle vs LED callback) | Low | [ ] |
+| TASK-12 | Fix Caps/Scroll Lock dual-state-update (speculative reducer toggle vs LED callback) | Low | [x] |
 
 **Implementation order recommendation:**  
 TASK-01 → TASK-02 → TASK-03 together (one commit, they are inseparable).  

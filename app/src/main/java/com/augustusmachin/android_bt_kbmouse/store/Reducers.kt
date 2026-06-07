@@ -46,12 +46,11 @@ val appReducer: Reducer<AppState> = { state, action ->
         is Action.MiddleClick -> state
         is Action.ScrollVertical -> state
         is Action.ScrollHorizontal -> state
-    is Action.ToggleCapsLock -> state.copy(
-        connection = state.connection.copy(capsLock = !state.connection.capsLock)
-    )
-    is Action.ToggleScrollLock -> state.copy(
-        connection = state.connection.copy(scrollLock = !state.connection.scrollLock)
-    )
+        // ToggleCapsLock / ToggleScrollLock are intercepted by middleware which sends the HID
+        // key press. State is driven exclusively by Action.UpdateLocks from the host LED report —
+        // no speculative toggle here.
+        Action.ToggleCapsLock -> state
+        Action.ToggleScrollLock -> state
         is Action.UpdateDiscoveredDevices -> state.copy(
             connection = state.connection.copy(discoveredDevices = action.devices)
         )
