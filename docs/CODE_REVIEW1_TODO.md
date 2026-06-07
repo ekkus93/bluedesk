@@ -201,11 +201,11 @@ Two options — choose one:
 This means a settings change in `SettingsScreen` triggers a `DataStore` write, which propagates to `SettingsViewModel`, but the Redux store's `SettingsState` is only updated if `SettingsViewModel` also dispatches `Action.UpdateSettings`. The store's settings are not the canonical source.
 
 Subtasks:
-- [ ] Decide on the canonical source: recommend keeping `SettingsManager`/`DataStore` as the canonical store, and making `SettingsViewModel` the single collector in the UI layer. Remove `SettingsState` from `AppState` and the `Action.UpdateSettings`/`Action.UpdateImeOverrides` actions if they are not used by reducers or middleware (audit first).
-- [ ] Audit all `appState.settings` read sites in `Middleware.kt` — check whether middleware reads `appState.settings` at all. If not, `SettingsState` in the Redux store is unused and can be removed entirely.
-- [ ] If middleware does need settings (e.g., to gate behavior), inject the settings Flow into the middleware instead of storing settings in the Redux state.
-- [ ] After removing `SettingsState` from `AppState`, update `Reducers.kt` to remove the `UpdateSettings`/`UpdateImeOverrides` cases.
-- [ ] Update all tests that reference `AppState.settings`.
+- [x] Decide on the canonical source: recommend keeping `SettingsManager`/`DataStore` as the canonical store, and making `SettingsViewModel` the single collector in the UI layer. Remove `SettingsState` from `AppState` and the `Action.UpdateSettings`/`Action.UpdateImeOverrides` actions if they are not used by reducers or middleware (audit first).
+- [x] Audit all `appState.settings` read sites in `Middleware.kt` — check whether middleware reads `appState.settings` at all. If not, `SettingsState` in the Redux store is unused and can be removed entirely.
+- [x] If middleware does need settings (e.g., to gate behavior), inject the settings Flow into the middleware instead of storing settings in the Redux state.
+- [x] After removing `SettingsState` from `AppState`, update `Reducers.kt` to remove the `UpdateSettings`/`UpdateImeOverrides` cases.
+- [x] Update all tests that reference `AppState.settings`.
 
 ---
 
@@ -244,7 +244,7 @@ Subtasks:
 | TASK-08 | Remove dead `"extended"` composable route from NavHost | Low | [x] |
 | TASK-09 | Factor out `getSharedPreferences("bt_hid", ...)` repeated calls | Low | [x] |
 | TASK-10 | Integrate or remove `BleHogpService` (currently started but unconnected to store) | Medium | [ ] |
-| TASK-11 | Resolve three-parallel-settings-sources (DataStore vs ViewModel vs Redux store) | Medium | [ ] |
+| TASK-11 | Resolve three-parallel-settings-sources (DataStore vs ViewModel vs Redux store) | Medium | [x] |
 | TASK-12 | Fix Caps/Scroll Lock dual-state-update (speculative reducer toggle vs LED callback) | Low | [ ] |
 
 **Implementation order recommendation:**  

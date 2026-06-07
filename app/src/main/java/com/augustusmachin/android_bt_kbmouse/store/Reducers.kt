@@ -76,12 +76,6 @@ val appReducer: Reducer<AppState> = { state, action ->
         is Action.UpdateIsScanning -> state.copy(
             connection = state.connection.copy(isScanning = action.scanning)
         )
-        is Action.UpdateSettings -> state.copy(
-            settings = state.settings.copy(global = action.settings)
-        )
-        is Action.UpdateImeOverrides -> state.copy(
-            settings = state.settings.copy(imeOverrides = action.overrides)
-        )
         Action.StartDiscovery,
         Action.StopDiscovery,
         is Action.PairDevice,

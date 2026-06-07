@@ -1,7 +1,6 @@
 package com.augustusmachin.android_bt_kbmouse.store
 
 import android.bluetooth.BluetoothDevice
-import com.augustusmachin.android_bt_kbmouse.Settings
 
 sealed class Action {
     // Keyboard modifier toggles
@@ -55,7 +54,4 @@ sealed class Action {
     data class SetDefaultDevice(val device: BluetoothDevice) : Action()
     data class RenameDevice(val device: BluetoothDevice, val alias: String) : Action()
 
-    // Settings
-    data class UpdateSettings(val settings: Settings) : Action()
-    data class UpdateImeOverrides(val overrides: Map<String, Boolean>) : Action()
 }

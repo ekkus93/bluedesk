@@ -1,7 +1,6 @@
 package com.augustusmachin.android_bt_kbmouse.store
 
 import android.bluetooth.BluetoothDevice
-import com.augustusmachin.android_bt_kbmouse.Settings
 
 data class KeyboardState(
     val ctrl: Boolean = false,
@@ -38,14 +37,8 @@ data class ConnectionState(
     val isScanning: Boolean = false
 )
 
-data class SettingsState(
-    val global: Settings = Settings(),
-    val imeOverrides: Map<String, Boolean> = emptyMap()
-)
-
 data class AppState(
     val keyboard: KeyboardState = KeyboardState(),
     val ui: UiState = UiState(),
-    val connection: ConnectionState = ConnectionState(),
-    val settings: SettingsState = SettingsState()
+    val connection: ConnectionState = ConnectionState()
 )
