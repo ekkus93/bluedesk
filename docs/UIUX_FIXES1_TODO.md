@@ -51,14 +51,8 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `MainActivity.kt` — `KeyButton` composable, lines 1046–1073  
 **Problem:** When `repeatable = true`, the computed `buttonModifier` does not include `.height(44.dp)`, so repeatable buttons may have inconsistent or zero height.
 
-- [ ] In the `if (repeatable)` branch, chain `.height(44.dp)` before `.pointerInput(Unit)`:
-  ```kotlin
-  val buttonModifier = if (repeatable)
-      modifier.height(44.dp).pointerInput(Unit) { ... }
-  else
-      modifier.height(44.dp)
-  ```
-- [ ] Visually verify that arrow key buttons and other repeatable keys have consistent height with non-repeatable keys.
+- [x] In the `if (repeatable)` branch, chain `.height(44.dp)` before `.pointerInput(Unit)`.
+- [ ] Visually verify that arrow key buttons and other repeatable keys have consistent height with non-repeatable keys. *(manual verification on device)*
 
 ---
 
@@ -66,7 +60,7 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `MainActivity.kt` — `PairingScreen` composable, line 735  
 **Problem:** `connectedDevice?.name` is called inside the `else` branch of `if (connectedDevice == null)`, so `connectedDevice` is guaranteed non-null. The `?.` is misleading.
 
-- [ ] Change `"Status: Connected to ${connectedDevice?.name}"` to `"Status: Connected to ${connectedDevice.name}"`.
+- [x] Change `"Status: Connected to ${connectedDevice?.name}"` to `"Status: Connected to ${connectedDevice.name}"`.
 
 ---
 
@@ -74,8 +68,8 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `MainActivity.kt` — `MainScreen` composable, lines 317–318 and 466–468  
 **Problem:** `StoreProvider.asStateFlow().collectAsState()` is called twice and `connected` / `appState` are declared twice, creating two separate subscribers to the same flow.
 
-- [ ] Remove the second `val appState by StoreProvider.asStateFlow().collectAsState()` and `val connected = ...` inside the `Scaffold` lambda.
-- [ ] Replace all references inside the lambda with the outer `appState` and `connected` variables already in scope.
+- [x] Remove the second `val appState by StoreProvider.asStateFlow().collectAsState()` and `val connected = ...` inside the `Scaffold` lambda.
+- [x] Replace all references inside the lambda with the outer `appState` and `connected` variables already in scope.
 
 ---
 
@@ -240,9 +234,9 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 | TASK-01 | Add Ctrl modifier key | P1 Functional | [x] |
 | TASK-02 | Fix unreachable nav snackbar | P1 Bug | [x] |
 | TASK-03 | Move HID descriptor setting out of debug section | P1 Functional | [x] |
-| TASK-04 | Fix `KeyButton` repeatable height | P2 Bug | [ ] |
-| TASK-05 | Fix null-safe call in connected branch | P2 Bug | [ ] |
-| TASK-06 | Fix double `appState` collection in `MainScreen` | P2 Bug | [ ] |
+| TASK-04 | Fix `KeyButton` repeatable height | P2 Bug | [x] |
+| TASK-05 | Fix null-safe call in connected branch | P2 Bug | [x] |
+| TASK-06 | Fix double `appState` collection in `MainScreen` | P2 Bug | [x] |
 | TASK-07 | Scroll Lock color-toggle active state | P3 Polish | [ ] |
 | TASK-08 | Hide preview console when connected | P3 Polish | [ ] |
 | TASK-09 | Remove orphaned `Text("Extended keys")` | P3 Polish | [ ] |

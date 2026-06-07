@@ -472,9 +472,7 @@ fun MainScreen() {
         },
         snackbarHost = { androidx.compose.material3.SnackbarHost(hostState = snackbarHostState) },
     ) { innerPadding ->
-    val appState by StoreProvider.asStateFlow().collectAsState()
     val message = appState.connection.message
-    val connected = appState.connection.connectedDevice
         val navBack by navController.currentBackStackEntryAsState()
         val route = navBack?.destination?.route
         androidx.compose.runtime.LaunchedEffect(connected, route, settings.offlinePreview, settings.debugLogging) {
@@ -741,7 +739,7 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                     }
             }
         } else {
-            Text(text = "Status: Connected to ${connectedDevice?.name}", modifier = Modifier.padding(16.dp))
+            Text(text = "Status: Connected to ${connectedDevice.name}", modifier = Modifier.padding(16.dp))
             Button(onClick = { StoreProvider.dispatch(Action.DisconnectDevice) }) {
                 Text(text = "Disconnect")
             }
@@ -1071,7 +1069,7 @@ private fun KeyButton(
     val contentColor = if (pressed || toggled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
     val colors = ButtonDefaults.buttonColors(containerColor = containerColor, contentColor = contentColor)
     // Provide a consistent height and rounded shape for key buttons; keep repeatable pointer logic
-    val buttonModifier = if (repeatable) modifier.pointerInput(Unit) {
+    val buttonModifier = if (repeatable) modifier.height(44.dp).pointerInput(Unit) {
         awaitPointerEventScope {
             var isDown = false
             var repeatJob: kotlinx.coroutines.Job? = null
