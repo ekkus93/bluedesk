@@ -34,6 +34,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Scaffold
@@ -397,7 +398,15 @@ fun MainScreen() {
                             icon = { Icon(painterResource(id = screen.icon), contentDescription = screen.title) },
                             label = { Text(screen.title) },
                             selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                            enabled = isEnabled,
+                            // Always enabled so onClick fires; disabled appearance applied via colors.
+                            enabled = true,
+                            colors = if (!isEnabled) NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                selectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                indicatorColor = Color.Transparent,
+                            ) else NavigationBarItemDefaults.colors(),
                             onClick = {
                                 if (!isEnabled) {
                                     scope.launch { snackbarHostState.showSnackbar("Connect a device first") }

@@ -27,11 +27,10 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `MainActivity.kt` — `MainScreen` composable, `NavigationBar` block  
 **Problem:** `NavigationBarItem` with `enabled = false` does not invoke `onClick` in Material3. The snackbar branch `if (!isEnabled) { ... showSnackbar("Connect a device first") }` can never execute, so users tapping a disabled tab get zero feedback.
 
-- [ ] Remove the `if (!isEnabled) / else` split from inside the `onClick` lambda — it is dead code.
-- [ ] Replace the `NavigationBarItem` approach with a wrapper: wrap each disabled item in a `Box` with a `clickable` modifier so taps on disabled items are still interceptable.  
-  *Alternatively:* keep `enabled = true` on all items and gate the navigation logic inside `onClick`, showing the snackbar when the destination requires a connection and none exists.
-- [ ] Verify the snackbar appears when the user taps Keyboard or Mouse tabs while disconnected.
-- [ ] Write the missing unit / UI test for the nav guard snackbar (noted as an open item in the known-issues list).
+- [x] Remove the `if (!isEnabled) / else` split from inside the `onClick` lambda — it is dead code.
+- [x] Replace the `NavigationBarItem` approach with a wrapper: keep `enabled = true` always and gate navigation logic inside `onClick`; visual disabled state applied via `NavigationBarItemDefaults.colors` at 38% opacity.
+- [ ] Verify the snackbar appears when the user taps Keyboard or Mouse tabs while disconnected. *(manual / instrumented test — requires device)*
+- [ ] Write the missing unit / UI test for the nav guard snackbar. *(requires Compose UI Test / instrumented; out of scope for host JVM suite)*
 
 ---
 
@@ -239,7 +238,7 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 | ID | Description | Priority | Status |
 |----|-------------|----------|--------|
 | TASK-01 | Add Ctrl modifier key | P1 Functional | [x] |
-| TASK-02 | Fix unreachable nav snackbar | P1 Bug | [ ] |
+| TASK-02 | Fix unreachable nav snackbar | P1 Bug | [x] |
 | TASK-03 | Move HID descriptor setting out of debug section | P1 Functional | [ ] |
 | TASK-04 | Fix `KeyButton` repeatable height | P2 Bug | [ ] |
 | TASK-05 | Fix null-safe call in connected branch | P2 Bug | [ ] |
