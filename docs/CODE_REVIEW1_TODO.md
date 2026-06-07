@@ -104,10 +104,10 @@ Subtasks:
 **Problem (B6):** `discoveredDevices` is a plain `mutableListOf<BluetoothDevice>()`. The `ACTION_FOUND` broadcast adds items to it; `getDiscoveredDevices()` calls `toList()` which iterates it. While broadcast receivers typically run on the main thread, the list is accessed from middleware (runs on `Dispatchers.Default`) without synchronization. A concurrent add during iteration can throw `ConcurrentModificationException`.
 
 Subtasks:
-- [ ] Replace `private val discoveredDevices = mutableListOf<BluetoothDevice>()` with `private val discoveredDevices = java.util.concurrent.CopyOnWriteArrayList<BluetoothDevice>()`.
-- [ ] `CopyOnWriteArrayList.toList()` is safe under concurrent writes — no other changes needed.
-- [ ] Verify `discoveredDevices.clear()` in `startDiscovery()` still works (`CopyOnWriteArrayList` supports `clear()`).
-- [ ] Verify `discoveredDevices.contains(it)` is still correct (it is — `CopyOnWriteArrayList` is a `List`).
+- [x] Replace `private val discoveredDevices = mutableListOf<BluetoothDevice>()` with `private val discoveredDevices = java.util.concurrent.CopyOnWriteArrayList<BluetoothDevice>()`.
+- [x] `CopyOnWriteArrayList.toList()` is safe under concurrent writes — no other changes needed.
+- [x] Verify `discoveredDevices.clear()` in `startDiscovery()` still works (`CopyOnWriteArrayList` supports `clear()`).
+- [x] Verify `discoveredDevices.contains(it)` is still correct (it is — `CopyOnWriteArrayList` is a `List`).
 
 ---
 
@@ -238,7 +238,7 @@ Subtasks:
 | TASK-02 | Wire simplified-descriptor setting to `registerApp`; remove dead internal descriptors | Critical | [x] |
 | TASK-03 | Fix report IDs in send methods; restore scroll implementation | Critical | [x] |
 | TASK-04 | Eliminate `runBlocking` on Bluetooth profile callback thread | Medium | [x] |
-| TASK-05 | Fix `discoveredDevices` list thread safety (CopyOnWriteArrayList) | Medium | [ ] |
+| TASK-05 | Fix `discoveredDevices` list thread safety (CopyOnWriteArrayList) | Medium | [x] |
 | TASK-06 | Remove 3 remaining `android.util.Log.d` calls in HidModule + Service | Medium | [ ] |
 | TASK-07 | Fix missing `Locale` in `SimpleDateFormat` in `ExtendedKeysScreen` | Low | [ ] |
 | TASK-08 | Remove dead `"extended"` composable route from NavHost | Low | [ ] |

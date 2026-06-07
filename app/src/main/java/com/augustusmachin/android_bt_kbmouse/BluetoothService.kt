@@ -42,7 +42,7 @@ class BluetoothService : Service(), IBluetoothService {
 
     private val binder = LocalBinder()
     private var bluetoothAdapter: BluetoothAdapter? = null
-    private val discoveredDevices = mutableListOf<BluetoothDevice>()
+    private val discoveredDevices = java.util.concurrent.CopyOnWriteArrayList<BluetoothDevice>()
     private var bluetoothHidProfile: BluetoothProfile? = null
     private var bluetoothHidModule: BluetoothHidModule? = null
     private var hid: BluetoothHidDevice? = null
