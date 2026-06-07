@@ -325,7 +325,6 @@ class BluetoothService : Service(), IBluetoothService {
         // Clear previous results so UI refreshes immediately
         discoveredDevices.clear()
         DebugLog.log("BluetoothService", "startDiscovery")
-        android.util.Log.d("BTKB", "BluetoothService.startDiscovery invoked")
         bluetoothAdapter?.startDiscovery()
     }
 

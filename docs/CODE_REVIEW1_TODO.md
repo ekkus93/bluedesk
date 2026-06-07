@@ -120,10 +120,10 @@ Subtasks:
 - `BluetoothService.kt:322` — `android.util.Log.d("BTKB", "BluetoothService.startDiscovery invoked")` in `startDiscovery()`
 
 Subtasks:
-- [ ] In `BluetoothHidModule.kt:91`, remove the raw `Log.d` call. The `DebugLog.log(...)` call immediately above it already covers this.
-- [ ] In `BluetoothHidModule.kt:97`, remove the raw `Log.d` call. Same — `DebugLog.log(...)` is already present.
-- [ ] In `BluetoothService.kt:322`, remove the raw `Log.d("BTKB", "BluetoothService.startDiscovery invoked")` line. The `DebugLog.log("BluetoothService", "startDiscovery")` on the line above is sufficient.
-- [ ] Run lint to confirm no other `android.util.Log` calls exist outside `DebugLog.kt` itself.
+- [x] In `BluetoothHidModule.kt:91`, remove the raw `Log.d` call. The `DebugLog.log(...)` call immediately above it already covers this.
+- [x] In `BluetoothHidModule.kt:97`, remove the raw `Log.d` call. Same — `DebugLog.log(...)` is already present.
+- [x] In `BluetoothService.kt:322`, remove the raw `Log.d("BTKB", "BluetoothService.startDiscovery invoked")` line. The `DebugLog.log("BluetoothService", "startDiscovery")` on the line above is sufficient.
+- [x] Run lint to confirm no other `android.util.Log` calls exist outside `DebugLog.kt` itself.
 
 ---
 
@@ -239,7 +239,7 @@ Subtasks:
 | TASK-03 | Fix report IDs in send methods; restore scroll implementation | Critical | [x] |
 | TASK-04 | Eliminate `runBlocking` on Bluetooth profile callback thread | Medium | [x] |
 | TASK-05 | Fix `discoveredDevices` list thread safety (CopyOnWriteArrayList) | Medium | [x] |
-| TASK-06 | Remove 3 remaining `android.util.Log.d` calls in HidModule + Service | Medium | [ ] |
+| TASK-06 | Remove 3 remaining `android.util.Log.d` calls in HidModule + Service | Medium | [x] |
 | TASK-07 | Fix missing `Locale` in `SimpleDateFormat` in `ExtendedKeysScreen` | Low | [ ] |
 | TASK-08 | Remove dead `"extended"` composable route from NavHost | Low | [ ] |
 | TASK-09 | Factor out `getSharedPreferences("bt_hid", ...)` repeated calls | Low | [ ] |
