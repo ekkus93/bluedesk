@@ -15,7 +15,12 @@ import android.bluetooth.BluetoothHidDevice
 import android.Manifest
 import android.annotation.SuppressLint
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -217,15 +222,8 @@ class BluetoothService : Service(), IBluetoothService {
                         override fun onLeds(leds: Int) { eventListener?.onLeds(leds) }
                     }
                 }
-                // Resolve descriptor variant from settings.
-                // runBlocking is safe here only as a fallback; TASK-04 will replace this
-                // with a pre-cached field read in onCreate.
-                val simplified = try {
-                    kotlinx.coroutines.runBlocking {
-                        SettingsManager.flow(this@BluetoothService).first().hidSimplified
-                    }
-                } catch (e: Exception) { true }
-                hidSimplified = simplified
+                // hidSimplified is pre-cached by the serviceScope coroutine launched in onCreate.
+                val simplified = hidSimplified
                 eventListener?.onInfo("Registering HID app (simplified=$simplified)")
                 bluetoothHidModule?.registerApp(proxy, simplified)
             }
@@ -282,6 +280,13 @@ class BluetoothService : Service(), IBluetoothService {
         if (lastDeviceAddress != null) {
             DebugLog.log("BluetoothService", "remembered last_device=$lastDeviceAddress")
         }
+        // Pre-cache hidSimplified and keep it current so onServiceConnected
+        // never has to call runBlocking on the BT callback thread.
+        serviceScope.launch {
+            SettingsManager.flow(this@BluetoothService).collect { settings ->
+                hidSimplified = settings.hidSimplified
+            }
+        }
         bluetoothAdapter?.getProfileProxy(this, profileListener, BluetoothProfile.HID_DEVICE)
         startInForeground()
     }
@@ -292,6 +297,7 @@ class BluetoothService : Service(), IBluetoothService {
 
     override fun onDestroy() {
         super.onDestroy()
+        serviceScope.cancel()
         try { unregisterReceiver(receiver) } catch (_: Exception) {}
         try { unregisterReceiver(notifActionReceiver) } catch (_: Exception) {}
         // Unregister HID app only on supported platforms (API 28+) and if BLUETOOTH_CONNECT is available; guard against SecurityException
@@ -379,6 +385,7 @@ class BluetoothService : Service(), IBluetoothService {
     private var reconnecting = false
     // Tracks which descriptor variant was registered so send methods build correct-length reports.
     @Volatile private var hidSimplified: Boolean = true
+    private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
 
     private fun scheduleReconnect(delayMs: Long = 0) {
         if (manualDisconnect) return

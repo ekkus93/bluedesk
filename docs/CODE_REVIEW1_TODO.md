@@ -91,11 +91,11 @@ Subtasks:
 **Problem (B5):** `kotlinx.coroutines.runBlocking { SettingsManager.flow(...).first() }` is called inside `profileListener.onServiceConnected`, which runs on the Bluetooth stack's internal callback thread. If DataStore has a cold start or disk contention, this blocks the callback thread and can trigger an ANR.
 
 Subtasks:
-- [ ] Add a `@Volatile private var cachedSimplified: Boolean = true` field to `BluetoothService`.
-- [ ] In `onCreate`, launch a coroutine (using `CoroutineScope(Dispatchers.IO + Job())`) to read `SettingsManager.flow(this).first().hidSimplified` and store it in `cachedSimplified`. The coroutine should complete well before `onServiceConnected` fires in practice.
-- [ ] In `onServiceConnected`, replace the `runBlocking` block with `cachedSimplified`.
-- [ ] Cancel the coroutine scope in `onDestroy`.
-- [ ] Alternatively, subscribe to the settings flow and keep `cachedSimplified` up to date continuously (so a settings change mid-session takes effect on next registration).
+- [x] Add a `@Volatile private var cachedSimplified: Boolean = true` field to `BluetoothService`.
+- [x] In `onCreate`, launch a coroutine (using `CoroutineScope(Dispatchers.IO + Job())`) to read `SettingsManager.flow(this).first().hidSimplified` and store it in `cachedSimplified`. The coroutine should complete well before `onServiceConnected` fires in practice.
+- [x] In `onServiceConnected`, replace the `runBlocking` block with `cachedSimplified`.
+- [x] Cancel the coroutine scope in `onDestroy`.
+- [x] Alternatively, subscribe to the settings flow and keep `cachedSimplified` up to date continuously (so a settings change mid-session takes effect on next registration).
 
 ---
 
@@ -237,7 +237,7 @@ Subtasks:
 | TASK-01 | Rebuild combined keyboard+mouse HID descriptors with report IDs and LED output | Critical | [x] |
 | TASK-02 | Wire simplified-descriptor setting to `registerApp`; remove dead internal descriptors | Critical | [x] |
 | TASK-03 | Fix report IDs in send methods; restore scroll implementation | Critical | [x] |
-| TASK-04 | Eliminate `runBlocking` on Bluetooth profile callback thread | Medium | [ ] |
+| TASK-04 | Eliminate `runBlocking` on Bluetooth profile callback thread | Medium | [x] |
 | TASK-05 | Fix `discoveredDevices` list thread safety (CopyOnWriteArrayList) | Medium | [ ] |
 | TASK-06 | Remove 3 remaining `android.util.Log.d` calls in HidModule + Service | Medium | [ ] |
 | TASK-07 | Fix missing `Locale` in `SimpleDateFormat` in `ExtendedKeysScreen` | Low | [ ] |
