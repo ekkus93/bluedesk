@@ -2,6 +2,8 @@ package com.augustusmachin.android_bt_kbmouse
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -87,10 +89,17 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
                     },
                     modifier = Modifier
                         .width(navKeyWidth)
-                        .height(navKeyHeight)
+                        .height(navKeyHeight),
+                    colors = if (scrollActive) ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ) else ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 ) {
                     ResponsiveText(
-                        text = if (scrollActive) "Scroll Lock (On)" else "Scroll Lock",
+                        text = "Scrl Lk",
                         minSize = keyFontSize,
                         maxSize = keyFontSize,
                         fontWeight = FontWeight.Bold,

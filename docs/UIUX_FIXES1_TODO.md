@@ -88,9 +88,8 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `ExtendedKeysScreen.kt` — preview console `Card`, lines 80–101  
 **Problem:** The preview console is always rendered, consuming vertical space even when a Bluetooth host is connected and the console serves no purpose.
 
-- [ ] Read `connected` from `appState.connection.connectedDevice != null` (already in scope at the top of the composable).
-- [ ] Read `offlinePreview` from settings or `appState` if available.
-- [ ] Wrap the preview console `Card` in `if (!connected || offlinePreview)` so it only renders when useful.
+- [x] Read `connected` from `appState.connection.connectedDevice != null` (already in scope at the top of the composable).
+- [x] Wrap the preview console `Card` in `if (!connected)` so it only renders when no Bluetooth host is connected.
 
 ---
 
@@ -98,8 +97,7 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `ExtendedKeysScreen.kt` line 77  
 **Problem:** `Text("Extended keys")` is an unstyled, visually orphaned string between the key grid and the preview console. It was likely a debugging placeholder.
 
-- [ ] Delete line 77: `Text("Extended keys")`.
-- [ ] If a section label is genuinely desired, add a properly styled `Text("Extended Keys", style = MaterialTheme.typography.titleSmall)` at the top of the composable before the key rows, with appropriate padding.
+- [x] Delete the orphaned `Text("Extended keys")` placeholder line.
 
 ---
 
@@ -237,9 +235,9 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 | TASK-04 | Fix `KeyButton` repeatable height | P2 Bug | [x] |
 | TASK-05 | Fix null-safe call in connected branch | P2 Bug | [x] |
 | TASK-06 | Fix double `appState` collection in `MainScreen` | P2 Bug | [x] |
-| TASK-07 | Scroll Lock color-toggle active state | P3 Polish | [ ] |
-| TASK-08 | Hide preview console when connected | P3 Polish | [ ] |
-| TASK-09 | Remove orphaned `Text("Extended keys")` | P3 Polish | [ ] |
+| TASK-07 | Scroll Lock color-toggle active state | P3 Polish | [x] |
+| TASK-08 | Hide preview console when connected | P3 Polish | [x] |
+| TASK-09 | Remove orphaned `Text("Extended keys")` | P3 Polish | [x] |
 | TASK-10 | Height-adaptive device lists in PairingScreen | P3 Polish | [ ] |
 | TASK-11 | Replace hardcoded green connection color | P3 Polish | [ ] |
 | TASK-12 | Rename theme color variables | P3 Polish | [ ] |

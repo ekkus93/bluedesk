@@ -74,10 +74,8 @@ fun ExtendedKeysScreen() {
                 }
             }
         }
-        Text("Extended keys")
-
-        // Preview console (only visible/useful when disconnected or in debug mode)
-        androidx.compose.material3.Card(
+        // Preview console — only shown when not connected to a real host
+        if (!connected) androidx.compose.material3.Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 80.dp, max = 220.dp)
