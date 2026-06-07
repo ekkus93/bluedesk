@@ -164,9 +164,9 @@ Subtasks:
 **Problem (Q5):** The same `getSharedPreferences("bt_hid", MODE_PRIVATE)` expression is scattered across `onCreate`, `connectDevice`, `disconnectDevice`, `setDefaultDevice`, `getAlias`, `setAlias`, `forgetDevice`, `notifActionReceiver`, and several lambdas. Every call site duplicates the string key `"bt_hid"`.
 
 Subtasks:
-- [ ] Add `private val btPrefs by lazy { getSharedPreferences("bt_hid", MODE_PRIVATE) }` as a field in `BluetoothService`.
-- [ ] Replace all `getSharedPreferences("bt_hid", MODE_PRIVATE)` call sites with `btPrefs`.
-- [ ] Confirm that `lazy` initialization is safe here — `getSharedPreferences` is available as soon as `Service.onCreate()` is called, and `btPrefs` is first accessed after `onCreate`, so this is correct.
+- [x] Add `private val btPrefs by lazy { getSharedPreferences("bt_hid", MODE_PRIVATE) }` as a field in `BluetoothService`.
+- [x] Replace all `getSharedPreferences("bt_hid", MODE_PRIVATE)` call sites with `btPrefs`.
+- [x] Confirm that `lazy` initialization is safe here — `getSharedPreferences` is available as soon as `Service.onCreate()` is called, and `btPrefs` is first accessed after `onCreate`, so this is correct.
 
 ---
 
@@ -242,7 +242,7 @@ Subtasks:
 | TASK-06 | Remove 3 remaining `android.util.Log.d` calls in HidModule + Service | Medium | [x] |
 | TASK-07 | Fix missing `Locale` in `SimpleDateFormat` in `ExtendedKeysScreen` | Low | [x] |
 | TASK-08 | Remove dead `"extended"` composable route from NavHost | Low | [x] |
-| TASK-09 | Factor out `getSharedPreferences("bt_hid", ...)` repeated calls | Low | [ ] |
+| TASK-09 | Factor out `getSharedPreferences("bt_hid", ...)` repeated calls | Low | [x] |
 | TASK-10 | Integrate or remove `BleHogpService` (currently started but unconnected to store) | Medium | [ ] |
 | TASK-11 | Resolve three-parallel-settings-sources (DataStore vs ViewModel vs Redux store) | Medium | [ ] |
 | TASK-12 | Fix Caps/Scroll Lock dual-state-update (speculative reducer toggle vs LED callback) | Low | [ ] |
