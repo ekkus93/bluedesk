@@ -217,17 +217,17 @@ class BluetoothService : Service(), IBluetoothService {
                         override fun onLeds(leds: Int) { eventListener?.onLeds(leds) }
                     }
                 }
-                // Resolve descriptor variant from settings
+                // Resolve descriptor variant from settings.
+                // runBlocking is safe here only as a fallback; TASK-04 will replace this
+                // with a pre-cached field read in onCreate.
                 val simplified = try {
                     kotlinx.coroutines.runBlocking {
-                        // call Flow.first() as an extension on the Flow instance
                         SettingsManager.flow(this@BluetoothService).first().hidSimplified
                     }
                 } catch (e: Exception) { true }
-            eventListener?.onInfo("Registering HID app (simplified=$simplified)")
-                // registerApp currently takes only the proxy; descriptor selection
-                // is handled inside BluetoothHidModule.registerApp
-                bluetoothHidModule?.registerApp(proxy)
+                hidSimplified = simplified
+                eventListener?.onInfo("Registering HID app (simplified=$simplified)")
+                bluetoothHidModule?.registerApp(proxy, simplified)
             }
         }
 
@@ -377,6 +377,8 @@ class BluetoothService : Service(), IBluetoothService {
     private var lastTargetDevice: BluetoothDevice? = null
     private var manualDisconnect = false
     private var reconnecting = false
+    // Tracks which descriptor variant was registered so send methods build correct-length reports.
+    @Volatile private var hidSimplified: Boolean = true
 
     private fun scheduleReconnect(delayMs: Long = 0) {
         if (manualDisconnect) return
@@ -743,7 +745,7 @@ class BluetoothService : Service(), IBluetoothService {
         if (hasBtConnectReport) {
             try {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                    hid.sendReport(device, 0, report)
+                    hid.sendReport(device, HidDescriptorVariants.REPORT_ID_KEYBOARD.toInt(), report)
                 } else {
                     DebugLog.e("BluetoothService", "HID sendReport not supported on API < 28; skipping keyboard report")
                 }
@@ -769,69 +771,58 @@ class BluetoothService : Service(), IBluetoothService {
         clickMouse(buttonMask = 0x04)
     }
 
-    // Scroll removed in simplified descriptor to improve Windows compatibility
-    override fun sendScroll(@Suppress("UNUSED_PARAMETER") delta: Int) {}
-    override fun sendScrollH(@Suppress("UNUSED_PARAMETER") delta: Int) {}
-
-    private fun clickMouse(buttonMask: Int) {
-        val device = connectedDevice ?: return
-        val hid = hidDevice() ?: return
-        try {
-            DebugLog.log("BluetoothService", "mouse click mask=" + buttonMask)
-            val hasBtConnectMouse = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
-            if (hasBtConnectMouse) {
-                try {
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                        hid.sendReport(device, 0, byteArrayOf(buttonMask.toByte(), 0x00, 0x00, 0x00, 0x00))
-                        Thread.sleep(10)
-                        hid.sendReport(device, 0, byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00))
-                    } else {
-                        DebugLog.e("BluetoothService", "HID sendReport not supported on API < 28; skipping mouse click reports")
-                    }
-                } catch (se: SecurityException) {
-                    DebugLog.e("BluetoothService", "mouse sendReport SecurityException: ${se.message}")
-                    eventListener?.onError("Mouse click failed due to missing permission")
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    eventListener?.onError("Mouse click failed: ${e.message}")
-                }
-            } else {
-                DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; cannot perform mouse click")
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            eventListener?.onError("Mouse click failed: ${e.message}")
-        }
+    // Scroll is only available in the FULL descriptor; no-op when SIMPLE is active.
+    override fun sendScroll(delta: Int) {
+        if (!hidSimplified) sendMouseReport(0, 0, 0, delta, 0)
+    }
+    override fun sendScrollH(delta: Int) {
+        if (!hidSimplified) sendMouseReport(0, 0, 0, 0, delta)
     }
 
-    private fun sendMouseReport(buttons: Int, dx: Int, dy: Int, wheel: Int, hWheel: Int) { // wheel params ignored
+    private fun clickMouse(buttonMask: Int) {
+        DebugLog.log("BluetoothService", "mouse click mask=" + buttonMask)
+        sendMouseReport(buttonMask, 0, 0, 0, 0)
+        try { Thread.sleep(10) } catch (_: InterruptedException) {}
+        sendMouseReport(0, 0, 0, 0, 0)
+    }
+
+    private fun sendMouseReport(buttons: Int, dx: Int, dy: Int, wheel: Int, hWheel: Int) {
         val device = connectedDevice ?: return
         val hid = hidDevice() ?: return
-        // Mouse report: [buttons][dx][dy][wheelV][wheelH]
-        val report = byteArrayOf(
-            buttons.toByte(),
-            dx.coerceIn(-127, 127).toByte(),
-            dy.coerceIn(-127, 127).toByte(),
-            wheel.coerceIn(-127, 127).toByte(),
-            hWheel.coerceIn(-127, 127).toByte()
-        )
-        try {
-            DebugLog.log("BluetoothService", "mouse btn=" + buttons + " dx=" + dx + " dy=" + dy + " wheel=" + wheel + " hwheel=" + hWheel)
-            val hasBtConnectMouseReport = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
-            if (hasBtConnectMouseReport) {
-                try {
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                        hid.sendReport(device, 0, report)
-                    } else {
-                        DebugLog.e("BluetoothService", "HID sendReport not supported on API < 28; skipping mouse report")
-                    }
-                } catch (se: SecurityException) { DebugLog.e("BluetoothService", "mouse sendReport SecurityException: ${se.message}"); se.printStackTrace() } catch (e: Exception) { DebugLog.e("BluetoothService", "mouse report error: ${e.message}"); e.printStackTrace() }
-            } else {
-                DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; cannot send mouse report")
+        // SIMPLE: 3 bytes [buttons][dx][dy]; FULL: 5 bytes [buttons][dx][dy][wheelV][wheelH]
+        val report = if (hidSimplified) {
+            byteArrayOf(
+                buttons.toByte(),
+                dx.coerceIn(-127, 127).toByte(),
+                dy.coerceIn(-127, 127).toByte()
+            )
+        } else {
+            byteArrayOf(
+                buttons.toByte(),
+                dx.coerceIn(-127, 127).toByte(),
+                dy.coerceIn(-127, 127).toByte(),
+                wheel.coerceIn(-127, 127).toByte(),
+                hWheel.coerceIn(-127, 127).toByte()
+            )
+        }
+        DebugLog.log("BluetoothService", "mouse btn=$buttons dx=$dx dy=$dy wheel=$wheel hwheel=$hWheel simplified=$hidSimplified")
+        val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (hasBtConnect) {
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    hid.sendReport(device, HidDescriptorVariants.REPORT_ID_MOUSE.toInt(), report)
+                } else {
+                    DebugLog.e("BluetoothService", "HID sendReport not supported on API < 28; skipping mouse report")
+                }
+            } catch (se: SecurityException) {
+                DebugLog.e("BluetoothService", "mouse sendReport SecurityException: ${se.message}")
+                eventListener?.onError("Mouse click failed due to missing permission")
+            } catch (e: Exception) {
+                DebugLog.e("BluetoothService", "mouse report error: ${e.message}")
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            DebugLog.e("BluetoothService", "mouse report error: ${e.message}")
-            e.printStackTrace()
+        } else {
+            DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; cannot send mouse report")
         }
     }
 
