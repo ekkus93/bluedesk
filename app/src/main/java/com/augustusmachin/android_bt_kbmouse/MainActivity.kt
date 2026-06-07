@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -436,7 +437,7 @@ fun MainScreen() {
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.semantics { this[SemanticsProperties.ContentDescription] = listOf(statusText) }
                         ) {
-                            val indicatorColor = if (connectedName != null) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f)
+                            val indicatorColor = if (connectedName != null) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f)
                             androidx.compose.foundation.layout.Box(
                                 modifier = Modifier
                                     .size(8.dp)
@@ -627,14 +628,11 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
         modifier = Modifier.fillMaxSize().padding(contentPadding).navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (connectedDevice == null) {
-            Text(text = "Status: Disconnected", modifier = Modifier.padding(16.dp))
+        // Action row: Scan always available; Disconnect shown when connected
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = {
-                android.util.Log.d("BTKB", "ScanButton: playSoundEffect CLICK")
                 view.playSoundEffect(SoundEffectConstants.CLICK)
-                val hapticDone = view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
-                android.util.Log.d("BTKB", "ScanButton: hapticPerformed="+hapticDone)
-                // Removed MediaActionSound for reliability in tests
+                view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                 val req = requiredPermissions()
                 val missing = req.filter { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
                 if (missing.isEmpty()) {
@@ -645,16 +643,26 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
             }) {
                 Text(text = "Scan for devices")
             }
-            Text(text = "Discovered Devices", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
+            if (connectedDevice != null) {
+                Button(onClick = { StoreProvider.dispatch(Action.DisconnectDevice) }) {
+                    Text(text = "Disconnect")
+                }
+            }
+        }
+
+        // Discovered devices — collapses to nothing when empty (TASK-10)
+        if (discoveredDevices.isNotEmpty()) {
+            Text(text = "Discovered Devices", modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.titleMedium)
             LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxSize(),
-                contentPadding = PaddingValues(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 0.dp, max = 200.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp)
             ) {
                 items(discoveredDevices) { dev: BluetoothDevice ->
                     val name = dev.name ?: "Unknown Device"
                     androidx.compose.material3.ListItem(
                         leadingContent = {
-                            // small circular avatar with bluetooth icon
                             androidx.compose.foundation.layout.Box(
                                 modifier = Modifier
                                     .size(40.dp)
@@ -679,69 +687,66 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                     androidx.compose.material3.HorizontalDivider()
                 }
             }
-            Text(text = "Paired Devices", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
-            val defaultAddr = appState.connection.defaultDeviceAddress
-            LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxSize(),
-                contentPadding = PaddingValues(16.dp)
-            ) {
-                items(pairedDevices) { dev: BluetoothDevice ->
-                        val display = ServiceAliasHelper.getAlias(dev) ?: (dev.name ?: dev.address)
-                        val isConn = connectedDevice?.address == dev.address
-                        val isDef = defaultAddr == dev.address
-                        val cardDesc = "Paired device: $display. ${if (isConn) "Connected." else "Disconnected."} ${if (isDef) "Default device." else ""}"
-                        androidx.compose.material3.Card(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).semantics { this[SemanticsProperties.ContentDescription] = listOf(cardDesc) },
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
-                        ) {
-                            androidx.compose.material3.ListItem(
-                                leadingContent = {
-                                    androidx.compose.foundation.layout.Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)), contentAlignment = Alignment.Center) {
-                                        Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = display, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-                                    }
-                                },
-                                headlineContent = { Text(text = display + if (isDef) " ★" else "", style = MaterialTheme.typography.titleMedium) },
-                                supportingContent = { Text(dev.address, style = MaterialTheme.typography.bodyMedium) },
-                                trailingContent = {
-                                    androidx.compose.foundation.layout.Row {
-                                        val iconTint = MaterialTheme.colorScheme.onSurface
-                                        if (isConn) {
-                                            androidx.compose.material3.IconButton(
-                                                onClick = { StoreProvider.dispatch(Action.DisconnectDevice) },
-                                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
-                                            ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Disconnect", tint = iconTint) }
-                                        } else {
-                                            androidx.compose.material3.IconButton(
-                                                onClick = { StoreProvider.dispatch(Action.ConnectDevice(dev)) },
-                                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
-                                            ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Connect", tint = iconTint) }
-                                        }
-                                        androidx.compose.material3.IconButton(
-                                            onClick = { StoreProvider.dispatch(Action.SetDefaultDevice(dev)) },
-                                            enabled = !isDef,
-                                            modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
-                                        ) {
-                                            val starRes = if (isDef) R.drawable.ic_star_filled else R.drawable.ic_star_outline
-                                            Icon(painterResource(id = starRes), contentDescription = if (isDef) "Default device" else "Set default device", tint = if (isDef) MaterialTheme.colorScheme.primary else iconTint)
-                                        }
-                                        androidx.compose.material3.IconButton(
-                                            onClick = { renaming = dev; renameText = display },
-                                            modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
-                                        ) { Icon(painterResource(id = R.drawable.ic_edit), contentDescription = "Rename", tint = iconTint) }
-                                        androidx.compose.material3.IconButton(
-                                            onClick = { toForget = dev },
-                                            modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
-                                        ) { Icon(painterResource(id = R.drawable.ic_delete), contentDescription = "Forget", tint = MaterialTheme.colorScheme.error) }
-                                    }
+        }
+
+        // Paired devices — always visible (TASK-13)
+        Text(text = "Paired Devices", modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.titleMedium)
+        val defaultAddr = appState.connection.defaultDeviceAddress
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+        ) {
+            items(pairedDevices) { dev: BluetoothDevice ->
+                val display = ServiceAliasHelper.getAlias(dev) ?: (dev.name ?: dev.address)
+                val isConn = connectedDevice?.address == dev.address
+                val isDef = defaultAddr == dev.address
+                val cardDesc = "Paired device: $display. ${if (isConn) "Connected." else "Disconnected."} ${if (isDef) "Default device." else ""}"
+                androidx.compose.material3.Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).semantics { this[SemanticsProperties.ContentDescription] = listOf(cardDesc) },
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                ) {
+                    androidx.compose.material3.ListItem(
+                        leadingContent = {
+                            androidx.compose.foundation.layout.Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)), contentAlignment = Alignment.Center) {
+                                Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = display, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                            }
+                        },
+                        headlineContent = { Text(text = display + if (isDef) " ★" else "", style = MaterialTheme.typography.titleMedium) },
+                        supportingContent = { Text(dev.address, style = MaterialTheme.typography.bodyMedium) },
+                        trailingContent = {
+                            androidx.compose.foundation.layout.Row {
+                                val iconTint = MaterialTheme.colorScheme.onSurface
+                                if (isConn) {
+                                    androidx.compose.material3.IconButton(
+                                        onClick = { StoreProvider.dispatch(Action.DisconnectDevice) },
+                                        modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                    ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Disconnect", tint = iconTint) }
+                                } else {
+                                    androidx.compose.material3.IconButton(
+                                        onClick = { StoreProvider.dispatch(Action.ConnectDevice(dev)) },
+                                        modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                    ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Connect", tint = iconTint) }
                                 }
-                            )
+                                androidx.compose.material3.IconButton(
+                                    onClick = { StoreProvider.dispatch(Action.SetDefaultDevice(dev)) },
+                                    enabled = !isDef,
+                                    modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                ) {
+                                    val starRes = if (isDef) R.drawable.ic_star_filled else R.drawable.ic_star_outline
+                                    Icon(painterResource(id = starRes), contentDescription = if (isDef) "Default device" else "Set default device", tint = if (isDef) MaterialTheme.colorScheme.primary else iconTint)
+                                }
+                                androidx.compose.material3.IconButton(
+                                    onClick = { renaming = dev; renameText = display },
+                                    modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                ) { Icon(painterResource(id = R.drawable.ic_edit), contentDescription = "Rename", tint = iconTint) }
+                                androidx.compose.material3.IconButton(
+                                    onClick = { toForget = dev },
+                                    modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                ) { Icon(painterResource(id = R.drawable.ic_delete), contentDescription = "Forget", tint = MaterialTheme.colorScheme.error) }
+                            }
                         }
-                    }
-            }
-        } else {
-            Text(text = "Status: Connected to ${connectedDevice.name}", modifier = Modifier.padding(16.dp))
-            Button(onClick = { StoreProvider.dispatch(Action.DisconnectDevice) }) {
-                Text(text = "Disconnect")
+                    )
+                }
             }
         }
     }

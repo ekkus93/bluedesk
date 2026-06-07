@@ -105,9 +105,8 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `MainActivity.kt` — `PairingScreen` composable, lines 642–733  
 **Problem:** Both `LazyColumn` lists use `Modifier.weight(1f)`, so each always takes exactly half the available space regardless of item count. An empty "Discovered Devices" list wastes half the screen.
 
-- [ ] Replace the `weight(1f)` modifier on the Discovered Devices `LazyColumn` with `heightIn(min = 0.dp, max = 200.dp)` so it only grows when there are actual results.
-- [ ] Keep `weight(1f)` on the Paired Devices `LazyColumn` so it takes the remaining space.
-- [ ] Alternatively, combine both lists into a single `LazyColumn` with `item {}` section headers.
+- [x] Discovered Devices section now only renders when non-empty; uses `heightIn(max = 200.dp)` so it doesn't crowd paired devices.
+- [x] Paired Devices `LazyColumn` keeps `weight(1f)` so it fills remaining space.
 
 ---
 
@@ -115,9 +114,7 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `MainActivity.kt` — `MainScreen` composable, line 430  
 **Problem:** `Color(0xFF4CAF50)` is hardcoded and does not respond to theme or dark/light mode changes.
 
-- [ ] Replace `Color(0xFF4CAF50)` with a theme-aware color. Options:
-  - Define `val Connected = Color(0xFF4CAF50)` in `Color.kt` and create a light/dark pair in `Theme.kt`.
-  - Or use `MaterialTheme.colorScheme.tertiary` as a reasonable semantic stand-in for a "positive" state color.
+- [x] Replaced `Color(0xFF4CAF50)` with `MaterialTheme.colorScheme.tertiary` (theme-aware positive-state color).
 
 ---
 
@@ -125,14 +122,8 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `ui/theme/Color.kt`  
 **Problem:** Variables are named `Purple80`, `Purple40`, etc. (Android Studio template defaults) but the actual colors are teal, lavender, and pink. Confusing to anyone reading theme code.
 
-- [ ] Rename:
-  - `Purple80` → `TealLight` (or `Teal200`)
-  - `PurpleGrey80` → `LavenderLight`
-  - `Pink80` → `PinkLight`
-  - `Purple40` → `TealDark` (or `Teal700`)
-  - `PurpleGrey40` → `IndigoDark`
-  - `Pink40` → `PinkMedium`
-- [ ] Update references in `Theme.kt` (`darkColorScheme` and `lightColorScheme` calls).
+- [x] Renamed all six color variables in `Color.kt` to `TealLight`, `LavenderLight`, `PinkLight`, `TealDark`, `IndigoDark`, `PinkMedium`.
+- [x] Updated `Theme.kt` `darkColorScheme` and `lightColorScheme` references.
 
 ---
 
@@ -140,10 +131,9 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `MainActivity.kt` — `PairingScreen`, lines 734–739  
 **Problem:** When connected, the screen shows only "Status: Connected to [name]" and a Disconnect button. Users cannot scan for or switch to another device without disconnecting first, and there is no contextual information.
 
-- [ ] Show the paired device list even when connected so the user can see all paired devices.
-- [ ] Mark the currently connected device with a visual indicator (already done on the card in the disconnected view — reuse that for the connected view).
-- [ ] Keep the Disconnect button.
-- [ ] Consider adding a "Scan" button even while connected (dispatches `Action.StartDiscovery`) so the user can find new devices without disconnecting.
+- [x] PairingScreen now always shows the paired device list regardless of connection state.
+- [x] Connected device is visually indicated via the existing card's connect/disconnect icon.
+- [x] Scan button always available; Disconnect button shown only when connected.
 
 ---
 
@@ -238,10 +228,10 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 | TASK-07 | Scroll Lock color-toggle active state | P3 Polish | [x] |
 | TASK-08 | Hide preview console when connected | P3 Polish | [x] |
 | TASK-09 | Remove orphaned `Text("Extended keys")` | P3 Polish | [x] |
-| TASK-10 | Height-adaptive device lists in PairingScreen | P3 Polish | [ ] |
-| TASK-11 | Replace hardcoded green connection color | P3 Polish | [ ] |
-| TASK-12 | Rename theme color variables | P3 Polish | [ ] |
-| TASK-13 | Improve connected-device view in PairingScreen | P3 Polish | [ ] |
+| TASK-10 | Height-adaptive device lists in PairingScreen | P3 Polish | [x] |
+| TASK-11 | Replace hardcoded green connection color | P3 Polish | [x] |
+| TASK-12 | Rename theme color variables | P3 Polish | [x] |
+| TASK-13 | Improve connected-device view in PairingScreen | P3 Polish | [x] |
 | TASK-14 | Remove dead `ExtendedModButton` | P4 Quality | [ ] |
 | TASK-15 | Remove dead `onBack` parameter | P4 Quality | [ ] |
 | TASK-16 | Simplify `NavigationKeyButton` sizing API | P4 Quality | [ ] |
