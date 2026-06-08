@@ -1,81 +1,175 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.augustusmachin.android_bt_kbmouse.DebugLog
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.unit.sp
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.runtime.mutableStateListOf
-import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.augustusmachin.android_bt_kbmouse.store.Action
+import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+
+// Per-column data (mod button + two key rows)
+private data class GridCol(
+    val modLabel: String,
+    val modActive: Boolean,
+    val modAction: Action,
+    val key0: String,
+    val key1: String?   // null = empty spacer on row 1
+)
 
 @Composable
 fun ExtendedKeysScreen() {
     val appState by StoreProvider.asStateFlow().collectAsState()
     val connected = appState.connection.connectedDevice != null
     val keyFontSize = LocalKeyFontSize.current
-    val rows = listOf(
-        listOf("ESC","TAB","ENTER"),
-        listOf("PRTSC","PAUSE","INS"),
-        listOf("HOME","END","DEL")
+    val ks = appState.keyboard
+
+    val colsPerPage = 3
+    val maxPage = 1  // 5 cols / 3 per page → 2 pages → maxPage index = 1
+
+    // Column-centric layout: each entry is one vertical column of (modifier, key0, key1?)
+    val gridCols = listOf(
+        GridCol("Ctrl",  ks.ctrl,                    Action.ToggleCtrl,        "ESC",   "INS"),
+        GridCol("Shift", ks.shift,                   Action.ToggleShift,       "TAB",   "HOME"),
+        GridCol("CAPS",  appState.connection.capsLock,Action.ToggleCapsLock,   "ENTER", "END"),
+        GridCol("Alt",   ks.alt,                     Action.ToggleAlt,         "PRTSC", "DEL"),
+        GridCol("Meta",  ks.gui,                     Action.ToggleGui,         "PAUSE", null),
     )
-    // Use top-level helper so mapping logic can be unit tested
-    Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-    // NOTE: The system keyboard TextField and modifier toggle row are now hosted in the parent
-    // (KeyboardScreen / MainActivity) so that they remain fixed when switching between tabs.
-    // Local preview console collects preview actions when not connected so developers can
-    // visually verify key presses without a Bluetooth host.
+
+    var page by remember { mutableStateOf(0) }
+    val scrollState = rememberScrollState()
     val previewHistory = remember { mutableStateListOf<String>() }
-    // Modifier toggles removed from here; they are provided by the parent container.
-        rows.forEach { r ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                r.forEach { label ->
-                    val code = labelToHid(label)
-                    Button(
-                        onClick = {
-                            if (code != null) {
-                                StoreProvider.dispatch(Action.TrackPreviewKey(label))
-                                if (connected) {
-                                    StoreProvider.dispatch(Action.SendKey(code))
-                                } else {
-                                    // Preview: show a brief message and log the HID code so developers can verify
-                                    val hex = String.format("0x%02X", code.toInt() and 0xFF)
-                                    val msg = "Preview: $label -> $hex"
-                                    StoreProvider.dispatch(Action.UpdateMessage(msg))
-                                    DebugLog.log("ExtendedKeys", msg)
-                                    // append to local preview console (limit size)
-                                    previewHistory.add(0, "${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())} $msg")
-                                    if (previewHistory.size > 200) previewHistory.removeAt(previewHistory.lastIndex)
-                                }
-                                if (!connected) {
-                                    // ensure sticky modifiers release even in offline preview
-                                    StoreProvider.dispatch(Action.ReleaseLockedModifiers)
-                                }
+
+    fun dispatchKey(label: String, code: Byte?) {
+        if (code == null) return
+        StoreProvider.dispatch(Action.TrackPreviewKey(label))
+        if (connected) {
+            StoreProvider.dispatch(Action.SendKey(code))
+        } else {
+            val hex = String.format("0x%02X", code.toInt() and 0xFF)
+            val msg = "Preview: $label -> $hex"
+            StoreProvider.dispatch(Action.UpdateMessage(msg))
+            DebugLog.log("ExtendedKeys", msg)
+            previewHistory.add(0, "${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())} $msg")
+            if (previewHistory.size > 200) previewHistory.removeAt(previewHistory.lastIndex)
+            StoreProvider.dispatch(Action.ReleaseLockedModifiers)
+        }
+    }
+
+    val inactiveColors = ButtonDefaults.buttonColors(
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface
+    )
+    val activeColors = ButtonDefaults.buttonColors(
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary
+    )
+
+    Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val arrowWidthDp = 36f
+            val gapDp = 6f
+            val contentWidthDp = maxWidth.value - arrowWidthDp * 2
+            val btnWidthDp = (contentWidthDp - gapDp * (colsPerPage - 1)) / colsPerPage
+            val colStrideDp = btnWidthDp + gapDp
+
+            val density = LocalDensity.current
+
+            // Scroll to the correct column when page changes
+            LaunchedEffect(page, colStrideDp) {
+                val targetPx = with(density) { (colStrideDp * colsPerPage * page).dp.roundToPx() }
+                scrollState.animateScrollTo(targetPx)
+            }
+
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+
+                // Left arrow — always reserves space, only shown on page > 0
+                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
+                    if (page > 0) {
+                        IconButton(onClick = { page-- }) {
+                            Text("❮", style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                }
+
+                // Horizontal-scroll panel (touch disabled; programmatic only)
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .horizontalScroll(scrollState, enabled = false),
+                    horizontalArrangement = Arrangement.spacedBy(gapDp.dp)
+                ) {
+                    gridCols.forEach { col ->
+                        Column(
+                            modifier = Modifier.width(btnWidthDp.dp),
+                            verticalArrangement = Arrangement.spacedBy(gapDp.dp)
+                        ) {
+                            // Modifier toggle button
+                            Button(
+                                onClick = {
+                                    StoreProvider.dispatch(Action.TrackPreviewKey(col.modLabel))
+                                    StoreProvider.dispatch(col.modAction)
+                                    if (!connected) StoreProvider.dispatch(
+                                        Action.UpdateMessage("Preview: ${col.modLabel} toggled")
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = if (col.modActive) activeColors else inactiveColors
+                            ) {
+                                ResponsiveText(
+                                    text = col.modLabel,
+                                    minSize = 8.sp,
+                                    maxSize = keyFontSize,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
-                        },
-                        enabled = code != null,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        ResponsiveText(
-                            text = label,
-                            minSize = keyFontSize,
-                            maxSize = keyFontSize
-                        )
+                            // Key row 0 button
+                            Button(
+                                onClick = { dispatchKey(col.key0, labelToHid(col.key0)) },
+                                enabled = labelToHid(col.key0) != null,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                ResponsiveText(text = col.key0, minSize = keyFontSize, maxSize = keyFontSize)
+                            }
+                            // Key row 1: button or invisible spacer
+                            if (col.key1 != null) {
+                                Button(
+                                    onClick = { dispatchKey(col.key1, labelToHid(col.key1)) },
+                                    enabled = labelToHid(col.key1) != null,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    ResponsiveText(text = col.key1, minSize = keyFontSize, maxSize = keyFontSize)
+                                }
+                            } else {
+                                Spacer(Modifier.height(48.dp))  // match button height
+                            }
+                        }
+                    }
+                }
+
+                // Right arrow
+                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
+                    if (page < maxPage) {
+                        IconButton(onClick = { page++ }) {
+                            Text("❯", style = MaterialTheme.typography.titleLarge)
+                        }
                     }
                 }
             }
         }
-        // Preview console — only shown when not connected to a real host
-        if (!connected) androidx.compose.material3.Card(
+
+        // Preview console (offline only)
+        if (!connected) Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 80.dp, max = 220.dp)
@@ -84,11 +178,17 @@ fun ExtendedKeysScreen() {
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(Modifier.fillMaxSize().padding(8.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text("Preview console", style = MaterialTheme.typography.titleSmall)
-                    Button(onClick = { previewHistory.clear() }, enabled = previewHistory.isNotEmpty()) { Text("Clear") }
+                    Button(onClick = { previewHistory.clear() }, enabled = previewHistory.isNotEmpty()) {
+                        Text("Clear")
+                    }
                 }
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(6.dp))
+                Spacer(Modifier.height(6.dp))
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(previewHistory) { line ->
                         Text(line, fontSize = 12.sp, modifier = Modifier.padding(vertical = 2.dp))

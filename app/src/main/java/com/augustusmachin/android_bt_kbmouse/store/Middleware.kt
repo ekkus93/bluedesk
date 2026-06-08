@@ -98,6 +98,8 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
             is Action.ForgetDevice -> sender?.forgetDevice(action.device, action.unpair)
             is Action.SetDefaultDevice -> sender?.setDefaultDevice(action.device)
             is Action.RenameDevice -> sender?.renameDevice(action.device, action.alias)
+            is Action.MouseButtonDown -> sender?.mouseButtonDown(action.button)
+            Action.MouseButtonUp -> sender?.mouseButtonUp()
         }
         next(action)
     }
@@ -110,6 +112,8 @@ interface KeySender {
     fun leftClick() {}
     fun rightClick() {}
     fun middleClick() {}
+    fun mouseButtonDown(button: Int) {}
+    fun mouseButtonUp() {}
     fun scrollVertical(delta: Int) {}
     fun scrollHorizontal(delta: Int) {}
     fun toggleCapsLock() {}

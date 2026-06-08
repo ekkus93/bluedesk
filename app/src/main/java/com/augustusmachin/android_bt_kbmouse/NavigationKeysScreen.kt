@@ -1,162 +1,201 @@
 package com.augustusmachin.android_bt_kbmouse
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.augustusmachin.android_bt_kbmouse.DebugLog
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+
+private data class NavModBtn(val label: String, val active: Boolean, val action: Action)
 
 @Composable
 fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
     val appState by StoreProvider.asStateFlow().collectAsState()
     val connected = appState.connection.connectedDevice != null
     val keyFontSize = LocalKeyFontSize.current
-    val arrowFontSize = (keyFontSize.value * 2f).sp
-    val scrollActive = appState.connection.scrollLock
-    val navKeyWidth = 120.dp
-    val navKeyHeight = 56.dp
+    val ks = appState.keyboard
+    val scrollLockActive = appState.connection.scrollLock
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(contentPadding)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-    // Text("Navigation keys")
+    val mods = listOf(
+        NavModBtn("Ctrl",  ks.ctrl,                     Action.ToggleCtrl),
+        NavModBtn("Shift", ks.shift,                    Action.ToggleShift),
+        NavModBtn("CAPS",  appState.connection.capsLock, Action.ToggleCapsLock),
+        NavModBtn("Alt",   ks.alt,                      Action.ToggleAlt),
+        NavModBtn("Meta",  ks.gui,                      Action.ToggleGui),
+    )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                NavigationKeyButton(
-                    label = "\u2191",
-                    keyFontSize = arrowFontSize,
-                    connected = connected
-                )
+    var page by remember { mutableStateOf(0) }
+    val maxPage = 1
 
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    NavigationKeyButton(
-                        label = "\u2190",
-                        keyFontSize = arrowFontSize,
-                        connected = connected
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    NavigationKeyButton(
-                        label = "\u2192",
-                        keyFontSize = arrowFontSize,
-                        connected = connected
-                    )
-                }
-
-                NavigationKeyButton(
-                    label = "\u2193",
-                    keyFontSize = arrowFontSize,
-                    connected = connected
-                )
-            }
-
-            Spacer(modifier = Modifier.width(24.dp))
-
-            Column(
-                modifier = Modifier.wrapContentWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Button(
-                    onClick = {
-                        StoreProvider.dispatch(Action.TrackPreviewKey("Scroll Lock"))
-                        StoreProvider.dispatch(Action.ToggleScrollLock)
-                    },
-                    modifier = Modifier
-                        .width(navKeyWidth)
-                        .height(navKeyHeight),
-                    colors = if (scrollActive) ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ) else ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    )
-                ) {
-                    ResponsiveText(
-                        text = "Scrl Lk",
-                        minSize = keyFontSize,
-                        maxSize = keyFontSize,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.4.sp
-                    )
-                }
-                NavigationKeyButton(
-                    label = "PGUP",
-                    keyFontSize = keyFontSize,
-                    connected = connected,
-                    modifier = Modifier
-                        .width(navKeyWidth)
-                        .height(navKeyHeight)
-                )
-                NavigationKeyButton(
-                    label = "PGDN",
-                    keyFontSize = keyFontSize,
-                    connected = connected,
-                    modifier = Modifier
-                        .width(navKeyWidth)
-                        .height(navKeyHeight)
-                )
-            }
+    fun dispatchKey(label: String) {
+        val code = labelToHid(label) ?: return
+        StoreProvider.dispatch(Action.TrackPreviewKey(label))
+        if (connected) {
+            StoreProvider.dispatch(Action.SendKey(code))
+        } else {
+            val hex = String.format("0x%02X", code.toInt() and 0xFF)
+            StoreProvider.dispatch(Action.UpdateMessage("Preview: $label -> $hex"))
+            DebugLog.log("NavigationKeys", "Preview: $label -> $hex")
+            StoreProvider.dispatch(Action.ReleaseLockedModifiers)
         }
     }
-}
 
-@Composable
-private fun NavigationKeyButton(
-    label: String,
-    keyFontSize: androidx.compose.ui.unit.TextUnit,
-    connected: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val code = labelToHid(label)
-    Button(
-        onClick = {
-            if (code != null) {
-                StoreProvider.dispatch(Action.TrackPreviewKey(label))
-                if (connected) {
-                    StoreProvider.dispatch(Action.SendKey(code))
-                } else {
-                    val hex = String.format("0x%02X", code.toInt() and 0xFF)
-                    val msg = "Preview: $label -> $hex"
-                    StoreProvider.dispatch(Action.UpdateMessage(msg))
-                    DebugLog.log("NavigationKeys", msg)
-                    StoreProvider.dispatch(Action.ReleaseLockedModifiers)
+    fun dispatchScrollLock() {
+        StoreProvider.dispatch(Action.TrackPreviewKey("Scrl Lk"))
+        StoreProvider.dispatch(Action.ToggleScrollLock)
+    }
+
+    val inactiveColors = ButtonDefaults.buttonColors(
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface
+    )
+    val activeColors = ButtonDefaults.buttonColors(
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary
+    )
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(contentPadding).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Modifier strip — all 5 always visible, no panning
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val gapDp = 6f
+            val modBtnWidthDp = (maxWidth.value - gapDp * (mods.size - 1)) / mods.size
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(gapDp.dp)
+            ) {
+                mods.forEach { mod ->
+                    Button(
+                        onClick = {
+                            StoreProvider.dispatch(Action.TrackPreviewKey(mod.label))
+                            StoreProvider.dispatch(mod.action)
+                            if (!connected) StoreProvider.dispatch(
+                                Action.UpdateMessage("Preview: ${mod.label} toggled")
+                            )
+                        },
+                        modifier = Modifier.width(modBtnWidthDp.dp),
+                        colors = if (mod.active) activeColors else inactiveColors
+                    ) {
+                        ResponsiveText(
+                            text = mod.label,
+                            minSize = 8.sp,
+                            maxSize = keyFontSize,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
-        },
-        enabled = code != null,
-        modifier = modifier
-    ) {
-        ResponsiveText(
-            text = label,
-            minSize = keyFontSize,
-            maxSize = keyFontSize
-        )
+        }
+
+        // Paged content area with left/right arrows
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val arrowWidthDp = 36f
+            val gapDp = 6f
+            val contentWidthDp = maxWidth.value - arrowWidthDp * 2
+            val cellWidthDp = (contentWidthDp - gapDp * 2) / 3
+
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+
+                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
+                    if (page > 0) {
+                        IconButton(onClick = { page-- }) {
+                            Text("❮", style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                }
+
+                Box(Modifier.weight(1f)) {
+                    if (page == 0) {
+                        // D-pad cross layout
+                        Column(verticalArrangement = Arrangement.spacedBy(gapDp.dp)) {
+                            // Row 1: [empty] [↑] [empty]
+                            Row(horizontalArrangement = Arrangement.spacedBy(gapDp.dp)) {
+                                Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
+                                Button(
+                                    onClick = { dispatchKey("↑") },
+                                    modifier = Modifier.width(cellWidthDp.dp)
+                                ) {
+                                    ResponsiveText("↑", minSize = keyFontSize, maxSize = keyFontSize)
+                                }
+                                Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
+                            }
+                            // Row 2: [←] [empty] [→]
+                            Row(horizontalArrangement = Arrangement.spacedBy(gapDp.dp)) {
+                                Button(
+                                    onClick = { dispatchKey("←") },
+                                    modifier = Modifier.width(cellWidthDp.dp)
+                                ) {
+                                    ResponsiveText("←", minSize = keyFontSize, maxSize = keyFontSize)
+                                }
+                                Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
+                                Button(
+                                    onClick = { dispatchKey("→") },
+                                    modifier = Modifier.width(cellWidthDp.dp)
+                                ) {
+                                    ResponsiveText("→", minSize = keyFontSize, maxSize = keyFontSize)
+                                }
+                            }
+                            // Row 3: [empty] [↓] [empty]
+                            Row(horizontalArrangement = Arrangement.spacedBy(gapDp.dp)) {
+                                Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
+                                Button(
+                                    onClick = { dispatchKey("↓") },
+                                    modifier = Modifier.width(cellWidthDp.dp)
+                                ) {
+                                    ResponsiveText("↓", minSize = keyFontSize, maxSize = keyFontSize)
+                                }
+                                Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
+                            }
+                        }
+                    } else {
+                        // Page 1: Scrl Lk, PgUp, PgDn in a row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(gapDp.dp)
+                        ) {
+                            Button(
+                                onClick = ::dispatchScrollLock,
+                                modifier = Modifier.width(cellWidthDp.dp),
+                                colors = if (scrollLockActive) activeColors else inactiveColors
+                            ) {
+                                ResponsiveText(
+                                    text = "Scrl Lk",
+                                    minSize = 8.sp,
+                                    maxSize = keyFontSize,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Button(
+                                onClick = { dispatchKey("PGUP") },
+                                modifier = Modifier.width(cellWidthDp.dp)
+                            ) {
+                                ResponsiveText("PGUP", minSize = keyFontSize, maxSize = keyFontSize)
+                            }
+                            Button(
+                                onClick = { dispatchKey("PGDN") },
+                                modifier = Modifier.width(cellWidthDp.dp)
+                            ) {
+                                ResponsiveText("PGDN", minSize = keyFontSize, maxSize = keyFontSize)
+                            }
+                        }
+                    }
+                }
+
+                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
+                    if (page < maxPage) {
+                        IconButton(onClick = { page++ }) {
+                            Text("❯", style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -54,6 +54,16 @@ class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
         svc.notifyMouse(buildMouseReport())
     }
 
+    override fun mouseButtonDown(button: Int) {
+        buttonsMask = buttonsMask or button
+        svc.notifyMouse(buildMouseReport())
+    }
+
+    override fun mouseButtonUp() {
+        buttonsMask = 0
+        svc.notifyMouse(buildMouseReport())
+    }
+
     override fun toggleCapsLock() {
         sendKeyDown(0x39.toByte(), modifierByte)
         try { Thread.sleep(40) } catch (_: InterruptedException) {}

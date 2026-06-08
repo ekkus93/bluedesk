@@ -23,6 +23,8 @@ interface IBluetoothService {
     fun sendMiddleClick()
     fun sendScroll(delta: Int)
     fun sendScrollH(delta: Int)
+    fun mouseButtonDown(button: Int) {}
+    fun mouseButtonUp() {}
     fun pressKey(keyCode: Byte, modifiers: Int = 0)
     fun releaseKey(keyCode: Byte)
     fun setModifiers(mods: Int)

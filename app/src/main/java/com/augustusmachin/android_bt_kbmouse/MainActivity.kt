@@ -45,6 +45,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -66,6 +67,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -472,8 +474,9 @@ fun MainScreen() {
                     }
                 }
 
-                // Compact status row (no app title) so the top area uses less vertical space.
-                CenterAlignedTopAppBar(
+                // Compact status row — hidden on Keyboard screen to save space.
+                val statusNavEntry by navController.currentBackStackEntryAsState()
+                if (statusNavEntry?.destination?.route != Screen.Keyboard.route) CenterAlignedTopAppBar(
                     title = {
                         val chip = if (settings.debugLogging) {
                             val t = when (settings.logLevel) { 1 -> "Info"; 2 -> "Error"; else -> "All" }
@@ -753,47 +756,65 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                     modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).semantics { this[SemanticsProperties.ContentDescription] = listOf(cardDesc) },
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
                 ) {
-                    androidx.compose.material3.ListItem(
-                        leadingContent = {
-                            androidx.compose.foundation.layout.Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)), contentAlignment = Alignment.Center) {
-                                Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = display, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                        // Row 1: icon + name + MAC address
+                        androidx.compose.foundation.layout.Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            androidx.compose.foundation.layout.Box(
+                                modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             }
-                        },
-                        headlineContent = { Text(text = display + if (isDef) " ★" else "", style = MaterialTheme.typography.titleMedium) },
-                        supportingContent = { Text(dev.address, style = MaterialTheme.typography.bodyMedium) },
-                        trailingContent = {
-                            androidx.compose.foundation.layout.Row {
-                                val iconTint = MaterialTheme.colorScheme.onSurface
-                                if (isConn) {
-                                    androidx.compose.material3.IconButton(
-                                        onClick = { StoreProvider.dispatch(Action.DisconnectDevice) },
-                                        modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
-                                    ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Disconnect", tint = iconTint) }
-                                } else {
-                                    androidx.compose.material3.IconButton(
-                                        onClick = { StoreProvider.dispatch(Action.ConnectDevice(dev)) },
-                                        modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
-                                    ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Connect", tint = iconTint) }
-                                }
-                                androidx.compose.material3.IconButton(
-                                    onClick = { StoreProvider.dispatch(Action.SetDefaultDevice(dev)) },
-                                    enabled = !isDef,
-                                    modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
-                                ) {
-                                    val starRes = if (isDef) R.drawable.ic_star_filled else R.drawable.ic_star_outline
-                                    Icon(painterResource(id = starRes), contentDescription = if (isDef) "Default device" else "Set default device", tint = if (isDef) MaterialTheme.colorScheme.primary else iconTint)
-                                }
-                                androidx.compose.material3.IconButton(
-                                    onClick = { renaming = dev; renameText = display },
-                                    modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
-                                ) { Icon(painterResource(id = R.drawable.ic_edit), contentDescription = "Rename", tint = iconTint) }
-                                androidx.compose.material3.IconButton(
-                                    onClick = { toForget = dev },
-                                    modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
-                                ) { Icon(painterResource(id = R.drawable.ic_delete), contentDescription = "Forget", tint = MaterialTheme.colorScheme.error) }
-                            }
+                            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = display + if (isDef) " ★" else "",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = dev.address,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                    )
+                        // Row 2: action icons
+                        androidx.compose.foundation.layout.Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End
+                        ) {
+                            val iconTint = MaterialTheme.colorScheme.onSurface
+                            if (isConn) {
+                                androidx.compose.material3.IconButton(
+                                    onClick = { StoreProvider.dispatch(Action.DisconnectDevice) },
+                                    modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Disconnect", tint = iconTint) }
+                            } else {
+                                androidx.compose.material3.IconButton(
+                                    onClick = { StoreProvider.dispatch(Action.ConnectDevice(dev)) },
+                                    modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Connect", tint = iconTint) }
+                            }
+                            androidx.compose.material3.IconButton(
+                                onClick = { StoreProvider.dispatch(Action.SetDefaultDevice(dev)) },
+                                enabled = !isDef,
+                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                            ) {
+                                val starRes = if (isDef) R.drawable.ic_star_filled else R.drawable.ic_star_outline
+                                Icon(painterResource(id = starRes), contentDescription = if (isDef) "Default device" else "Set default device", tint = if (isDef) MaterialTheme.colorScheme.primary else iconTint)
+                            }
+                            androidx.compose.material3.IconButton(
+                                onClick = { renaming = dev; renameText = display },
+                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                            ) { Icon(painterResource(id = R.drawable.ic_edit), contentDescription = "Rename", tint = iconTint) }
+                            androidx.compose.material3.IconButton(
+                                onClick = { toForget = dev },
+                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                            ) { Icon(painterResource(id = R.drawable.ic_delete), contentDescription = "Forget", tint = MaterialTheme.colorScheme.error) }
+                        }
+                    }
                 }
             }
         }
@@ -836,7 +857,6 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
     val previewTransformation = remember(previewSuffix) {
         if (previewSuffix.isEmpty()) VisualTransformation.None else PreviewSuffixVisualTransformation(previewSuffix)
     }
-    val ks = appState.keyboard
     val connected = appState.connection.connectedDevice != null
     val configuration = LocalConfiguration.current
     val screenWidthDp = configuration.screenWidthDp.toFloat().coerceAtLeast(1f)
@@ -844,15 +864,30 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
 
     CompositionLocalProvider(LocalKeyFontSize provides keyFontSize) {
         Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-        // TabRow to switch between Extended and Function keys while keeping shared controls fixed
-        TabRow(selectedTabIndex = selectedTab) {
-            tabs.forEachIndexed { idx, title ->
-                Tab(selected = selectedTab == idx, onClick = { selectedTab = idx }, text = { Text(title) })
+        // TabRow with keyboard icon (tap to re-show IME if dismissed)
+        androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.material3.TabRow(selectedTabIndex = selectedTab, modifier = Modifier.weight(1f)) {
+                tabs.forEachIndexed { idx, title ->
+                    Tab(selected = selectedTab == idx, onClick = { selectedTab = idx }, text = { Text(title) })
+                }
+            }
+            androidx.compose.material3.IconButton(onClick = { keyboardController?.show() }) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_keyboard),
+                    contentDescription = "Show system keyboard",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
-        // Shared system keyboard input (fixed across tabs)
-        Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        // Invisible 1dp-tall text field — always present so the IME has an attach point.
+        // graphicsLayer alpha=0 hides it visually while keeping it focusable.
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .graphicsLayer { alpha = 0f }
+        ) {
             androidx.compose.material3.TextField(
                 value = previewText,
                 onValueChange = { newValue ->
@@ -875,7 +910,7 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
                     previewText = ""
                 },
                 modifier = Modifier
-                    .weight(1f)
+                    .fillMaxWidth()
                     .focusRequester(focusRequester)
                     .onPreviewKeyEvent { event ->
                         val native = event.nativeKeyEvent
@@ -895,122 +930,10 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
                 placeholder = { Text("System keyboard input") }
             )
         }
-
-        // Auto-show IME when entering the Keyboard screen
+        // Auto-focus the hidden field and show IME whenever the Keyboard screen is visible
         androidx.compose.runtime.LaunchedEffect(Unit) {
             focusRequester.requestFocus()
             keyboardController?.show()
-        }
-
-    // Shared modifier toggles (fixed across tabs)
-    // Reduce horizontal padding and spacing slightly so labels have more room.
-    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        val inactiveColors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        )
-        val activeColors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
-        )
-
-            // Order: Ctrl, Shift, CAPS, Alt, Meta
-            val ctrlActive = ks.ctrl
-            Button(
-                onClick = {
-                    StoreProvider.dispatch(Action.TrackPreviewKey("Ctrl"))
-                    StoreProvider.dispatch(Action.ToggleCtrl)
-                    if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Ctrl toggled"))
-                },
-                modifier = Modifier.weight(1f),
-                colors = if (ctrlActive) activeColors else inactiveColors
-            ) {
-                ResponsiveText(
-                    text = "Ctrl",
-                    minSize = keyFontSize,
-                    maxSize = keyFontSize,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.4.sp
-                )
-            }
-
-            val shiftActive = ks.shift
-            Button(
-                onClick = {
-                StoreProvider.dispatch(Action.TrackPreviewKey("Shift"))
-                StoreProvider.dispatch(Action.ToggleShift)
-                if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Shift toggled"))
-                },
-                modifier = Modifier.weight(1f),
-                colors = if (shiftActive) activeColors else inactiveColors
-            ) {
-                ResponsiveText(
-                    text = "Shift",
-                    minSize = keyFontSize,
-                    maxSize = keyFontSize,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.4.sp
-                )
-            }
-
-            // CAPS lock toggle (shared between Extended and Function tabs)
-            val capsActive = appState.connection.capsLock
-            Button(
-                onClick = {
-                StoreProvider.dispatch(Action.TrackPreviewKey("CAPS"))
-                StoreProvider.dispatch(Action.ToggleCapsLock)
-                if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Caps toggled"))
-                },
-                modifier = Modifier.weight(1f),
-                colors = if (capsActive) activeColors else inactiveColors
-            ) {
-                ResponsiveText(
-                    text = "CAPS",
-                    minSize = keyFontSize,
-                    maxSize = keyFontSize,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.4.sp
-                )
-            }
-
-            val altActive = ks.alt
-            Button(
-                onClick = {
-                StoreProvider.dispatch(Action.TrackPreviewKey("Alt"))
-                StoreProvider.dispatch(Action.ToggleAlt)
-                if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Alt toggled"))
-                },
-                modifier = Modifier.weight(1f),
-                colors = if (altActive) activeColors else inactiveColors
-            ) {
-                ResponsiveText(
-                    text = "Alt",
-                    minSize = keyFontSize,
-                    maxSize = keyFontSize,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.4.sp
-                )
-            }
-
-            val metaActive = ks.gui
-            Button(
-                onClick = {
-                StoreProvider.dispatch(Action.TrackPreviewKey("Meta"))
-                StoreProvider.dispatch(Action.ToggleGui)
-                if (!connected) StoreProvider.dispatch(Action.UpdateMessage("Preview: Meta toggled"))
-                },
-                modifier = Modifier.weight(1f),
-                colors = if (metaActive) activeColors else inactiveColors
-            ) {
-                ResponsiveText(
-                    text = "Meta",
-                    minSize = keyFontSize,
-                    maxSize = keyFontSize,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.4.sp
-                )
-            }
-
         }
 
         // Content area: render the selected tab's screen
@@ -1156,6 +1079,11 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
     val connected = appState.connection.connectedDevice
     val settingsFlow = remember(connected) { SettingsManager.flowForDevice(context, connected?.address) }
     val settings by settingsFlow.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
+    var dragLock by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        onDispose { if (dragLock) StoreProvider.dispatch(Action.MouseButtonUp) }
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(16.dp).navigationBarsPadding()) {
         // Touchpad area
@@ -1222,11 +1150,16 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
                             }
                         } while (event.changes.any { it.pressed })
                         val duration = System.currentTimeMillis() - startTime
-                            if (!moved && duration < 220) {
-                            when (maxPointers) {
-                                1 -> StoreProvider.dispatch(Action.LeftClick)
-                                2 -> StoreProvider.dispatch(Action.RightClick)
-                                3 -> if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick)
+                        if (!moved && duration < 220) {
+                            if (dragLock) {
+                                dragLock = false
+                                StoreProvider.dispatch(Action.MouseButtonUp)
+                            } else {
+                                when (maxPointers) {
+                                    1 -> StoreProvider.dispatch(Action.LeftClick)
+                                    2 -> StoreProvider.dispatch(Action.RightClick)
+                                    3 -> if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick)
+                                }
                             }
                         }
                     }
@@ -1242,11 +1175,25 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
         // Quick mouse buttons
         androidx.compose.foundation.layout.Row(
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
         ) {
             androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), onClick = { StoreProvider.dispatch(Action.LeftClick) }) { Text("Left") }
             androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), enabled = settings.enableMiddleClick, onClick = { if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick) }) { Text("Middle") }
             androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), onClick = { StoreProvider.dispatch(Action.RightClick) }) { Text("Right") }
+            androidx.compose.material3.ElevatedButton(
+                modifier = Modifier.weight(1f).height(44.dp),
+                onClick = {
+                    dragLock = !dragLock
+                    if (dragLock) StoreProvider.dispatch(Action.MouseButtonDown(0x01))
+                    else StoreProvider.dispatch(Action.MouseButtonUp)
+                },
+                colors = if (dragLock)
+                    androidx.compose.material3.ButtonDefaults.elevatedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                else androidx.compose.material3.ButtonDefaults.elevatedButtonColors()
+            ) { Text("Drag") }
         }
     }
 }

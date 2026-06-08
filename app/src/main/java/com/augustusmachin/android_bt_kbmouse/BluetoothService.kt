@@ -28,6 +28,8 @@ import android.app.PendingIntent
 import android.content.pm.ServiceInfo
 import android.graphics.Color
 import androidx.core.app.NotificationCompat
+import com.augustusmachin.android_bt_kbmouse.store.Action
+import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 import android.service.quicksettings.TileService
 import android.content.ComponentName
 
@@ -88,6 +90,7 @@ class BluetoothService : Service(), IBluetoothService {
                         lastDeviceAddress = dev.address
                         btPrefs.edit().putString("last_device", dev.address).apply()
                         scheduleReconnect(0)
+                        StoreProvider.dispatch(Action.UpdatePairedDevices(getPairedDevices()))
                     }
                 }
                 BluetoothAdapter.ACTION_STATE_CHANGED -> {
@@ -290,6 +293,7 @@ class BluetoothService : Service(), IBluetoothService {
             }
         }
         bluetoothAdapter?.getProfileProxy(this, profileListener, BluetoothProfile.HID_DEVICE)
+        StoreProvider.dispatch(Action.UpdatePairedDevices(getPairedDevices()))
         startInForeground()
     }
 
@@ -758,8 +762,20 @@ class BluetoothService : Service(), IBluetoothService {
         }
     }
 
+    @Volatile private var heldMouseButtons = 0
+
     override fun sendMouseMove(dx: Int, dy: Int) {
-        sendMouseReport(0, dx, dy, 0, 0) // wheel/hwheel removed in simplified descriptor
+        sendMouseReport(heldMouseButtons, dx, dy, 0, 0)
+    }
+
+    override fun mouseButtonDown(button: Int) {
+        heldMouseButtons = heldMouseButtons or button
+        sendMouseReport(heldMouseButtons, 0, 0, 0, 0)
+    }
+
+    override fun mouseButtonUp() {
+        heldMouseButtons = 0
+        sendMouseReport(0, 0, 0, 0, 0)
     }
 
     override fun sendLeftClick() {

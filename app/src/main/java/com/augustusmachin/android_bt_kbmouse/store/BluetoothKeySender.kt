@@ -31,6 +31,9 @@ class BluetoothKeySender(private val svc: IBluetoothService) : KeySender {
     override fun toggleCapsLock() { svc.sendKeyPress(0x39.toByte(), 0) }
     override fun toggleScrollLock() { svc.sendKeyPress(0x47.toByte(), 0) }
 
+    override fun mouseButtonDown(button: Int) { svc.mouseButtonDown(button) }
+    override fun mouseButtonUp() { svc.mouseButtonUp() }
+
     override fun setModifiers(mods: Int) { svc.setModifiers(mods) }
 
     override fun startDiscovery() { svc.startDiscovery() }

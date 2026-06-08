@@ -29,6 +29,8 @@ sealed class Action {
     object LeftClick : Action()
     object RightClick : Action()
     object MiddleClick : Action()
+    data class MouseButtonDown(val button: Int) : Action()
+    object MouseButtonUp : Action()
     data class ScrollVertical(val delta: Int) : Action()
     data class ScrollHorizontal(val delta: Int) : Action()
     object ToggleCapsLock : Action()
