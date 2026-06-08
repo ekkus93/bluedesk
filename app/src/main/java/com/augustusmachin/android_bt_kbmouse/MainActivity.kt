@@ -548,14 +548,14 @@ fun MainScreen() {
                             onClick = { StoreProvider.dispatch(Action.StartDiscovery) },
                             modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
                         ) {
-                            Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Scan", tint = MaterialTheme.colorScheme.onPrimary)
+                            Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Scan", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         // Settings action
                         androidx.compose.material3.IconButton(
                             onClick = { navController.navigate(Screen.Settings.route) },
                             modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
                         ) {
-                            Icon(painter = painterResource(id = R.drawable.ic_settings), contentDescription = "Settings", tint = MaterialTheme.colorScheme.onPrimary)
+                            Icon(painter = painterResource(id = R.drawable.ic_settings), contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 )
@@ -898,7 +898,7 @@ fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValu
     val connected = appState.connection.connectedDevice != null
     val configuration = LocalConfiguration.current
     val screenWidthDp = configuration.screenWidthDp.toFloat().coerceAtLeast(1f)
-    val keyFontSize = remember(screenWidthDp) { (KEY_FONT_SCALE / screenWidthDp).sp }
+    val keyFontSize = remember(screenWidthDp) { (KEY_FONT_SCALE / screenWidthDp).coerceIn(10f, 16f).sp }
 
     CompositionLocalProvider(LocalKeyFontSize provides keyFontSize) {
         Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
@@ -1043,70 +1043,6 @@ private class PreviewSuffixVisualTransformation(
             override fun transformedToOriginal(offset: Int): Int = offset.coerceAtMost(text.length)
         }
         return TransformedText(builder.toAnnotatedString(), offsetMapping)
-    }
-}
-
-@Composable
-private fun KeyButton(
-    label: String,
-    modifier: Modifier = Modifier,
-    toggled: Boolean = false,
-    repeatable: Boolean = false,
-    onPress: (() -> Unit)? = null,
-    onRelease: (() -> Unit)? = null,
-    repeatDelayMs: Int = 350,
-    onClick: () -> Unit
-) {
-    val scope = rememberCoroutineScope()
-    var pressed by remember { mutableStateOf(false) }
-    val containerColor = if (pressed || toggled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
-    val contentColor = if (pressed || toggled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-    val colors = ButtonDefaults.buttonColors(containerColor = containerColor, contentColor = contentColor)
-    // Provide a consistent height and rounded shape for key buttons; keep repeatable pointer logic
-    val buttonModifier = if (repeatable) modifier.height(44.dp).pointerInput(Unit) {
-        awaitPointerEventScope {
-            var isDown = false
-            var repeatJob: kotlinx.coroutines.Job? = null
-            while (true) {
-                val event = awaitPointerEvent()
-                val anyDown = event.changes.any { it.pressed }
-                if (anyDown && !isDown) {
-                    isDown = true
-                    pressed = true
-                    onPress?.invoke()
-                    repeatJob = scope.launch {
-                        delay(repeatDelayMs.toLong())
-                        while (isDown) {
-                            onPress?.invoke()
-                            delay(70)
-                        }
-                    }
-                } else if (!anyDown && isDown) {
-                    isDown = false
-                    pressed = false
-                    repeatJob?.cancel()
-                    onRelease?.invoke()
-                }
-                event.changes.forEach { it.consume() }
-            }
-        }
-    } else modifier.height(44.dp)
-
-    androidx.compose.material3.Button(
-        modifier = buttonModifier,
-        colors = colors,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-        onClick = {
-            scope.launch {
-                pressed = true
-                onClick()
-                delay(80)
-                pressed = false
-            }
-        }
-    ) {
-        val keyFontSize = LocalKeyFontSize.current
-        ResponsiveText(text = label, minSize = keyFontSize, maxSize = keyFontSize)
     }
 }
 
