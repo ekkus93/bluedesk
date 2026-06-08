@@ -80,6 +80,23 @@ class BluetoothHidSendReportTest {
             if (!adapter.isEnabled) { notReadyReason = "Bluetooth is not enabled"; return }
             btAdapter = adapter
 
+            // ── Pre-cleanup: unregister any stale HID app from a previous test run ──
+            val cleanupLatch = CountDownLatch(1)
+            var cleanupProxy: BluetoothHidDevice? = null
+            adapter.getProfileProxy(context, object : BluetoothProfile.ServiceListener {
+                override fun onServiceConnected(profile: Int, p: BluetoothProfile) {
+                    cleanupProxy = p as BluetoothHidDevice
+                    cleanupLatch.countDown()
+                }
+                override fun onServiceDisconnected(profile: Int) {}
+            }, BluetoothProfile.HID_DEVICE)
+            if (cleanupLatch.await(3, TimeUnit.SECONDS) && cleanupProxy != null) {
+                runCatching { cleanupProxy!!.unregisterApp() }
+                Thread.sleep(1500)
+                adapter.closeProfileProxy(BluetoothProfile.HID_DEVICE, cleanupProxy!!)
+            }
+            Thread.sleep(500)
+
             // ── Step 1: obtain the HID device profile proxy ──────────────────
             val proxyLatch = CountDownLatch(1)
             var proxy: BluetoothHidDevice? = null
@@ -141,8 +158,8 @@ class BluetoothHidSendReportTest {
                 hid.connect(target)
             }
 
-            if (!connectionLatch.await(30, TimeUnit.SECONDS)) {
-                notReadyReason = "Host did not connect within 30 s — " +
+            if (!connectionLatch.await(45, TimeUnit.SECONDS)) {
+                notReadyReason = "Host did not connect within 45 s — " +
                     "ensure laptop Bluetooth is on and the phone is in the paired devices list"
                 return
             }

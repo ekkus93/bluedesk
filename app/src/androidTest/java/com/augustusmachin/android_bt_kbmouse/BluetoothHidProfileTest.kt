@@ -15,6 +15,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Before
+import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.CountDownLatch
@@ -39,6 +40,33 @@ import java.util.concurrent.TimeUnit
 @SuppressLint("NewApi", "MissingPermission")
 @RunWith(AndroidJUnit4::class)
 class BluetoothHidProfileTest {
+
+    companion object {
+        @BeforeClass @JvmStatic
+        fun clearStaleRegistration() {
+            // Clears any stale HID registration left by a previous test run so the
+            // first registerApp test doesn't get registered=false immediately.
+            if (Build.VERSION.SDK_INT < 28) return
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE)
+                    as? BluetoothManager)?.adapter ?: return
+            if (!adapter.isEnabled) return
+            val latch = CountDownLatch(1)
+            var proxy: BluetoothHidDevice? = null
+            adapter.getProfileProxy(context, object : BluetoothProfile.ServiceListener {
+                override fun onServiceConnected(profile: Int, p: BluetoothProfile) {
+                    proxy = p as BluetoothHidDevice; latch.countDown()
+                }
+                override fun onServiceDisconnected(profile: Int) {}
+            }, BluetoothProfile.HID_DEVICE)
+            if (latch.await(3, TimeUnit.SECONDS) && proxy != null) {
+                runCatching { proxy!!.unregisterApp() }
+                Thread.sleep(1500)
+                adapter.closeProfileProxy(BluetoothProfile.HID_DEVICE, proxy!!)
+            }
+            Thread.sleep(500)
+        }
+    }
 
     @Before
     fun grantBluetoothPermissions() {
@@ -170,6 +198,7 @@ class BluetoothHidProfileTest {
             )
             hid.unregisterApp()
             unregLatch.await(5, TimeUnit.SECONDS)
+            Thread.sleep(1000) // give the BT stack time to release the slot
 
             // Register FULL
             registered = false
@@ -180,7 +209,7 @@ class BluetoothHidProfileTest {
             assertTrue("FULL registration rejected by stack", registered)
         } finally {
             runCatching { hid.unregisterApp() }
-            Thread.sleep(300)
+            Thread.sleep(1500)
             adapter.closeProfileProxy(BluetoothProfile.HID_DEVICE, hid)
         }
     }
@@ -217,6 +246,17 @@ class BluetoothHidProfileTest {
         val hid = obtainHidProxy(adapter) ?: return
         val module = BluetoothHidModule(adapter)
 
+        // Pre-clear any stale registration left by the previous test (e.g.
+        // unregisterApp_receivesRegisteredFalseCallback, which has no post-close sleep).
+        val preLatch = CountDownLatch(1)
+        module.listener = makeListener(
+            onStatus = { preLatch.countDown() },
+            onError = { preLatch.countDown() }
+        )
+        runCatching { hid.unregisterApp() }
+        preLatch.await(1, TimeUnit.SECONDS) // times out quickly if nothing was registered
+        Thread.sleep(500)
+
         val latch = CountDownLatch(1)
         var registered = false
         module.listener = makeListener(
@@ -244,6 +284,7 @@ class BluetoothHidProfileTest {
             )
             runCatching { hid.unregisterApp() }
             cleanupLatch.await(5, TimeUnit.SECONDS)
+            Thread.sleep(1500)
             adapter.closeProfileProxy(BluetoothProfile.HID_DEVICE, hid)
         }
     }
