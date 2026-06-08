@@ -741,12 +741,7 @@ class BluetoothService : Service(), IBluetoothService {
         val device = connectedDevice ?: return
         val hid = hidDevice() ?: return
         val keys = synchronized(this) { pressedKeys.toList().take(6) }
-        val report = ByteArray(8)
-        report[0] = currentModifiers.toByte()
-        // report[1] reserved = 0
-        for (i in keys.indices) {
-            report[2 + i] = keys[i]
-        }
+        val report = HidReportBuilder.keyboardReport(currentModifiers, keys)
         DebugLog.log("BluetoothService", "kbd mods=" + currentModifiers + " keys=" + keys)
         // Ensure BLUETOOTH_CONNECT before sending HID report
         val hasBtConnectReport = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -799,19 +794,9 @@ class BluetoothService : Service(), IBluetoothService {
         val hid = hidDevice() ?: return
         // SIMPLE: 3 bytes [buttons][dx][dy]; FULL: 5 bytes [buttons][dx][dy][wheelV][wheelH]
         val report = if (hidSimplified) {
-            byteArrayOf(
-                buttons.toByte(),
-                dx.coerceIn(-127, 127).toByte(),
-                dy.coerceIn(-127, 127).toByte()
-            )
+            HidReportBuilder.mouseReportSimple(buttons, dx, dy)
         } else {
-            byteArrayOf(
-                buttons.toByte(),
-                dx.coerceIn(-127, 127).toByte(),
-                dy.coerceIn(-127, 127).toByte(),
-                wheel.coerceIn(-127, 127).toByte(),
-                hWheel.coerceIn(-127, 127).toByte()
-            )
+            HidReportBuilder.mouseReport(buttons, dx, dy, wheel, hWheel)
         }
         DebugLog.log("BluetoothService", "mouse btn=$buttons dx=$dx dy=$dy wheel=$wheel hwheel=$hWheel simplified=$hidSimplified")
         val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED

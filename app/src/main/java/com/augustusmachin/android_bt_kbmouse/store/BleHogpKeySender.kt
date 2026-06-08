@@ -2,6 +2,7 @@ package com.augustusmachin.android_bt_kbmouse.store
 
 import android.bluetooth.BluetoothDevice
 import com.augustusmachin.android_bt_kbmouse.BleHogpService
+import com.augustusmachin.android_bt_kbmouse.HidReportBuilder
 
 /**
  * KeySender bridge for BLE HOGP. Builds HID reports and delivers them via
@@ -20,21 +21,11 @@ class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
     private val pressedKeys = mutableListOf<Byte>()
     @Volatile private var buttonsMask: Int = 0
 
-    private fun buildKeyReport(): ByteArray {
-        val keys = synchronized(pressedKeys) { pressedKeys.take(6).toList() }
-        return byteArrayOf(
-            modifierByte.toByte(), 0,
-            keys.getOrElse(0) { 0 }, keys.getOrElse(1) { 0 },
-            keys.getOrElse(2) { 0 }, keys.getOrElse(3) { 0 },
-            keys.getOrElse(4) { 0 }, keys.getOrElse(5) { 0 }
-        )
-    }
+    private fun buildKeyReport(): ByteArray =
+        HidReportBuilder.keyboardReport(modifierByte, synchronized(pressedKeys) { pressedKeys.take(6).toList() })
 
-    private fun buildMouseReport(dx: Int = 0, dy: Int = 0): ByteArray = byteArrayOf(
-        buttonsMask.toByte(),
-        dx.coerceIn(-127, 127).toByte(),
-        dy.coerceIn(-127, 127).toByte()
-    )
+    private fun buildMouseReport(dx: Int = 0, dy: Int = 0): ByteArray =
+        HidReportBuilder.mouseReportSimple(buttonsMask, dx, dy)
 
     override fun sendKeyDown(code: Byte, mods: Int) {
         modifierByte = mods
