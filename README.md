@@ -24,10 +24,10 @@ The project will be developed using the following tools and technologies:
         *   **Pairing & Connecting:** User taps a device in the list to connect. Status updates during the process. Once connected, the user can switch to input modes.
         *   **Disconnecting:** User taps "Disconnect" on the pairing page to end the current connection.
 *   **Input Modes:**
-    *   **Keyboard Mode:** US QWERTY with modifiers, arrows, F1–F12, Insert/Delete/Home/End/PageUp/PageDown; multi‑key chords (6‑key rollover); media keys via Consumer Control; visual feedback and optional click audio; Caps/Num/Scroll lock LED sync.
+    *   **Keyboard Mode:** US QWERTY with modifiers, arrows, F1–F12, Insert/Delete/Home/End/PageUp/PageDown; multi‑key chords (6‑key rollover); visual feedback and optional click audio; Caps/Scroll lock LED sync. (Media keys / Consumer Control not yet implemented in v0.1.)
     *   **Mouse Mode:** Single‑finger move; tap to left‑click; two‑finger tap right‑click; two‑finger vertical and horizontal scroll (AC Pan); three‑finger tap middle‑click; sensitivity and scroll tuning with invert options.
 *   **Mode Switching:** A clear and intuitive way for the user to switch between keyboard, mouse, and settings screens.
-*   **Orientation:** The application will be locked to landscape mode for a more natural keyboard and touchpad experience.
+*   **Orientation:** The application is locked to portrait mode (v0.1). Landscape support is deferred.
 *   **Foreground Service:** Persistent notification; auto‑reconnect to last device; direct BluetoothHidDevice connect/disconnect.
 *   **Connection UX:** Top bar shows current device/disconnected; brief “Disconnected” snackbar when auto‑navigating to Pairing.
 
@@ -38,7 +38,9 @@ The project will be developed using the following tools and technologies:
 - Scrolling: Some hosts interpret positive vertical wheel as up (Windows/macOS); the app provides invert toggles for both vertical and horizontal wheels.
 - Horizontal wheel: True h‑wheel (AC Pan) is used; some apps on macOS may map it to trackpad swipe; invert if behavior feels reversed.
 - Pointer gain: Sensitivity defaults tuned for typical 10–12" tablets; adjust in Settings for phones or large tablets.
-- Media keys: Consumer Control usages vary by OS/app; some targets may ignore certain keys.
+- Media keys: Not implemented in v0.1. Consumer Control descriptor and UI are planned for a future release.
+- Scrolling: Two HID descriptor modes are supported. **Simplified mode** (default, Windows-compatible) disables scroll — the scroll speed and invert settings are hidden in this mode. **Full mode** enables two-finger vertical and horizontal scroll; switch to Full mode in Settings → Compatibility to unlock scroll controls.
+- BLE HOGP: Experimental. Enable in Settings → Compatibility. Requires BLUETOOTH_ADVERTISE permission. Classic Bluetooth HID is the recommended and default transport for v0.1.
 
 This application targets standard Android devices (phones and tablets) that support the Bluetooth Human Interface Device (HID) profile. Amazon Fire HD tablets are not supported due to Fire OS limitations regarding Bluetooth HID peripheral functionality.
 
