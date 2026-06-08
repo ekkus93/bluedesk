@@ -70,10 +70,14 @@ class BluetoothService : Service(), IBluetoothService {
                     device?.let {
                         if (!discoveredDevices.contains(it)) {
                             discoveredDevices.add(it)
-                            // Avoid accessing device.name which requires BLUETOOTH_CONNECT on newer Android
                             DebugLog.log("BluetoothService", "FOUND ${it.address}")
                         }
+                        StoreProvider.dispatch(Action.UpdateDiscoveredDevices(discoveredDevices.toList()))
                     }
+                }
+                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                    DebugLog.log("BluetoothService", "discovery finished")
+                    StoreProvider.dispatch(Action.UpdateIsScanning(false))
                 }
                 BluetoothDevice.ACTION_BOND_STATE_CHANGED -> {
                     val state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, -1)
@@ -255,6 +259,7 @@ class BluetoothService : Service(), IBluetoothService {
         }
         val filter = IntentFilter()
         filter.addAction(BluetoothDevice.ACTION_FOUND)
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
         filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
         filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
         // Robust dynamic receiver registration for newer preview SDKs: always specify flag
@@ -330,19 +335,37 @@ class BluetoothService : Service(), IBluetoothService {
         }
         // Clear previous results so UI refreshes immediately
         discoveredDevices.clear()
+        StoreProvider.dispatch(Action.UpdateDiscoveredDevices(emptyList()))
         DebugLog.log("BluetoothService", "startDiscovery")
-        bluetoothAdapter?.startDiscovery()
+        val hasBtScanStart = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!hasBtScanStart) {
+            DebugLog.e("BluetoothService", "BLUETOOTH_SCAN not granted; cannot start discovery")
+            StoreProvider.dispatch(Action.UpdateMessage("Scan permission not granted"))
+            return
+        }
+        val started = try {
+            bluetoothAdapter?.startDiscovery() ?: false
+        } catch (se: SecurityException) {
+            DebugLog.e("BluetoothService", "startDiscovery SecurityException: ${se.message}")
+            false
+        }
+        if (started) {
+            StoreProvider.dispatch(Action.UpdateIsScanning(true))
+        } else {
+            DebugLog.e("BluetoothService", "startDiscovery returned false")
+            StoreProvider.dispatch(Action.UpdateMessage("Failed to start scan"))
+        }
     }
 
     override fun stopDiscovery() {
         DebugLog.log("BluetoothService", "stopDiscovery")
-        // Cancel discovery only if BLUETOOTH_SCAN is granted to avoid SecurityException
         val hasBtScan2 = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_SCAN) == android.content.pm.PackageManager.PERMISSION_GRANTED
         if (hasBtScan2) {
             try { bluetoothAdapter?.cancelDiscovery() } catch (se: SecurityException) { DebugLog.e("BluetoothService", "cancelDiscovery SecurityException: ${se.message}") }
         } else {
             DebugLog.e("BluetoothService", "BLUETOOTH_SCAN not granted; skipping cancelDiscovery")
         }
+        StoreProvider.dispatch(Action.UpdateIsScanning(false))
     }
 
     override fun getDiscoveredDevices(): List<BluetoothDevice> {
