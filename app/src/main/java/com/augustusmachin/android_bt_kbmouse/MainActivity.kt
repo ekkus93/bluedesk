@@ -106,6 +106,8 @@ import androidx.core.content.ContextCompat
 import android.view.SoundEffectConstants
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -275,9 +277,10 @@ class MainActivity : ComponentActivity() {
         try {
             androidx.core.content.ContextCompat.registerReceiver(this, permReceiver, IntentFilter(BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
         } catch (_: Exception) {}
-        // Force enable debug logging for diagnostics; SettingsViewModel updates DebugLog level from persisted settings.
+        // SettingsViewModel drives DebugLog enable/level after persisted settings load.
+        // Keep a minimal startup log enabled until settings arrive.
         DebugLog.setEnabled(true)
-        DebugLog.setLevel(DebugLog.Level.ALL)
+        DebugLog.setLevel(DebugLog.Level.ERROR)
         setContent {
             AndroidbtkbmouseTheme {
                 MainScreen()
@@ -301,6 +304,18 @@ class MainActivity : ComponentActivity() {
             startServicesAndBind()
         } else {
             permissionLauncher.launch(missing.toTypedArray())
+        }
+
+        // Observe backend-mode changes at runtime and switch services cleanly.
+        lifecycleScope.launch {
+            var prevUseBle: Boolean? = null
+            settingsViewModel.settings.collect { s ->
+                val useBle = s.useBleHogp
+                if (prevUseBle != null && useBle != prevUseBle) {
+                    switchBackend(useBle)
+                }
+                prevUseBle = useBle
+            }
         }
     }
 
@@ -332,12 +347,44 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startServicesAndBind() {
-        val serviceIntent = Intent(this, BluetoothService::class.java)
-        if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(serviceIntent) else startService(serviceIntent)
-        val bleIntent = Intent(this, BleHogpService::class.java)
-        if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(bleIntent) else startService(bleIntent)
-        try { serviceBound = bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE) } catch (e: Exception) { DebugLog.e("MainActivity", "bind BluetoothService failed: ${e.message}") }
-        try { bleHogpBound = bindService(bleIntent, bleHogpConnection, Context.BIND_AUTO_CREATE) } catch (e: Exception) { DebugLog.e("MainActivity", "bind BleHogpService failed: ${e.message}") }
+        lifecycleScope.launch {
+            // Wait for persisted settings before choosing the HID backend (Phase 3).
+            settingsViewModel.isLoaded.first { it }
+            val useBle = settingsViewModel.settings.value.useBleHogp
+            DebugLog.log("MainActivity", "startServicesAndBind backend=${BackendSelector.fromSettings(useBle)}")
+            if (useBle) startAndBindBleBackend() else startAndBindClassicBackend()
+        }
+    }
+
+    private fun startAndBindClassicBackend() {
+        val intent = Intent(this, BluetoothService::class.java)
+        if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
+        try { serviceBound = bindService(intent, connection, Context.BIND_AUTO_CREATE) }
+        catch (e: Exception) { DebugLog.e("MainActivity", "bind BluetoothService failed: ${e.message}") }
+    }
+
+    private fun startAndBindBleBackend() {
+        val intent = Intent(this, BleHogpService::class.java)
+        if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
+        try { bleHogpBound = bindService(intent, bleHogpConnection, Context.BIND_AUTO_CREATE) }
+        catch (e: Exception) { DebugLog.e("MainActivity", "bind BleHogpService failed: ${e.message}") }
+    }
+
+    private fun switchBackend(useBle: Boolean) {
+        DebugLog.log("MainActivity", "switchBackend → ${BackendSelector.fromSettings(useBle)}")
+        if (serviceBound) {
+            try { StoreProvider.setKeySender(null) } catch (_: Exception) {}
+            try { unbindService(connection) } catch (_: Exception) {}
+            serviceBound = false
+        }
+        if (bleHogpBound) {
+            try { StoreProvider.setKeySender(null) } catch (_: Exception) {}
+            try { unbindService(bleHogpConnection) } catch (_: Exception) {}
+            bleHogpBound = false
+        }
+        StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
+        StoreProvider.dispatch(Action.UpdateMessage("Switching HID backend…"))
+        if (useBle) startAndBindBleBackend() else startAndBindClassicBackend()
     }
 
     private fun showPermissionNeededDialog() {
