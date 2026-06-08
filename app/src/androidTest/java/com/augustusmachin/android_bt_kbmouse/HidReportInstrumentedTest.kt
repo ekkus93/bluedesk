@@ -3,6 +3,7 @@ package com.augustusmachin.android_bt_kbmouse
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -220,7 +221,7 @@ class HidReportInstrumentedTest {
     fun hidDescriptors_both_contain_keyboard_usagePage() {
         // HID usage page 0x01 (Generic Desktop), usage 0x06 (Keyboard)
         fun ByteArray.hasPair(a: Byte, b: Byte): Boolean =
-            indices.dropLast(1).any { this[it] == a && this[it + 1] == b }
+            (0 until this.size - 1).any { i -> this[i] == a && this[i + 1] == b }
         assertTrue(HidDescriptorVariants.SIMPLE.hasPair(0x05, 0x01)) // Generic Desktop page
         assertTrue(HidDescriptorVariants.FULL.hasPair(0x05, 0x01))
     }

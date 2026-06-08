@@ -1,5 +1,6 @@
 package com.augustusmachin.android_bt_kbmouse
 
+import androidx.datastore.preferences.core.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.flow.first
@@ -26,13 +27,13 @@ class SettingsInstrumentedTest {
     }
 
     @Before
-    fun clearDataStore() = runBlocking {
-        context.settingsDataStore.edit { it.clear() }
+    fun clearDataStore() {
+        runBlocking { context.settingsDataStore.edit { it.clear() } }
     }
 
     @After
-    fun clearDataStoreAfter() = runBlocking {
-        context.settingsDataStore.edit { it.clear() }
+    fun clearDataStoreAfter() {
+        runBlocking { context.settingsDataStore.edit { it.clear() } }
     }
 
     // ── Default values ────────────────────────────────────────────────────────
