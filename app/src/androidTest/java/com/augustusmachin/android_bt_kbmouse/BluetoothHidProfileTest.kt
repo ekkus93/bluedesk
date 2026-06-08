@@ -30,6 +30,8 @@ import java.util.concurrent.TimeUnit
  *    because Android only allows one HID app registration at a time. In practice this
  *    is satisfied when tests are run via `./gradlew connectedDebugAndroidTest` (the
  *    main app is not started by the test runner).
+ *  - If tests fail with a stale registration (e.g. after running with the app open),
+ *    toggle Bluetooth off/on once: `adb shell svc bluetooth disable && adb shell svc bluetooth enable`.
  *
  * These tests verify real stack behaviour that pure unit tests cannot: a malformed
  * HID descriptor silently rejected here would produce "Driver error" on Windows.

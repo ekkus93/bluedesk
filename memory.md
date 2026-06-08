@@ -1,3 +1,9 @@
+## 2026-06-08T21:07:23Z - Claude Sonnet 4.6 - Instrumented tests validated on SM-A546E (Android 16)
+
+- 97 tests ran: 84 passed, 13 skipped (BluetoothHidSendReportTest — require connected host), 0 failed.
+- BluetoothHidProfileTest intermittently fails if a prior run left a stale HID registration. Fix: `adb shell svc bluetooth disable && adb shell svc bluetooth enable`. Documented in test file.
+- UI smoke test passed: portrait lock, no action bar, Extended/Navigation/Mouse tabs correct, Settings shows scroll-disabled message and debug logging OFF by default.
+
 ## 2026-06-08T20:34:33Z - Claude Sonnet 4.6 - v0.1 Release Fix Ralph Loop complete (Phases 1–15)
 
 - 11 commits landed: Phase 1 (discovery Redux dispatch), Phase 2+3 (backend gating + settings load race), Phase 4 (permission policy), Phase 5 (scroll UI gated on HID descriptor), Phase 6 (portrait lock), Phase 7 (debug logging tests), Phase 8 (Redux state after device-management), Phase 9+10 (discovery hardening already done + snackbar remember), Phase 11 (README overclaims), Phase 12 (allowBackup=false, NoActionBar theme), Phase 13 (icon contrast, key font clamp 10–16sp, dead KeyButton removed).
