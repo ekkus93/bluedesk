@@ -51,6 +51,29 @@ class DebugLogTest {
     }
 
     @Test
+    fun disabled_logging_appends_nothing() {
+        DebugLog.clear()
+        DebugLog.setEnabled(false)
+        DebugLog.log("Tag", "should not appear")
+        DebugLog.e("Tag", "should not appear either")
+        assertEquals(0, DebugLog.lines.value.size)
+    }
+
+    @Test
+    fun toggling_enabled_changes_behavior_immediately() {
+        DebugLog.clear()
+        DebugLog.setEnabled(false)
+        DebugLog.setLevel(DebugLog.Level.ALL)
+        DebugLog.log("Tag", "logged while disabled")
+        assertEquals(0, DebugLog.lines.value.size)
+
+        DebugLog.setEnabled(true)
+        DebugLog.log("Tag", "logged while enabled")
+        assertEquals(1, DebugLog.lines.value.size)
+        assertTrue(DebugLog.lines.value[0].contains("logged while enabled"))
+    }
+
+    @Test
     fun export_payload_contains_visible_entries_only() {
         DebugLog.clear()
         DebugLog.setEnabled(true)
