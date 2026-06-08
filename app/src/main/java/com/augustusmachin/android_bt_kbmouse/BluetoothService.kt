@@ -88,13 +88,29 @@ class BluetoothService : Service(), IBluetoothService {
                         intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE) as? BluetoothDevice
                     }
                     DebugLog.log("BluetoothService", "BOND_STATE_CHANGED=$state dev=${dev?.address}")
-                    if (state == BluetoothDevice.BOND_BONDED && dev != null) {
-                        // Remember and attempt HID connect automatically after pairing
-                        lastTargetDevice = dev
-                        lastDeviceAddress = dev.address
-                        btPrefs.edit().putString("last_device", dev.address).apply()
-                        scheduleReconnect(0)
-                        StoreProvider.dispatch(Action.UpdatePairedDevices(getPairedDevices()))
+                    when (state) {
+                        BluetoothDevice.BOND_BONDED -> if (dev != null) {
+                            lastTargetDevice = dev
+                            lastDeviceAddress = dev.address
+                            btPrefs.edit().putString("last_device", dev.address).apply()
+                            scheduleReconnect(0)
+                            StoreProvider.dispatch(Action.UpdatePairedDevices(getPairedDevices()))
+                        }
+                        BluetoothDevice.BOND_NONE -> if (dev != null) {
+                            DebugLog.log("BluetoothService", "BOND_NONE for ${dev.address}")
+                            StoreProvider.dispatch(Action.UpdatePairedDevices(getPairedDevices()))
+                            if (connectedDevice?.address == dev.address) {
+                                connectedDevice = null
+                                StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
+                                StoreProvider.dispatch(Action.UpdateMessage("Unpaired: ${dev.address}"))
+                            }
+                            if (lastDeviceAddress == dev.address) {
+                                btPrefs.edit().remove("last_device").apply()
+                                lastDeviceAddress = null
+                                lastTargetDevice = null
+                                StoreProvider.dispatch(Action.UpdateDefaultDevice(null))
+                            }
+                        }
                     }
                 }
                 BluetoothAdapter.ACTION_STATE_CHANGED -> {
@@ -669,10 +685,10 @@ class BluetoothService : Service(), IBluetoothService {
     override fun setDefaultDevice(device: BluetoothDevice) {
         DebugLog.log("BluetoothService", "setDefaultDevice ${device.address}")
         btPrefs.edit().putString("last_device", device.address).apply()
-    lastDeviceAddress = device.address
-    lastTargetDevice = device
-    // Avoid accessing device.name (requires BLUETOOTH_CONNECT on newer Android) — use address in UI messages
-    eventListener?.onInfo("Default device: ${device.address}")
+        lastDeviceAddress = device.address
+        lastTargetDevice = device
+        StoreProvider.dispatch(Action.UpdateDefaultDevice(device.address))
+        eventListener?.onInfo("Default device: ${device.address}")
         refreshQsTile()
     }
 
@@ -713,6 +729,7 @@ class BluetoothService : Service(), IBluetoothService {
                 btPrefs.edit().remove("last_device").apply()
                 lastDeviceAddress = null
                 lastTargetDevice = null
+                StoreProvider.dispatch(Action.UpdateDefaultDevice(null))
             }
             btPrefs.edit().remove("alias_${device.address}").apply()
             if (unpair) {
@@ -725,7 +742,7 @@ class BluetoothService : Service(), IBluetoothService {
                 }
             }
         } finally {
-            // refresh paired list on UI by emitting info (avoid device.name access)
+            StoreProvider.dispatch(Action.UpdatePairedDevices(getPairedDevices()))
             eventListener?.onInfo("Forgot ${device.address}")
         }
     }
