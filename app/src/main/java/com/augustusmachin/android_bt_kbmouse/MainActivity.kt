@@ -403,7 +403,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
-    val snackbarHostState = androidx.compose.material3.SnackbarHostState()
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val appState by StoreProvider.asStateFlow().collectAsState()
     val connected = appState.connection.connectedDevice
