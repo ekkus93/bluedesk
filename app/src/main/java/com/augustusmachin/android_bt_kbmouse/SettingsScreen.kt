@@ -75,29 +75,38 @@ fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: 
             scope.launch { SettingsManager.setTouchpadSensitivity(context, it.coerceIn(0.5f, 3.0f)) }
         }, valueRange = 0.5f..3.0f)
 
-        Text("Scroll speed: ${"%.2f".format(settings.scrollSpeed)}", modifier = Modifier.padding(top = 16.dp))
-        Slider(value = settings.scrollSpeed, onValueChange = {
-            scope.launch { SettingsManager.setScrollSpeed(context, it.coerceIn(0.5f, 3.0f)) }
-        }, valueRange = 0.5f..3.0f)
+        if (settings.hidSimplified) {
+            Text(
+                "Scrolling requires the full HID descriptor. Disable \"Use simplified HID descriptor\" below to enable scroll controls.",
+                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        } else {
+            Text("Scroll speed: ${"%.2f".format(settings.scrollSpeed)}", modifier = Modifier.padding(top = 16.dp))
+            Slider(value = settings.scrollSpeed, onValueChange = {
+                scope.launch { SettingsManager.setScrollSpeed(context, it.coerceIn(0.5f, 3.0f)) }
+            }, valueRange = 0.5f..3.0f)
 
-        Row(Modifier.padding(top = 16.dp)) {
-            Text("Invert vertical scroll", modifier = Modifier.weight(1f))
-            Switch(checked = settings.invertScroll, onCheckedChange = {
-                scope.launch { SettingsManager.setInvertScroll(context, it) }
-            })
-        }
+            Row(Modifier.padding(top = 16.dp)) {
+                Text("Invert vertical scroll", modifier = Modifier.weight(1f))
+                Switch(checked = settings.invertScroll, onCheckedChange = {
+                    scope.launch { SettingsManager.setInvertScroll(context, it) }
+                })
+            }
 
-        Row(Modifier.padding(top = 16.dp)) {
-            Text("Enable horizontal scroll", modifier = Modifier.weight(1f))
-            Switch(checked = settings.enableHorizontalScroll, onCheckedChange = {
-                scope.launch { SettingsManager.setEnableHorizontalScroll(context, it) }
-            })
-        }
-        Row(Modifier.padding(top = 8.dp)) {
-            Text("Invert horizontal scroll", modifier = Modifier.weight(1f))
-            Switch(checked = settings.invertHorizontalScroll, onCheckedChange = {
-                scope.launch { SettingsManager.setInvertHorizontalScroll(context, it) }
-            })
+            Row(Modifier.padding(top = 16.dp)) {
+                Text("Enable horizontal scroll", modifier = Modifier.weight(1f))
+                Switch(checked = settings.enableHorizontalScroll, onCheckedChange = {
+                    scope.launch { SettingsManager.setEnableHorizontalScroll(context, it) }
+                })
+            }
+            Row(Modifier.padding(top = 8.dp)) {
+                Text("Invert horizontal scroll", modifier = Modifier.weight(1f))
+                Switch(checked = settings.invertHorizontalScroll, onCheckedChange = {
+                    scope.launch { SettingsManager.setInvertHorizontalScroll(context, it) }
+                })
+            }
         }
 
         Row(Modifier.padding(top = 16.dp)) {
