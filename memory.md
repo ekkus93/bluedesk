@@ -1,3 +1,11 @@
+## 2026-06-08T20:34:33Z - Claude Sonnet 4.6 - v0.1 Release Fix Ralph Loop complete (Phases 1–15)
+
+- 11 commits landed: Phase 1 (discovery Redux dispatch), Phase 2+3 (backend gating + settings load race), Phase 4 (permission policy), Phase 5 (scroll UI gated on HID descriptor), Phase 6 (portrait lock), Phase 7 (debug logging tests), Phase 8 (Redux state after device-management), Phase 9+10 (discovery hardening already done + snackbar remember), Phase 11 (README overclaims), Phase 12 (allowBackup=false, NoActionBar theme), Phase 13 (icon contrast, key font clamp 10–16sp, dead KeyButton removed).
+- New files: BackendMode.kt, PermissionPolicy.kt; new tests: DiscoveryReducerTest, BackendSelectorTest, PermissionPolicyTest, DescriptorScrollPolicyTest, DeviceStateReducerTest, DebugLogTest extended.
+- JVM test suite: 264 tests, 0 failures. assembleDebug and lintDebug both green.
+- Not yet done: instrumented tests (connectedAndroidTest), manual smoke test, push to origin. Phase 15 summary written in this memory entry.
+- Known v0.1 limitations: Windows 11 "Driver error" on pairing (HOGP experimental), no media keys, landscape not supported.
+
 ## 2026-06-08T19:08:29Z - Claude Sonnet 4.6 - Three tabs redesigned with paginated sliding panels
 
 - Extended tab: 5 cols (Ctrl/ESC/INS, Shift/TAB/HOME, CAPS/ENTER/END, Alt/PRTSC/DEL, Meta/PAUSE/null), colsPerPage=3, 2 pages.
