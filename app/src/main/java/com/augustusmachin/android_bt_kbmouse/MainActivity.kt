@@ -289,11 +289,12 @@ class MainActivity : ComponentActivity() {
         // Defer starting/binding services until required runtime permissions are granted.
         val permissionLauncher: ActivityResultLauncher<Array<String>> =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-                val granted = result.values.all { it }
-                if (granted) {
-                    startServicesAndBind()
-                } else {
+                // Only block startup if a REQUIRED Classic HID permission was denied.
+                // POST_NOTIFICATIONS and BLUETOOTH_ADVERTISE denials are non-fatal.
+                if (PermissionPolicy.isClassicStartupBlocked(result, android.os.Build.VERSION.SDK_INT)) {
                     showPermissionNeededDialog()
+                } else {
+                    startServicesAndBind()
                 }
             }
 
@@ -333,18 +334,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requiredStartupPermissions(): Array<String> {
-        return if (android.os.Build.VERSION.SDK_INT >= 33) arrayOf(
-            android.Manifest.permission.BLUETOOTH_SCAN,
-            android.Manifest.permission.BLUETOOTH_CONNECT,
-            android.Manifest.permission.BLUETOOTH_ADVERTISE,
-            android.Manifest.permission.POST_NOTIFICATIONS
-        ) else if (android.os.Build.VERSION.SDK_INT >= 31) arrayOf(
-            android.Manifest.permission.BLUETOOTH_SCAN,
-            android.Manifest.permission.BLUETOOTH_CONNECT,
-            android.Manifest.permission.BLUETOOTH_ADVERTISE
-        ) else arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION)
-    }
+    private fun requiredStartupPermissions(): Array<String> =
+        PermissionPolicy.startupPermissions(android.os.Build.VERSION.SDK_INT).toTypedArray()
 
     private fun startServicesAndBind() {
         lifecycleScope.launch {
