@@ -22,3 +22,6 @@ screenshots/
 
 
 run_claude.sh*
+
+# Editor backup files
+*~

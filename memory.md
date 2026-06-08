@@ -1,3 +1,11 @@
+## 2026-06-08T21:53:52Z - Claude Sonnet 4.6 - All 97 instrumented tests pass (0 skipped, 0 failed)
+
+- BluetoothHidProfileTest (6 tests): fixed stale-registration race with @BeforeClass clearStaleRegistration(), per-test pre-clear in assertRegisters(), 1500ms sleeps in finally blocks. All 6 pass reliably.
+- BluetoothHidSendReportTest (13 tests): passes when the laptop connects to the phone's HID profile during @BeforeClass setup window. Procedure: run `./gradlew :app:connectedDebugAndroidTest`, then at ~T+50s run `bluetoothctl connect 8C:6A:3B:5E:D3:48` from the laptop. The 45s window starts after BluetoothHidProfileTest finishes.
+- Phone BT address: 8C:6A:3B:5E:D3:48. Laptop BT address: E8:FB:1C:25:E4:C2.
+- Key finding: `BluetoothHidDevice.connect(laptop)` in Android does NOT initiate L2CAP; the HOST must initiate. `bluetoothctl connect <phone>` from the laptop triggers HID profile connection.
+- Commit: e67e516. Build + lint + 264 unit tests all green.
+
 ## 2026-06-08T21:07:23Z - Claude Sonnet 4.6 - Instrumented tests validated on SM-A546E (Android 16)
 
 - 97 tests ran: 84 passed, 13 skipped (BluetoothHidSendReportTest — require connected host), 0 failed.
