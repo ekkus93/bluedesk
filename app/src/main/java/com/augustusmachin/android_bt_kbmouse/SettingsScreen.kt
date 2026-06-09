@@ -19,11 +19,34 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+
+private fun isIgnoringBatteryOptimizations(context: android.content.Context): Boolean {
+    if (android.os.Build.VERSION.SDK_INT < 23) return true
+    val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+    return pm.isIgnoringBatteryOptimizations(context.packageName)
+}
+
+private fun requestIgnoreBatteryOptimizations(context: android.content.Context) {
+    if (android.os.Build.VERSION.SDK_INT < 23) return
+    try {
+        context.startActivity(
+            android.content.Intent(
+                android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                android.net.Uri.parse("package:" + context.packageName)
+            )
+        )
+    } catch (_: Exception) {
+        try {
+            context.startActivity(android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        } catch (_: Exception) {}
+    }
+}
 
 private suspend fun loadImeLabels(
     context: android.content.Context,
@@ -47,6 +70,20 @@ fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: 
     val scope = rememberCoroutineScope()
     var imeOverrides by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var imeLabels by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+
+    // Battery-optimization exemption state. Re-check on resume so the row hides itself
+    // after the user grants the exemption in the system screen and returns to the app.
+    var batteryExempt by remember { mutableStateOf(isIgnoringBatteryOptimizations(context)) }
+    val lifecycle = (context as? androidx.lifecycle.LifecycleOwner)?.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                batteryExempt = isIgnoringBatteryOptimizations(context)
+            }
+        }
+        lifecycle?.addObserver(observer)
+        onDispose { lifecycle?.removeObserver(observer) }
+    }
 
     LaunchedEffect(Unit) {
         try {
@@ -154,6 +191,23 @@ fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: 
             Switch(checked = settings.startOnBoot, onCheckedChange = {
                 scope.launch { SettingsManager.setStartOnBoot(context, it) }
             })
+        }
+
+        // Background reliability — only offered while the app is still battery-optimized.
+        if (!batteryExempt) {
+            Text("Background reliability", style = androidx.compose.material3.MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 24.dp, bottom = 4.dp))
+            Row(Modifier.padding(top = 4.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text("Disable battery optimization")
+                    Text(
+                        "Let Android keep the Bluetooth HID service running so the connection isn't dropped when the screen is off or the app is in the background.",
+                        style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                Button(onClick = { requestIgnoreBatteryOptimizations(context) }, modifier = Modifier.padding(start = 8.dp)) { Text("Disable") }
+            }
         }
 
         // Compatibility

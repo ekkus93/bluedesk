@@ -118,11 +118,9 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.geometry.Offset
 import kotlin.math.roundToInt
 import kotlin.math.abs
-import android.os.PowerManager
 import android.bluetooth.BluetoothDevice
 import android.provider.Settings
 import android.net.Uri
-import android.app.ActivityManager
 import android.view.inputmethod.InputMethodManager
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
@@ -426,55 +424,11 @@ fun MainScreen() {
             }
         }
     }
-    // Battery optimization / Doze prompt
-    var showBatteryDialog by remember { mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= 23) {
-            val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-            val ignoring = pm.isIgnoringBatteryOptimizations(context.packageName)
-            val sp = context.getSharedPreferences("perm", Context.MODE_PRIVATE)
-            val asked = sp.getBoolean("battery_asked", false)
-            if (!ignoring && !asked) {
-                showBatteryDialog = true
-            }
-        }
-    }
+    // Battery-optimization exemption is now offered on demand from the Settings screen
+    // (Background reliability), instead of as a prompt on launch.
     // read settings from SettingsViewModel to avoid duplicate collectors
     val settingsViewModel: SettingsViewModel = viewModel()
     val settings by settingsViewModel.settings.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
-    if (showBatteryDialog) {
-        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        val restricted = if (Build.VERSION.SDK_INT >= 28) am.isBackgroundRestricted else false
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = {
-                showBatteryDialog = false
-                context.getSharedPreferences("perm", Context.MODE_PRIVATE).edit().putBoolean("battery_asked", true).apply()
-            },
-            title = { Text("Disable battery optimizations") },
-            text = { Text("To keep the Bluetooth HID service running reliably, allow the app to be excluded from battery optimizations." + (if (restricted) " Your device also restricts background activity; consider allowing background activity for best reliability." else "")) },
-            confirmButton = {
-                Button(onClick = {
-                    showBatteryDialog = false
-                    context.getSharedPreferences("perm", Context.MODE_PRIVATE).edit().putBoolean("battery_asked", true).apply()
-                    if (Build.VERSION.SDK_INT >= 23) {
-                        try {
-                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + context.packageName))
-                            context.startActivity(intent)
-                        } catch (_: Exception) {
-                            try {
-                                context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-                            } catch (_: Exception) {}
-                        }
-                    }
-                }) { Text("Allow") }
-            },
-            dismissButton = { Button(onClick = {
-                showBatteryDialog = false
-                context.getSharedPreferences("perm", Context.MODE_PRIVATE).edit().putBoolean("battery_asked", true).apply()
-            }) { Text("Later") } }
-        )
-    }
-
     Scaffold(
         topBar = {
             Column {
