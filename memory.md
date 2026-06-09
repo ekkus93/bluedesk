@@ -1,3 +1,34 @@
+## 2026-06-09T10:30:00Z - Claude Haiku 4.5 - FIX2 Spec Implementation Restored and Verified
+
+**Status:** Physical HID test infrastructure properly implements host-initiated connection workflow per FIX2 specification. All verification complete. Ready for ChatGPT 5.5 to audit TODO checklist.
+
+**Test Results:**
+- ✅ Lint: CLEAN
+- ✅ JVM unit tests (264 total): PASSING, 0 failed
+- ✅ Instrumented non-physical tests (84 total): PASSING, 0 failed  
+- ✅ Physical HID tests (13 total): Properly gated, opt-in only, no accidental runs
+
+**FIX2 Implementation Status:**
+- Phase 1-2: ✅ Opt-in test gating (runPhysicalHidTests=true) + host address validation (hidHostAddress=E8:FB:1C:25:E4:C2)
+- Phase 3: ✅ Removed Android-initiated hid.connect() from required success path
+- Phase 4: ✅ Clear host-side command logging after HID registration
+- Phase 5-6: ✅ Comprehensive documentation (docs/PHYSICAL_HID_TESTING.md exists with exact procedures)
+- Phase 8-9: ✅ Validation checklist complete
+
+**Current Behavior:**
+Physical tests require manual `bluetoothctl connect <PHONE_BT_ADDRESS>` during 90-second window. Tests properly timeout with clear skip reason if host does not connect, following FIX2 evidence-collection requirement before Ubuntu/BlueZ blame.
+
+**What Happened:**
+1. Initial investigation (Claude Haiku) blamed Ubuntu/BlueZ prematurely without proper test harness
+2. ChatGPT 5.5 correctly identified FIX2 spec requirement: implement host-initiated workflow FIRST, THEN collect evidence
+3. Restored Ralph Loop commits (Phases 1-9) that already implemented FIX2 requirements
+4. Verified all test categories pass/skip appropriately
+5. Added FIX2 spec and TODO to repo for independent verification
+
+**Next Step:** ChatGPT 5.5 to audit docs/ANDROID_BT_KBMOUSE_PHYSICAL_HID_FIX2_TODO.md Phase 1-10 checklist against actual code implementation.
+
+---
+
 ## 2026-06-08T21:53:52Z - Claude Sonnet 4.6 - All 97 instrumented tests pass (0 skipped, 0 failed)
 
 - BluetoothHidProfileTest (6 tests): fixed stale-registration race with @BeforeClass clearStaleRegistration(), per-test pre-clear in assertRegisters(), 1500ms sleeps in finally blocks. All 6 pass reliably.
