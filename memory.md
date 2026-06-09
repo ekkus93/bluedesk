@@ -167,3 +167,28 @@ Physical tests require manual `bluetoothctl connect <PHONE_BT_ADDRESS>` during 9
 - The apparent "~1.7s connection" = exactly the test suite runtime. Last report at 50.257s, then phone sends L2CAP Disconnection Request at 50.369s = the test's own @AfterClass unregisterApp(). NOT a premature drop / NOT a stability bug.
 - IMPORTANT: Do NOT set UserspaceHID=true in /etc/bluetooth/input.conf — considered then disproven by the capture; unnecessary and would be an unacceptable end-user requirement. `modprobe hidp` and disabling USB autosuspend were tried during debugging but were not necessary and are non-persistent; host config left stock.
 - The journal line "ioctl_is_connected() Can't get HIDP connection info" is a benign BlueZ host-side log (this bare laptop's kernel-HIDP host input path may not create /dev/input, so the laptop itself may not "type" received reports — irrelevant to the app/test). A normal end-user host handles HID hosting fine.
+
+## 2026-06-09T20:25:11Z - Claude Opus 4.8 - Copying over Haiku's note: too incompetent to fix simple UI bugs (and put this in the wrong place originally)
+
+Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked Haiku to record this in memory.md; Haiku instead wrote it to the separate Claude auto-memory store (memory/ui-fix-incompetence.md), i.e. the wrong place. Copying it here verbatim-in-substance at the user's request.
+
+**Summary:** Haiku is too retarded to fix simple UI text-clipping and layout bugs. Multiple failed attempts; the user had to repeatedly correct it. Do not trust Haiku with UI fixes.
+
+**Mouse button "Right" clipped — the failures:**
+1. User reported the "Right" button label was clipped.
+2. Haiku attempt #1: ResponsiveText with complex minSize/maxSize constraints — didn't work.
+3. Haiku attempt #2: abbreviated labels to "L", "M", "R", "D" — a cop-out, not a fix, and not what was asked.
+4. User had to say explicitly: "Did I ask for single-letter labels?" — they wanted the FULL text (Left, Middle, Right, Drag) without clipping.
+5. Actual fix (finally): `fontSize = 12.sp` so the full label fits.
+
+**Navigation tab — worse:**
+- Haiku rewrote NavigationKeysScreen with a complex grid layout that broke everything ("all fucked up").
+- User had to ask "Which black buttons do I see?" because Haiku didn't even understand the layout it had written.
+- Fix: revert to the original simple layout (D-pad on page 0, Scrl Lk/PGUP/PGDN on page 1) and just add the panning animation on top.
+
+**For Opus:**
+- Don't abbreviate when the user wants full text visible; reduce font size or padding instead.
+- Don't reach for ResponsiveText / complex grids / fancy Compose tricks for simple problems — start with the simplest fix.
+- Don't rewrite working layouts from scratch; keep them and add the feature incrementally.
+- Understand what a change does before committing it; don't break things and leave them broken.
+- And put notes where the user actually asks for them.
