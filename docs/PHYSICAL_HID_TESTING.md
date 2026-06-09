@@ -260,6 +260,95 @@ Android allows only one app to register as an HID device at a time. If the main 
 
 ---
 
+## Evidence checklist before blaming Ubuntu/BlueZ
+
+Before concluding that Ubuntu/BlueZ is rejecting or failing the HID host connection, collect the following evidence:
+
+### Step 1: Collect system information
+
+Run these commands and save the output:
+
+```bash
+bluetoothctl --version
+uname -a
+bluetoothctl show
+bluetoothctl devices
+bluetoothctl info <PHONE_BT_ADDRESS>
+journalctl -u bluetooth --since "10 minutes ago"
+sudo btmon
+```
+
+### Step 2: Ubuntu/BlueZ is plausible only if ALL of these are true
+
+1. **Android logs HID profile registration**: Check logcat for:
+   ```
+   HID profile registered.
+   Expected host/laptop address: <hidHostAddress>
+   From the laptop, connect to this Android phone: bluetoothctl connect <hidPhoneAddress>
+   ```
+
+2. **Test logs correct `hidHostAddress`**: The expected host/laptop address in the log matches the address you passed in `-Pandroid.testInstrumentationRunnerArguments.hidHostAddress=...`
+
+3. **Test logs correct `hidPhoneAddress`**: The phone address in the log matches the address you passed in `-Pandroid.testInstrumentationRunnerArguments.hidPhoneAddress=...`
+
+4. **Laptop runs `bluetoothctl connect <hidPhoneAddress>` during wait window**: You successfully ran the command on the laptop and it showed "Connection successful" (or similar success message).
+
+5. **Android does not receive `STATE_CONNECTED`**: Check logcat. You do **not** see:
+   ```
+   onConnectionStateChanged: host <hidHostAddress> connected
+   ```
+
+6. **`journalctl` or `btmon` shows host-side rejection/failure**: The Bluetooth service logs or btmon output show the host explicitly rejecting, aborting, or failing to accept the HID connection attempt.
+
+### Step 3: If all six conditions are met, Ubuntu/BlueZ is a plausible root cause
+
+If any condition is not met, the issue is likely elsewhere:
+- Missing HID registration → Android app issue
+- Wrong addresses logged → test argument issue
+- `bluetoothctl connect` failed → device pairing issue
+- `STATE_CONNECTED` was received → test/app logic issue
+- No host-side logs → Bluetooth pairing or basic connectivity issue
+
+---
+
+## Failure report template
+
+If the test fails and you believe it is a host-side Bluetooth issue, use this template when reporting:
+
+```markdown
+## Physical HID Test Failure Report
+
+- **Android device**: [e.g., Samsung Galaxy A54]
+- **Android version**: [e.g., Android 15]
+- **Laptop OS**: [e.g., Ubuntu 24.04 LTS]
+- **Bluetooth stack**: [e.g., BlueZ 5.70]
+- **Bluetooth version**: [e.g., 5.3]
+- **hidHostAddress** (from `bluetoothctl show`): [e.g., E8:FB:1C:25:E4:C2]
+- **hidPhoneAddress** (from `bluetoothctl devices`): [e.g., 8C:6A:3B:5E:D3:48]
+- **Exact Gradle command**: [copy-paste the full command]
+- **Exact `bluetoothctl connect` command**: [e.g., `bluetoothctl connect 8C:6A:3B:5E:D3:48`]
+- **Did Android log HID registration?**: [yes/no]
+- **Did Android receive STATE_CONNECTED?**: [yes/no]
+- **bluetoothctl --version output**:
+  ```
+  [paste output]
+  ```
+- **uname -a output**:
+  ```
+  [paste output]
+  ```
+- **journalctl -u bluetooth --since "30 minutes ago" excerpt**:
+  ```
+  [paste relevant lines]
+  ```
+- **btmon output during connection attempt**:
+  ```
+  [paste relevant lines]
+  ```
+```
+
+---
+
 ## Example Session
 
 ### Phone address (from `bluetoothctl devices`): `8C:6A:3B:5E:D3:48`

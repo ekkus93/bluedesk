@@ -305,22 +305,22 @@ sudo btmon
 
 Acceptance criteria:
 
-- [ ] Docs tell users exactly what to collect before blaming host OS.
+- [x] Docs tell users exactly what to collect before blaming host OS.
 
 ### Task 5.2 — Define when Ubuntu/BlueZ blame is plausible
 
 Document that Ubuntu/BlueZ is plausible only if:
 
-- [ ] Android logs HID profile registration.
-- [ ] Test logs correct `hidHostAddress`.
-- [ ] Test logs correct `hidPhoneAddress`.
-- [ ] Laptop runs `bluetoothctl connect <hidPhoneAddress>` during wait window.
-- [ ] Android does not receive `STATE_CONNECTED`.
-- [ ] `journalctl` or `btmon` shows host-side rejection/failure.
+- [x] Android logs HID profile registration.
+- [x] Test logs correct `hidHostAddress`.
+- [x] Test logs correct `hidPhoneAddress`.
+- [x] Laptop runs `bluetoothctl connect <hidPhoneAddress>` during wait window.
+- [x] Android does not receive `STATE_CONNECTED`.
+- [x] `journalctl` or `btmon` shows host-side rejection/failure.
 
 Acceptance criteria:
 
-- [ ] Diagnosis is evidence-based, not assumed.
+- [x] Diagnosis is evidence-based, not assumed.
 
 ### Task 5.3 — Add failure report template
 
@@ -345,7 +345,7 @@ Add a short template:
 
 Acceptance criteria:
 
-- [ ] Future failure reports contain useful data.
+- [x] Future failure reports contain useful data.
 
 ---
 
