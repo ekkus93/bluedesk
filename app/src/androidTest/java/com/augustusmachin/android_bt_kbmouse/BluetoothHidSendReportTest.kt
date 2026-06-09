@@ -168,8 +168,9 @@ class BluetoothHidSendReportTest {
                     regLatch.countDown()
                 }
                 override fun onConnectionStateChanged(device: BluetoothDevice, state: Int) {
+                    val address = device.address.uppercase(Locale.US)
+                    android.util.Log.w("BtHidTest", "onConnectionStateChanged state=$state dev=$address")
                     if (state == BluetoothProfile.STATE_CONNECTED) {
-                        val address = device.address.uppercase(Locale.US)
                         if (address == expectedHostAddress) {
                             connectedDevice = device
                             connectionLatch.countDown()
@@ -206,9 +207,14 @@ class BluetoothHidSendReportTest {
 
             // Log instructions for host-initiated connection
             DebugLog.log("BluetoothHidSendReportTest", "HID profile registered.\n\nExpected host/laptop address:\n$expectedHostAddress\n\nFrom the laptop, connect to this Android phone:\nbluetoothctl connect $expectedPhoneAddress")
+            android.util.Log.w("BtHidTest", "READY_FOR_HOST_CONNECT")
 
+            // Host-initiated only: the phone exposes the HID app and waits for the
+            // laptop/host to open the HID L2CAP channels (bluetoothctl connect
+            // $expectedPhoneAddress). The phone does NOT page the host itself — on
+            // this hardware device-initiated paging fails with HCI_ERR_PAGE_TIMEOUT.
             if (!connectionLatch.await(HOST_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                notReadyReason = "Host did not initiate HID connection within $HOST_CONNECT_TIMEOUT_SECONDS seconds. After Android logs HID registration, run bluetoothctl connect $expectedPhoneAddress from the laptop."
+                notReadyReason = "Host did not initiate HID connection within $HOST_CONNECT_TIMEOUT_SECONDS seconds. After Android logs READY_FOR_HOST_CONNECT, run bluetoothctl connect $expectedPhoneAddress from the laptop."
                 return
             }
 
