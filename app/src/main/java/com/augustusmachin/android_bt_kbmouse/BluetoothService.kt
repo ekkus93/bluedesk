@@ -186,8 +186,8 @@ class BluetoothService : Service(), IBluetoothService {
                                             lastTargetDevice = dev
                                             reconnectAttempt = 0
                                             DebugLog.log("BluetoothService", "auto reconnect now to $addr")
-                                            eventListener?.onInfo("Immediate auto-connect to $addr")
-                                            eventListener?.onInfo("hid.connect($addr) immediate")
+                                            eventListener?.onInfo("Initiating connection request to $addr")
+                                            eventListener?.onInfo("Some Linux/BlueZ hosts still require the host to initiate the HID connection with bluetoothctl connect <this phone's Bluetooth address>.")
                                             // Ensure BLUETOOTH_CONNECT is available before attempting connect
                                             val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
                                             if (hasBtConnect) {
@@ -495,9 +495,8 @@ class BluetoothService : Service(), IBluetoothService {
         val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
         if (hasBtConnect) {
             try {
-                DebugLog.log("BluetoothService", "hid.connect immediate manual ${device.address}")
-                eventListener?.onInfo("Requesting HID connection to ${device.address}")
-                eventListener?.onInfo("If the host does not connect automatically, initiate connection from host Bluetooth menu or run: bluetoothctl connect ${device.address}")
+                DebugLog.log("BluetoothService", "hid.connect manual ${device.address}")
+                eventListener?.onInfo("Requested HID connection. Some Linux/BlueZ hosts must initiate the HID connection from the host side. On Linux, run bluetoothctl connect <this phone's Bluetooth address> from the laptop.")
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                     hid?.connect(device)
                 } else {
