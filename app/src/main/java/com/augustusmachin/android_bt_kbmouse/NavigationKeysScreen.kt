@@ -100,7 +100,7 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
         }
 
         // Paged content area with left/right arrows (smooth scroll animation)
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
+        BoxWithConstraints(Modifier.fillMaxWidth().height(200.dp)) {
             val arrowWidthDp = 36f
             val gapDp = 6f
             val contentWidthDp = maxWidth.value - arrowWidthDp * 2
@@ -112,9 +112,9 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
                 scrollState.animateScrollTo(targetPx)
             }
 
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
 
-                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.width(arrowWidthDp.dp).fillMaxHeight(), contentAlignment = Alignment.Center) {
                     if (page > 0) {
                         IconButton(onClick = { page-- }) {
                             Text("❮", style = MaterialTheme.typography.titleLarge)
@@ -126,13 +126,15 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
                 Row(
                     modifier = Modifier
                         .weight(1f)
+                        .fillMaxHeight()
                         .horizontalScroll(scrollState, enabled = false),
-                    horizontalArrangement = Arrangement.spacedBy(gapDp.dp)
+                    horizontalArrangement = Arrangement.spacedBy(gapDp.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Page 0: D-pad
                     Column(
-                        modifier = Modifier.width(pageWidthDp.dp),
-                        verticalArrangement = Arrangement.spacedBy(gapDp.dp)
+                        modifier = Modifier.width(pageWidthDp.dp).fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(gapDp.dp, Alignment.CenterVertically)
                     ) {
                         // Row 1: [empty] [↑] [empty]
                         Row(horizontalArrangement = Arrangement.spacedBy(gapDp.dp)) {
@@ -175,44 +177,39 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
                     }
 
                     // Page 1: Scrl Lk, PgUp, PgDn
-                    Column(
-                        modifier = Modifier.width(pageWidthDp.dp),
-                        verticalArrangement = Arrangement.Center
+                    Row(
+                        modifier = Modifier.width(pageWidthDp.dp).fillMaxHeight(),
+                        horizontalArrangement = Arrangement.spacedBy(gapDp.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxHeight(),
-                            horizontalArrangement = Arrangement.spacedBy(gapDp.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Button(
+                            onClick = ::dispatchScrollLock,
+                            modifier = Modifier.width(cellWidthDp.dp),
+                            colors = if (scrollLockActive) activeColors else inactiveColors
                         ) {
-                            Button(
-                                onClick = ::dispatchScrollLock,
-                                modifier = Modifier.width(cellWidthDp.dp),
-                                colors = if (scrollLockActive) activeColors else inactiveColors
-                            ) {
-                                ResponsiveText(
-                                    text = "Scrl Lk",
-                                    minSize = 8.sp,
-                                    maxSize = keyFontSize,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Button(
-                                onClick = { dispatchKey("PGUP") },
-                                modifier = Modifier.width(cellWidthDp.dp)
-                            ) {
-                                ResponsiveText("PGUP", minSize = keyFontSize, maxSize = keyFontSize)
-                            }
-                            Button(
-                                onClick = { dispatchKey("PGDN") },
-                                modifier = Modifier.width(cellWidthDp.dp)
-                            ) {
-                                ResponsiveText("PGDN", minSize = keyFontSize, maxSize = keyFontSize)
-                            }
+                            ResponsiveText(
+                                text = "Scrl Lk",
+                                minSize = 8.sp,
+                                maxSize = keyFontSize,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Button(
+                            onClick = { dispatchKey("PGUP") },
+                            modifier = Modifier.width(cellWidthDp.dp)
+                        ) {
+                            ResponsiveText("PGUP", minSize = keyFontSize, maxSize = keyFontSize)
+                        }
+                        Button(
+                            onClick = { dispatchKey("PGDN") },
+                            modifier = Modifier.width(cellWidthDp.dp)
+                        ) {
+                            ResponsiveText("PGDN", minSize = keyFontSize, maxSize = keyFontSize)
                         }
                     }
                 }
 
-                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.width(arrowWidthDp.dp).fillMaxHeight(), contentAlignment = Alignment.Center) {
                     if (page < maxPage) {
                         IconButton(onClick = { page++ }) {
                             Text("❯", style = MaterialTheme.typography.titleLarge)
