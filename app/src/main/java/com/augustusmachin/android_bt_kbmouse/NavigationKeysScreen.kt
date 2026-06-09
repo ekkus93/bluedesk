@@ -1,10 +1,13 @@
 package com.augustusmachin.android_bt_kbmouse
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,6 +34,8 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
 
     var page by remember { mutableStateOf(0) }
     val maxPage = 1
+    val scrollState = rememberScrollState()
+    val density = LocalDensity.current
 
     fun dispatchKey(label: String) {
         val code = labelToHid(label) ?: return
@@ -94,12 +99,18 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
             }
         }
 
-        // Paged content area with left/right arrows
+        // Paged content area with left/right arrows (smooth scroll animation)
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val arrowWidthDp = 36f
             val gapDp = 6f
             val contentWidthDp = maxWidth.value - arrowWidthDp * 2
             val cellWidthDp = (contentWidthDp - gapDp * 2) / 3
+            val pageWidthDp = contentWidthDp
+
+            LaunchedEffect(page, pageWidthDp) {
+                val targetPx = with(density) { (pageWidthDp * page).dp.roundToPx() }
+                scrollState.animateScrollTo(targetPx)
+            }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
 
@@ -111,54 +122,67 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
                     }
                 }
 
-                Box(Modifier.weight(1f)) {
-                    if (page == 0) {
-                        // D-pad cross layout
-                        Column(verticalArrangement = Arrangement.spacedBy(gapDp.dp)) {
-                            // Row 1: [empty] [↑] [empty]
-                            Row(horizontalArrangement = Arrangement.spacedBy(gapDp.dp)) {
-                                Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
-                                Button(
-                                    onClick = { dispatchKey("↑") },
-                                    modifier = Modifier.width(cellWidthDp.dp)
-                                ) {
-                                    ResponsiveText("↑", minSize = keyFontSize, maxSize = keyFontSize)
-                                }
-                                Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
+                // Scrollable content area
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .horizontalScroll(scrollState, enabled = false),
+                    horizontalArrangement = Arrangement.spacedBy(gapDp.dp)
+                ) {
+                    // Page 0: D-pad
+                    Column(
+                        modifier = Modifier.width(pageWidthDp.dp),
+                        verticalArrangement = Arrangement.spacedBy(gapDp.dp)
+                    ) {
+                        // Row 1: [empty] [↑] [empty]
+                        Row(horizontalArrangement = Arrangement.spacedBy(gapDp.dp)) {
+                            Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
+                            Button(
+                                onClick = { dispatchKey("↑") },
+                                modifier = Modifier.width(cellWidthDp.dp)
+                            ) {
+                                ResponsiveText("↑", minSize = keyFontSize, maxSize = keyFontSize)
                             }
-                            // Row 2: [←] [empty] [→]
-                            Row(horizontalArrangement = Arrangement.spacedBy(gapDp.dp)) {
-                                Button(
-                                    onClick = { dispatchKey("←") },
-                                    modifier = Modifier.width(cellWidthDp.dp)
-                                ) {
-                                    ResponsiveText("←", minSize = keyFontSize, maxSize = keyFontSize)
-                                }
-                                Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
-                                Button(
-                                    onClick = { dispatchKey("→") },
-                                    modifier = Modifier.width(cellWidthDp.dp)
-                                ) {
-                                    ResponsiveText("→", minSize = keyFontSize, maxSize = keyFontSize)
-                                }
+                            Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
+                        }
+                        // Row 2: [←] [empty] [→]
+                        Row(horizontalArrangement = Arrangement.spacedBy(gapDp.dp)) {
+                            Button(
+                                onClick = { dispatchKey("←") },
+                                modifier = Modifier.width(cellWidthDp.dp)
+                            ) {
+                                ResponsiveText("←", minSize = keyFontSize, maxSize = keyFontSize)
                             }
-                            // Row 3: [empty] [↓] [empty]
-                            Row(horizontalArrangement = Arrangement.spacedBy(gapDp.dp)) {
-                                Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
-                                Button(
-                                    onClick = { dispatchKey("↓") },
-                                    modifier = Modifier.width(cellWidthDp.dp)
-                                ) {
-                                    ResponsiveText("↓", minSize = keyFontSize, maxSize = keyFontSize)
-                                }
-                                Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
+                            Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
+                            Button(
+                                onClick = { dispatchKey("→") },
+                                modifier = Modifier.width(cellWidthDp.dp)
+                            ) {
+                                ResponsiveText("→", minSize = keyFontSize, maxSize = keyFontSize)
                             }
                         }
-                    } else {
-                        // Page 1: Scrl Lk, PgUp, PgDn in a row
+                        // Row 3: [empty] [↓] [empty]
+                        Row(horizontalArrangement = Arrangement.spacedBy(gapDp.dp)) {
+                            Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
+                            Button(
+                                onClick = { dispatchKey("↓") },
+                                modifier = Modifier.width(cellWidthDp.dp)
+                            ) {
+                                ResponsiveText("↓", minSize = keyFontSize, maxSize = keyFontSize)
+                            }
+                            Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
+                        }
+                    }
+
+                    // Page 1: Scrl Lk, PgUp, PgDn
+                    Column(
+                        modifier = Modifier.width(pageWidthDp.dp),
+                        verticalArrangement = Arrangement.Center
+                    ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(gapDp.dp)
+                            modifier = Modifier.fillMaxHeight(),
+                            horizontalArrangement = Arrangement.spacedBy(gapDp.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Button(
                                 onClick = ::dispatchScrollLock,
