@@ -159,3 +159,11 @@ Physical tests require manual `bluetoothctl connect <PHONE_BT_ADDRESS>` during 9
 - `memory.md` created (empty) this session; this is its first entry.
 - Open items: Windows 11 pairing "Driver error", UI polish (Task 8), nav guard unit tests, cross-device testing (Task 10).
 - Test device: Samsung Galaxy A54 (SM-A546E), Android 15. Host: Windows 11 "MIZUMI".
+
+## 2026-06-09T19:07:24Z - Claude Opus 4.8 - Physical HID tests GREEN; btmon air capture proves end-to-end report delivery; NO BlueZ config change needed
+- All 13 BluetoothHidSendReportTest cases pass reproducibly (tests=13 failures=0 skipped=0, 3+ runs) on SM-A546E with the laptop "arisu" (E8:FB:1C:25:E4:C2 / BlueZ 5.64, kernel 6.8.0-124) as host.
+- Root cause of prior skips: stale laptop bond (re-paired cleanly, persists across reboot) + device-initiated paging fails here with HCI_ERR_PAGE_TIMEOUT. Fix = host-initiated connect: laptop runs `bluetoothctl connect 8C:6A:3B:5E:D3:48` during the test's wait window. Commit 7a841f4 makes the test host-initiated only and adds a READY_FOR_HOST_CONNECT logcat marker (tag BtHidTest) so a host-side helper can time the connect.
+- btmon -w HCI capture during a green run is definitive: encrypted (AES-CCM) HID link, both PSM 17 (control) + 19 (interrupt) channels up, and 59 real HID reports delivered phone->laptop. Decoded bytes match the tests: `a1 01 00 00 04 00..`='a' down, `a1 02 01 00 00`=mouse left-click, `a1 02 00 0f 0f`=mouse move 15,15.
+- The apparent "~1.7s connection" = exactly the test suite runtime. Last report at 50.257s, then phone sends L2CAP Disconnection Request at 50.369s = the test's own @AfterClass unregisterApp(). NOT a premature drop / NOT a stability bug.
+- IMPORTANT: Do NOT set UserspaceHID=true in /etc/bluetooth/input.conf — considered then disproven by the capture; unnecessary and would be an unacceptable end-user requirement. `modprobe hidp` and disabling USB autosuspend were tried during debugging but were not necessary and are non-persistent; host config left stock.
+- The journal line "ioctl_is_connected() Can't get HIDP connection info" is a benign BlueZ host-side log (this bare laptop's kernel-HIDP host input path may not create /dev/input, so the laptop itself may not "type" received reports — irrelevant to the app/test). A normal end-user host handles HID hosting fine.
