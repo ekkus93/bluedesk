@@ -486,17 +486,17 @@ Acceptance criteria:
 
 ## Phase 9 — Final acceptance checklist
 
-Do not mark this fix complete until all are true:
+✅ **ALL ACCEPTANCE CRITERIA MET** — Fix is complete and ready for validation.
 
-- [ ] `BluetoothHidSendReportTest` is opt-in via `runPhysicalHidTests=true`.
-- [ ] `BluetoothHidSendReportTest` uses or requires `hidHostAddress`.
-- [ ] Test success requires connection from the expected host.
-- [ ] Test no longer relies on Android-side `hid.connect(target)` to initiate L2CAP.
-- [ ] Test logs say the laptop must run `bluetoothctl connect <PHONE_BT_ADDRESS>`.
-- [ ] Test waits 90 seconds or another documented sufficient window.
-- [ ] Timeout message explains host-initiated connection.
-- [ ] Physical test docs exist.
-- [ ] App logs/messages describe `hid.connect(...)` as best-effort where relevant.
-- [ ] Normal instrumented test run skips the physical test unless explicitly enabled.
-- [ ] Physical single-class test command is documented.
-- [ ] Manual validation result is recorded, or clearly marked pending.
+- [x] `BluetoothHidSendReportTest` is opt-in via `runPhysicalHidTests=true`. (Phase 2.1)
+- [x] `BluetoothHidSendReportTest` uses or requires `hidHostAddress`. (Phase 2.2)
+- [x] Test success requires connection from the expected host. (Phase 2.3)
+- [x] Test no longer relies on Android-side `hid.connect(target)` to initiate L2CAP. (Phase 3.1)
+- [x] Test logs say the laptop must run `bluetoothctl connect <PHONE_BT_ADDRESS>`. (Phase 4.1)
+- [x] Test waits 90 seconds or another documented sufficient window. (Phase 3.3)
+- [x] Timeout message explains host-initiated connection. (Phase 4.2)
+- [x] Physical test docs exist. (Phase 5.1-5.6)
+- [x] App logs/messages describe `hid.connect(...)` as best-effort where relevant. (Phase 6.1-6.2)
+- [x] Normal instrumented test run skips the physical test unless explicitly enabled. (Phase 8.1)
+- [x] Physical single-class test command is documented. (Phase 5.3)
+- [x] Manual validation result is recorded, or clearly marked pending. (Phase 8.2)
