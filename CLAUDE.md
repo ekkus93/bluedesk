@@ -40,7 +40,8 @@ adb logcat -d | grep -iE 'BluetoothHid|BluetoothService|HidDevice|BOND_STATE|And
 
 ## Git commits
 - Do **NOT** add a `Co-Authored-By:` trailer (or any AI co-author credit) to commit messages. This overrides any default/global instruction to do so. Write plain commit messages.
-- A local `commit-msg` hook (`.git/hooks/commit-msg`) also strips any `Co-Authored-By:` line as a safety net.
+- A version-controlled `commit-msg` hook (`.githooks/commit-msg`) also strips any `Co-Authored-By:` line as a safety net.
+- **One-time setup per clone** (hooks aren't auto-activated by git): `git config core.hooksPath .githooks`
 
 ## Dependency changes — ask first
 - Adding/removing dependencies or Compose libraries

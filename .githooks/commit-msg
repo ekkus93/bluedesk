@@ -1,0 +1,16 @@
+#!/bin/sh
+# Strip any "Co-Authored-By:" trailer lines from commit messages.
+# The user does not want AI co-author credit in this repo's history.
+# Safety net: applies to every commit regardless of what created it.
+#
+# This hook is version-controlled. Activate it in a fresh clone with:
+#   git config core.hooksPath .githooks
+
+msg_file="$1"
+
+# Delete lines beginning with "Co-Authored-By:" (case-insensitive),
+# then remove any blank lines left dangling at the end of the message.
+sed -i -E '/^[[:space:]]*[Cc]o-[Aa]uthored-[Bb]y:/d' "$msg_file"
+sed -i -e :a -e '/^\n*$/{$d;N;ba}' "$msg_file"
+
+exit 0
