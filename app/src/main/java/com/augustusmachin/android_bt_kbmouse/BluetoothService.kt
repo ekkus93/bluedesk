@@ -449,7 +449,8 @@ class BluetoothService : Service(), IBluetoothService {
         val r = Runnable {
             try {
                 DebugLog.log("BluetoothService", "auto reconnect attempt #${attempt} to ${target.address}")
-                eventListener?.onInfo("hid.connect(${target.address}) attempt #${attempt}")
+                eventListener?.onInfo("Auto-reconnect attempt #${attempt} to ${target.address}")
+                eventListener?.onInfo("Note: Some hosts (especially Linux/BlueZ) must initiate the HID connection from the host side.")
         // Ensure BLUETOOTH_CONNECT is available before attempting connect
         val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
         if (hasBtConnect) {
@@ -495,7 +496,8 @@ class BluetoothService : Service(), IBluetoothService {
         if (hasBtConnect) {
             try {
                 DebugLog.log("BluetoothService", "hid.connect immediate manual ${device.address}")
-                eventListener?.onInfo("hid.connect(${device.address})")
+                eventListener?.onInfo("Requesting HID connection to ${device.address}")
+                eventListener?.onInfo("If the host does not connect automatically, initiate connection from host Bluetooth menu or run: bluetoothctl connect ${device.address}")
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                     hid?.connect(device)
                 } else {

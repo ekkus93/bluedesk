@@ -340,37 +340,37 @@ Acceptance criteria:
 
 ### Task 6.1 — Update `BluetoothService.connectDevice(...)` logs/messages
 
-- [ ] Open `BluetoothService.kt`.
-- [ ] Locate `connectDevice(...)`.
-- [ ] If it calls `hid?.connect(device)`, keep only as best-effort.
-- [ ] Add log/message:
+- [x] Open `BluetoothService.kt`.
+- [x] Locate `connectDevice(...)`.
+- [x] If it calls `hid?.connect(device)`, keep only as best-effort.
+- [x] Add log/message:
   ```text
   Requested HID connection. If the host does not connect automatically, initiate connection from the host Bluetooth menu or run bluetoothctl connect <phone-address> on Linux.
   ```
 
 Acceptance criteria:
 
-- [ ] Logs do not imply Android can always initiate HID connection.
+- [x] Logs do not imply Android can always initiate HID connection.
 
 ### Task 6.2 — Update auto-reconnect logs/messages
 
-- [ ] Locate auto-reconnect path.
-- [ ] If it calls `hid?.connect(target)`, mark as best-effort in comments/logs.
-- [ ] Add Linux/BlueZ host-initiation hint.
+- [x] Locate auto-reconnect path.
+- [x] If it calls `hid?.connect(target)`, mark as best-effort in comments/logs.
+- [x] Add Linux/BlueZ host-initiation hint.
 
 Acceptance criteria:
 
-- [ ] Auto-reconnect messaging matches actual host behavior.
+- [x] Auto-reconnect messaging matches actual host behavior.
 
 ### Task 6.3 — Optional UI hint
 
-- [ ] If there is a low-risk place in Pairing/Connection UI, add a concise host-side hint.
-- [ ] Do not clutter the UI.
-- [ ] It is acceptable to keep this in logs/docs only if UI changes would be intrusive.
+- [x] If there is a low-risk place in Pairing/Connection UI, add a concise host-side hint.
+- [x] Do not clutter the UI.
+- [x] It is acceptable to keep this in logs/docs only if UI changes would be intrusive.
 
 Acceptance criteria:
 
-- [ ] User-facing diagnostics are less misleading.
+- [x] User-facing diagnostics are less misleading. (Deferred to logs/docs; UI clutter not warranted at this stage.)
 
 ---
 
