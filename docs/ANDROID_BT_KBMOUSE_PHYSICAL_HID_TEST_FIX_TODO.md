@@ -427,12 +427,13 @@ Run:
 
 Expected:
 
-- [ ] Physical HID send-report test is skipped, not failed.
-- [ ] Non-hardware tests pass or unrelated failures are documented.
+- [x] Physical HID send-report test is skipped, not failed.
+- [x] Non-hardware tests pass or unrelated failures are documented.
 
 Acceptance criteria:
 
-- [ ] Normal test suite is not blocked by absent physical laptop.
+- [x] Normal test suite is not blocked by absent physical laptop.
+  - Result: 13 physical tests SKIPPED, 0 failed, BUILD SUCCESSFUL
 
 ### Task 8.2 — Run physical HID send-report test as a single class
 
@@ -466,6 +467,8 @@ Acceptance criteria:
 
 - [ ] Physical test follows the documented host-initiated workflow.
 
+Status: **Pending manual validation** (requires laptop with bluetoothctl during test window)
+
 ### Task 8.3 — Run relevant JVM tests
 
 Run:
@@ -476,7 +479,8 @@ Run:
 
 Acceptance criteria:
 
-- [ ] No JVM regressions from the test/config/doc changes.
+- [x] No JVM regressions from the test/config/doc changes.
+  - Result: BUILD SUCCESSFUL, 0 failures
 
 ---
 
