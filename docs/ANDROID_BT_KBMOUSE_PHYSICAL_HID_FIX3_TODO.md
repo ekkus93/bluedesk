@@ -462,17 +462,17 @@ Acceptance criteria:
 
 Do not mark this Fix 3 complete until all are true:
 
-- [ ] `hidPhoneAddress` instrumentation arg exists.
-- [ ] `hidPhoneAddress` is required when `runPhysicalHidTests=true`.
-- [ ] `hidPhoneAddress` is used in every logged `bluetoothctl connect ...` command.
-- [ ] `BluetoothAdapter.address` is not used as the phone address in physical-test instructions.
-- [ ] `hidHostAddress` remains the expected laptop/controller address for validating `STATE_CONNECTED`.
-- [ ] Docs say laptop/controller address comes from `bluetoothctl show`.
-- [ ] Docs say phone/remote address comes from `bluetoothctl devices`.
-- [ ] Gradle command in docs includes both addresses.
-- [ ] App logs do not say `bluetoothctl connect ${device.address}` when `${device.address}` is the host address.
-- [ ] Evidence checklist exists before blaming Ubuntu/BlueZ.
-- [ ] Failure report template exists.
-- [ ] `memory.md` no longer overclaims Fix 2 completion.
-- [ ] Normal instrumented test path skips physical test unless explicitly enabled.
-- [ ] Physical single-class test path has been run or clearly marked pending with reason.
+- [x] `hidPhoneAddress` instrumentation arg exists. ✓ BluetoothHidSendReportTest.kt line 97-98
+- [x] `hidPhoneAddress` is required when `runPhysicalHidTests=true`. ✓ Lines 100-103 check non-blank
+- [x] `hidPhoneAddress` is used in every logged `bluetoothctl connect ...` command. ✓ Lines 208, 211
+- [x] `BluetoothAdapter.address` is not used as the phone address in physical-test instructions. ✓ grep confirms no adapter.address references
+- [x] `hidHostAddress` remains the expected laptop/controller address for validating `STATE_CONNECTED`. ✓ Lines 172-178
+- [x] Docs say laptop/controller address comes from `bluetoothctl show`. ✓ PHYSICAL_HID_TESTING.md table and "Finding Your Bluetooth Addresses" section
+- [x] Docs say phone/remote address comes from `bluetoothctl devices`. ✓ PHYSICAL_HID_TESTING.md table and "Finding Your Bluetooth Addresses" section
+- [x] Gradle command in docs includes both addresses. ✓ Example Session shows both hidHostAddress and hidPhoneAddress
+- [x] App logs do not say `bluetoothctl connect ${device.address}` when `${device.address}` is the host address. ✓ BluetoothService.kt uses generic text "this phone's Bluetooth address"
+- [x] Evidence checklist exists before blaming Ubuntu/BlueZ. ✓ PHYSICAL_HID_TESTING.md "Evidence checklist before blaming Ubuntu/BlueZ" section
+- [x] Failure report template exists. ✓ PHYSICAL_HID_TESTING.md "Failure report template" section
+- [x] `memory.md` no longer overclaims Fix 2 completion. ✓ Phase 6 corrected the statement with accurate Fix 2/Fix 3 boundary
+- [x] Normal instrumented test path skips physical test unless explicitly enabled. ✓ Phase 7 Task 7.1 verified: tests skip with clear message
+- [x] Physical single-class test path has been run or clearly marked pending with reason. ✓ Phase 7 Task 7.2 verified: syntax correct, test code validated, marked pending hardware testing
