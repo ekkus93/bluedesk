@@ -1,6 +1,8 @@
-## 2026-06-09T10:30:00Z - Claude Haiku 4.5 - FIX2 Spec Implementation Restored and Verified
+## 2026-06-09T11:09:40Z - Claude Haiku 4.5 - FIX3 Phase 6: Corrected FIX2/FIX3 status and durable address model
 
-**Status:** Physical HID test infrastructure properly implements host-initiated connection workflow per FIX2 specification. All verification complete. Ready for ChatGPT 5.5 to audit TODO checklist.
+**Status:** Fix 2 partially corrected the physical HID test by adding runPhysicalHidTests, hidHostAddress, host-initiated wait, and removing hid.connect(target) from the required success path. Fix 3 was needed because the test used BluetoothAdapter.address for the phone address, docs confused laptop vs phone address discovery, app logs could show the wrong bluetoothctl connect address, and evidence-before-BlueZ-blame docs were incomplete.
+
+**Durable Address Model:** Physical HID tests use two addresses: hidHostAddress is the laptop/controller address from bluetoothctl show; hidPhoneAddress is the Android phone address from bluetoothctl devices. The laptop runs bluetoothctl connect <hidPhoneAddress>. Android validates STATE_CONNECTED from <hidHostAddress>.
 
 **Test Results:**
 - ✅ Lint: CLEAN
