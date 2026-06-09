@@ -151,6 +151,8 @@ class BluetoothHidSendReportTest {
                         if (address == expectedHostAddress) {
                             connectedDevice = device
                             connectionLatch.countDown()
+                        } else {
+                            DebugLog.log("BluetoothHidSendReportTest", "Ignoring HID connection from unexpected host $address")
                         }
                     }
                 }
@@ -165,6 +167,8 @@ class BluetoothHidSendReportTest {
             }
 
             // ── Step 3: select target host by hidHostAddress ───────────────────
+            // Do not call hid.connect(target). On the Linux/BlueZ host setup used for physical testing,
+            // the host must initiate the HID L2CAP connection after Android registers the HID app.
             val bonded = adapter.bondedDevices?.toList() ?: emptyList()
             if (bonded.isEmpty()) {
                 notReadyReason = "No paired devices found — pair the phone with the laptop first"

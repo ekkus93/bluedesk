@@ -123,14 +123,14 @@ Acceptance criteria:
 
 ### Task 3.1 — Remove or downgrade `hid.connect(target)`
 
-- [ ] Find the section that calls:
+- [x] Find the section that calls:
   ```kotlin
   hid.connect(target)
   ```
-- [ ] Remove it from the required success path.
-- [ ] If kept, mark it explicitly as best-effort only.
-- [ ] Do not rely on its return value for test success.
-- [ ] Do not imply it initiates the laptop’s HID L2CAP connection.
+- [x] Remove it from the required success path.
+- [x] If kept, mark it explicitly as best-effort only.
+- [x] Do not rely on its return value for test success.
+- [x] Do not imply it initiates the laptop’s HID L2CAP connection.
 
 Preferred code comment:
 
@@ -142,14 +142,14 @@ Preferred code comment:
 
 Acceptance criteria:
 
-- [ ] The physical test waits for host-initiated connection, not Android-initiated connection.
+- [x] The physical test waits for host-initiated connection, not Android-initiated connection.
 
 ### Task 3.2 — Accept only expected host connection
 
-- [ ] In `onConnectionStateChanged(...)`, check `state == BluetoothProfile.STATE_CONNECTED`.
-- [ ] If `hidHostAddress` is provided, require `device.address` to match it.
-- [ ] Only then set `connectedDevice` and count down the connection latch.
-- [ ] Log ignored connection events from other devices.
+- [x] In `onConnectionStateChanged(...)`, check `state == BluetoothProfile.STATE_CONNECTED`.
+- [x] If `hidHostAddress` is provided, require `device.address` to match it.
+- [x] Only then set `connectedDevice` and count down the connection latch.
+- [x] Log ignored connection events from other devices.
 
 Suggested behavior:
 
@@ -167,21 +167,21 @@ if (state == BluetoothProfile.STATE_CONNECTED) {
 
 Acceptance criteria:
 
-- [ ] Test success requires the expected laptop to connect.
+- [x] Test success requires the expected laptop to connect.
 
 ### Task 3.3 — Extend host connection timeout
 
-- [ ] Increase wait window from 45 seconds to 90 seconds.
-- [ ] Use a constant:
+- [x] Increase wait window from 45 seconds to 90 seconds.
+- [x] Use a constant:
   ```kotlin
   private const val HOST_CONNECT_TIMEOUT_SECONDS = 90L
   ```
-- [ ] Failure message must mention host-initiated connection.
+- [x] Failure message must mention host-initiated connection.
 
 Acceptance criteria:
 
-- [ ] User has enough time to run the laptop-side command.
-- [ ] Timeout failure explains the real fix.
+- [x] User has enough time to run the laptop-side command.
+- [x] Timeout failure explains the real fix.
 
 ---
 
