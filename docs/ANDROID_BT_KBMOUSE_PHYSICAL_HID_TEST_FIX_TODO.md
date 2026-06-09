@@ -50,14 +50,14 @@ Acceptance criteria:
 
 ### Task 2.1 — Add `runPhysicalHidTests` instrumentation argument
 
-- [ ] Open `BluetoothHidSendReportTest.kt`.
-- [ ] Read instrumentation args with `InstrumentationRegistry.getArguments()`.
-- [ ] Add:
+- [x] Open `BluetoothHidSendReportTest.kt`.
+- [x] Read instrumentation args with `InstrumentationRegistry.getArguments()`.
+- [x] Add:
   ```text
   runPhysicalHidTests=true
   ```
-- [ ] If missing or not true, skip the test with `Assume.assumeTrue(...)`.
-- [ ] The skip message must explain that a real phone/laptop and host-side `bluetoothctl connect` are required.
+- [x] If missing or not true, skip the test with `Assume.assumeTrue(...)`.
+- [x] The skip message must explain that a real phone/laptop and host-side `bluetoothctl connect` are required.
 
 Suggested implementation:
 
@@ -73,19 +73,19 @@ Assume.assumeTrue(
 
 Acceptance criteria:
 
-- [ ] Normal `connectedDebugAndroidTest` does not fail because the physical laptop is absent.
-- [ ] Physical test requires explicit opt-in.
+- [x] Normal `connectedDebugAndroidTest` does not fail because the physical laptop is absent.
+- [x] Physical test requires explicit opt-in.
 
 ### Task 2.2 — Add `hidHostAddress` instrumentation argument
 
-- [ ] Add instrumentation arg:
+- [x] Add instrumentation arg:
   ```text
   hidHostAddress=<LAPTOP_BT_ADDRESS>
   ```
-- [ ] Normalize it with `uppercase(Locale.US)`.
-- [ ] Prefer requiring it for this physical test.
-- [ ] Skip with a clear reason if it is missing.
-- [ ] Use it to identify the expected laptop/host.
+- [x] Normalize it with `uppercase(Locale.US)`.
+- [x] Prefer requiring it for this physical test.
+- [x] Skip with a clear reason if it is missing.
+- [x] Use it to identify the expected laptop/host.
 
 Suggested implementation:
 
@@ -102,20 +102,20 @@ Assume.assumeTrue(
 
 Acceptance criteria:
 
-- [ ] The test does not accidentally connect to or pass with the wrong bonded device.
+- [x] The test does not accidentally connect to or pass with the wrong bonded device.
 
 ### Task 2.3 — Select target host deterministically
 
-- [ ] If the test needs a `BluetoothDevice` target, look it up by `hidHostAddress`.
-- [ ] Do not default silently to the first bonded device when `hidHostAddress` was provided.
-- [ ] If no bonded device matches `hidHostAddress`, skip or fail with a clear message:
+- [x] If the test needs a `BluetoothDevice` target, look it up by `hidHostAddress`.
+- [x] Do not default silently to the first bonded device when `hidHostAddress` was provided.
+- [x] If no bonded device matches `hidHostAddress`, skip or fail with a clear message:
   ```text
   Expected HID host <address> is not bonded. Pair the phone and laptop first.
   ```
 
 Acceptance criteria:
 
-- [ ] The physical test targets the intended laptop.
+- [x] The physical test targets the intended laptop.
 
 ---
 
