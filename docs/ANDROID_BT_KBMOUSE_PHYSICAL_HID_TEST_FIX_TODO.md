@@ -234,38 +234,38 @@ Acceptance criteria:
 
 ### Task 5.1 — Create `docs/PHYSICAL_HID_TESTING.md`
 
-- [ ] Create a new doc:
+- [x] Create a new doc:
   ```text
   docs/PHYSICAL_HID_TESTING.md
   ```
-- [ ] Include overview:
-  - [ ] Android registers as HID device.
-  - [ ] Laptop/host initiates the HID connection.
-  - [ ] Android then sends reports.
-- [ ] State clearly:
+- [x] Include overview:
+  - [x] Android registers as HID device.
+  - [x] Laptop/host initiates the HID connection.
+  - [x] Android then sends reports.
+- [x] State clearly:
   ```text
   BluetoothHidDevice.connect(host) is best-effort and may not initiate L2CAP on Linux/BlueZ.
   ```
 
 Acceptance criteria:
 
-- [ ] The host-initiated test model is documented.
+- [x] The host-initiated test model is documented.
 
 ### Task 5.2 — Document prerequisites
 
 Include:
 
-- [ ] Android phone with app/test APK installed.
-- [ ] Laptop/host with Bluetooth.
-- [ ] Phone and laptop already paired/bonded.
-- [ ] Bluetooth enabled on both devices.
-- [ ] Linux/BlueZ host uses `bluetoothctl`.
-- [ ] Laptop Bluetooth MAC address for `hidHostAddress`.
-- [ ] Phone Bluetooth MAC address for `bluetoothctl connect`.
+- [x] Android phone with app/test APK installed.
+- [x] Laptop/host with Bluetooth.
+- [x] Phone and laptop already paired/bonded.
+- [x] Bluetooth enabled on both devices.
+- [x] Linux/BlueZ host uses `bluetoothctl`.
+- [x] Laptop Bluetooth MAC address for `hidHostAddress`.
+- [x] Phone Bluetooth MAC address for `bluetoothctl connect`.
 
 Acceptance criteria:
 
-- [ ] User knows what hardware/state is required before running the test.
+- [x] User knows what hardware/state is required before running the test.
 
 ### Task 5.3 — Document exact Gradle command
 
@@ -280,7 +280,7 @@ Add:
 
 Acceptance criteria:
 
-- [ ] Physical test is run directly as one class.
+- [x] Physical test is run directly as one class.
 
 ### Task 5.4 — Document host-side command
 
@@ -300,7 +300,7 @@ Make clear that addresses may differ by device.
 
 Acceptance criteria:
 
-- [ ] The required host-side action is explicit.
+- [x] The required host-side action is explicit.
 
 ### Task 5.5 — Document how to find addresses
 
@@ -315,24 +315,24 @@ Also mention Android Bluetooth settings if useful.
 
 Acceptance criteria:
 
-- [ ] User can find both laptop and phone Bluetooth addresses.
+- [x] User can find both laptop and phone Bluetooth addresses.
 
 ### Task 5.6 — Add troubleshooting section
 
 Include common failure cases:
 
-- [ ] Test skipped because `runPhysicalHidTests=true` missing.
-- [ ] Test skipped because `hidHostAddress` missing.
-- [ ] Expected host not bonded.
-- [ ] Timeout waiting for host connection.
-- [ ] Ran `bluetoothctl connect` too early/too late.
-- [ ] Whole test suite timing is unreliable.
-- [ ] Host connected to wrong device.
-- [ ] Linux host cached stale pairing; remove/re-pair if needed.
+- [x] Test skipped because `runPhysicalHidTests=true` missing.
+- [x] Test skipped because `hidHostAddress` missing.
+- [x] Expected host not bonded.
+- [x] Timeout waiting for host connection.
+- [x] Ran `bluetoothctl connect` too early/too late.
+- [x] Whole test suite timing is unreliable.
+- [x] Host connected to wrong device.
+- [x] Linux host cached stale pairing; remove/re-pair if needed.
 
 Acceptance criteria:
 
-- [ ] Failure modes are actionable.
+- [x] Failure modes are actionable.
 
 ---
 
