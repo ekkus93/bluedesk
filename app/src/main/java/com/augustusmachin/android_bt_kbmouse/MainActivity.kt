@@ -1105,11 +1105,13 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
         ) {
-            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), onClick = { StoreProvider.dispatch(Action.LeftClick) }) { Text("Left", fontSize = 12.sp) }
-            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), enabled = settings.enableMiddleClick, onClick = { if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick) }) { Text("Middle", fontSize = 12.sp) }
-            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), onClick = { StoreProvider.dispatch(Action.RightClick) }) { Text("Right", fontSize = 12.sp) }
+            val mouseBtnPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), contentPadding = mouseBtnPadding, onClick = { StoreProvider.dispatch(Action.LeftClick) }) { Text("Left", fontSize = 12.sp, maxLines = 1, softWrap = false) }
+            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), contentPadding = mouseBtnPadding, enabled = settings.enableMiddleClick, onClick = { if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick) }) { Text("Middle", fontSize = 12.sp, maxLines = 1, softWrap = false) }
+            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), contentPadding = mouseBtnPadding, onClick = { StoreProvider.dispatch(Action.RightClick) }) { Text("Right", fontSize = 12.sp, maxLines = 1, softWrap = false) }
             androidx.compose.material3.ElevatedButton(
                 modifier = Modifier.weight(1f).height(44.dp),
+                contentPadding = mouseBtnPadding,
                 onClick = {
                     dragLock = !dragLock
                     if (dragLock) StoreProvider.dispatch(Action.MouseButtonDown(0x01))
@@ -1121,7 +1123,7 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 else androidx.compose.material3.ButtonDefaults.elevatedButtonColors()
-            ) { Text("Drag", fontSize = 12.sp) }
+            ) { Text("Drag", fontSize = 12.sp, maxLines = 1, softWrap = false) }
         }
     }
 }
