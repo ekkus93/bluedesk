@@ -1105,9 +1105,9 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
         ) {
-            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), onClick = { StoreProvider.dispatch(Action.LeftClick) }) { ResponsiveText("Left", minSize = 8.sp, maxSize = 14.sp) }
-            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), enabled = settings.enableMiddleClick, onClick = { if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick) }) { ResponsiveText("Middle", minSize = 8.sp, maxSize = 14.sp) }
-            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), onClick = { StoreProvider.dispatch(Action.RightClick) }) { ResponsiveText("Right", minSize = 8.sp, maxSize = 14.sp) }
+            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), onClick = { StoreProvider.dispatch(Action.LeftClick) }) { Text("L") }
+            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), enabled = settings.enableMiddleClick, onClick = { if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick) }) { Text("M") }
+            androidx.compose.material3.ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), onClick = { StoreProvider.dispatch(Action.RightClick) }) { Text("R") }
             androidx.compose.material3.ElevatedButton(
                 modifier = Modifier.weight(1f).height(44.dp),
                 onClick = {
@@ -1121,7 +1121,7 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 else androidx.compose.material3.ButtonDefaults.elevatedButtonColors()
-            ) { ResponsiveText("Drag", minSize = 8.sp, maxSize = 14.sp) }
+            ) { Text("D") }
         }
     }
 }
