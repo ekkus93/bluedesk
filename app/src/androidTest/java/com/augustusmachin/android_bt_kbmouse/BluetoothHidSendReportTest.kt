@@ -62,6 +62,7 @@ class BluetoothHidSendReportTest {
         private var connectedDevice: BluetoothDevice? = null
         private var btAdapter: BluetoothAdapter? = null
         private var expectedHostAddress: String? = null
+        private var expectedPhoneAddress: String? = null
 
         // isReady=true only after @BeforeClass fully succeeds.
         @Volatile private var isReady = false
@@ -85,7 +86,16 @@ class BluetoothHidSendReportTest {
                 .getString("hidHostAddress")
                 ?.uppercase(Locale.US)
             if (expectedHostAddress.isNullOrBlank()) {
-                notReadyReason = "Physical HID tests require hidHostAddress=<laptop Bluetooth MAC>"
+                notReadyReason = "Physical HID test requires hidHostAddress=<laptop/controller Bluetooth MAC>. Find it with bluetoothctl show."
+                return
+            }
+
+            // Require expected phone address
+            expectedPhoneAddress = InstrumentationRegistry.getArguments()
+                .getString("hidPhoneAddress")
+                ?.uppercase(Locale.US)
+            if (expectedPhoneAddress.isNullOrBlank()) {
+                notReadyReason = "Physical HID test requires hidPhoneAddress=<Android phone Bluetooth MAC>. Find it from the laptop with bluetoothctl devices."
                 return
             }
 
@@ -192,11 +202,12 @@ class BluetoothHidSendReportTest {
             }
 
             // Log instructions for host-initiated connection
-            DebugLog.log("BluetoothHidSendReportTest", "HID profile registered. From the laptop, run: bluetoothctl connect ${adapter.address}")
-            DebugLog.log("BluetoothHidSendReportTest", "Expected host: $expectedHostAddress")
+            DebugLog.log("BluetoothHidSendReportTest", "HID profile registered.")
+            DebugLog.log("BluetoothHidSendReportTest", "Expected host/laptop address: $expectedHostAddress")
+            DebugLog.log("BluetoothHidSendReportTest", "From the laptop, connect to this Android phone: bluetoothctl connect $expectedPhoneAddress")
 
             if (!connectionLatch.await(90, TimeUnit.SECONDS)) {
-                notReadyReason = "Host did not initiate HID connection within 90s. After HID registration, run bluetoothctl connect ${adapter.address} from the laptop"
+                notReadyReason = "Host did not initiate HID connection within 90 seconds. After Android logs HID registration, run bluetoothctl connect $expectedPhoneAddress from the laptop."
                 return
             }
 
