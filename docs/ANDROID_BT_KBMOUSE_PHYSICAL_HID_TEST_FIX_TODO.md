@@ -189,44 +189,44 @@ Acceptance criteria:
 
 ### Task 4.1 — Log instructions after HID registration
 
-- [ ] After HID profile/app registration succeeds, log a message:
+- [x] After HID profile/app registration succeeds, log a message:
   ```text
   HID profile registered. From the laptop, run:
   bluetoothctl connect <PHONE_BT_ADDRESS>
   ```
-- [ ] Include expected host address:
+- [x] Include expected host address:
   ```text
   Expected host: <hidHostAddress>
   ```
-- [ ] If the phone Bluetooth address is not programmatically available, use `<PHONE_BT_ADDRESS>` placeholder and explain how to find it in docs.
+- [x] If the phone Bluetooth address is not programmatically available, use `<PHONE_BT_ADDRESS>` placeholder and explain how to find it in docs.
 
 Acceptance criteria:
 
-- [ ] Test runner knows exactly when to run `bluetoothctl connect`.
+- [x] Test runner knows exactly when to run `bluetoothctl connect`.
 
 ### Task 4.2 — Improve timeout / skip messages
 
-- [ ] Replace vague timeout text like:
+- [x] Replace vague timeout text like:
   ```text
   ensure laptop Bluetooth is on
   ```
-- [ ] Use explicit text:
+- [x] Use explicit text:
   ```text
   Host did not initiate HID connection within 90s. After HID registration, run bluetoothctl connect <PHONE_BT_ADDRESS> from the laptop.
   ```
 
 Acceptance criteria:
 
-- [ ] Failure messages point to the correct host-side action.
+- [x] Failure messages point to the correct host-side action.
 
 ### Task 4.3 — Recommend single-class test execution
 
-- [ ] Add a test comment or doc string saying this physical test should be run as a single class.
-- [ ] Do not rely on whole-suite timing.
+- [x] Add a test comment or doc string saying this physical test should be run as a single class.
+- [x] Do not rely on whole-suite timing.
 
 Acceptance criteria:
 
-- [ ] Future runs do not depend on brittle T+50s timing after unrelated tests.
+- [x] Future runs do not depend on brittle T+50s timing after unrelated tests.
 
 ---
 

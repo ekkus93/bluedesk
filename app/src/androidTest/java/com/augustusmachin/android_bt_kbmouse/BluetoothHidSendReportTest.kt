@@ -28,16 +28,25 @@ import java.util.concurrent.TimeUnit
  * Layer 3A instrumented tests: send real HID reports to a paired host and assert
  * that BluetoothHidDevice.sendReport() returns true (stack accepted delivery).
  *
+ * ⚠️ Physical hardware test — run as single class with opt-in arguments:
+ *
+ *   ./gradlew :app:connectedDebugAndroidTest \
+ *     -Pandroid.testInstrumentationRunnerArguments.class=com.augustusmachin.android_bt_kbmouse.BluetoothHidSendReportTest \
+ *     -Pandroid.testInstrumentationRunnerArguments.runPhysicalHidTests=true \
+ *     -Pandroid.testInstrumentationRunnerArguments.hidHostAddress=<LAPTOP_BT_ADDRESS>
+ *
+ * Then, during the test wait window (after HID registration logs), from the laptop run:
+ *
+ *   bluetoothctl connect <PHONE_BT_ADDRESS>
+ *
  * Prerequisites (one-time manual setup):
- *  1. Enable Bluetooth on the Android device.
- *  2. Pair the Android phone with the laptop as a Bluetooth HID device.
- *     (Open the app, tap Scan, select the laptop, complete pairing on both ends.)
+ *  1. Enable Bluetooth on the Android device and laptop.
+ *  2. Pair the Android phone with the laptop (Bluetooth settings).
  *  3. Kill the main app (swipe away from recents) so BluetoothService is not
  *     running — Android allows only one HID app registration at a time.
- *  4. On the laptop, ensure Bluetooth is ON and the phone is in the device list.
- *  5. Run: ./gradlew :app:connectedDebugAndroidTest
  *
  * If any prerequisite is not met, all tests in this class are skipped (not failed).
+ * Skip reasons explain which requirement is missing.
  *
  * What sendReport(true) guarantees: the Android BT stack successfully enqueued
  * the HID report for delivery over the air. The host will receive and process it
