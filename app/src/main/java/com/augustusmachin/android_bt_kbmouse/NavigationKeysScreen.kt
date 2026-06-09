@@ -14,7 +14,24 @@ import androidx.compose.ui.unit.sp
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 
-private data class NavModBtn(val label: String, val active: Boolean, val action: Action)
+// A cell in a navigation column's two key rows.
+private sealed interface NavCell {
+    object Empty : NavCell                 // invisible spacer (keeps grid aligned)
+    data class Key(val label: String) : NavCell   // normal key dispatched via labelToHid
+    object ScrollLock : NavCell            // special toggle (Scroll Lock)
+}
+
+// Per-column data: modifier button on top (null = spacer), then three key rows below.
+// Three rows let the arrow keys form a D-pad cross across the first columns:
+//   col1 .  ←  .      col2 ↑  .  ↓      col3 .  →  .
+private data class NavGridCol(
+    val modLabel: String?,
+    val modActive: Boolean,
+    val modAction: Action?,
+    val key0: NavCell,
+    val key1: NavCell,
+    val key2: NavCell,
+)
 
 @Composable
 fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
@@ -24,18 +41,27 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
     val ks = appState.keyboard
     val scrollLockActive = appState.connection.scrollLock
 
-    val mods = listOf(
-        NavModBtn("Ctrl",  ks.ctrl,                     Action.ToggleCtrl),
-        NavModBtn("Shift", ks.shift,                    Action.ToggleShift),
-        NavModBtn("CAPS",  appState.connection.capsLock, Action.ToggleCapsLock),
-        NavModBtn("Alt",   ks.alt,                      Action.ToggleAlt),
-        NavModBtn("Meta",  ks.gui,                      Action.ToggleGui),
+    val colsPerPage = 3
+    val maxPage = 1  // 6 cols / 3 per page → 2 pages → maxPage index = 1
+
+    // Column-centric layout: each column is (modifier, key0, key1, key2), matching
+    // the Extended and Function tabs. Arrows form a D-pad cross over cols 1-3:
+    //          ↑              (Shift col, row0)
+    //      ←       →          (Ctrl col / CAPS col, row1)
+    //          ↓              (Shift col, row2)
+    // A 6th empty column pads the grid to a clean 2 pages of 3 so page 2 shows
+    // only the Alt/Meta columns (PGUP/PGDN/Scrl Lk), never the cross's → key.
+    val gridCols = listOf(
+        NavGridCol("Ctrl",  ks.ctrl,                     Action.ToggleCtrl,      NavCell.Empty,       NavCell.Key("←"),    NavCell.Empty),
+        NavGridCol("Shift", ks.shift,                    Action.ToggleShift,     NavCell.Key("↑"),    NavCell.Empty,       NavCell.Key("↓")),
+        NavGridCol("CAPS",  appState.connection.capsLock, Action.ToggleCapsLock, NavCell.Empty,       NavCell.Key("→"),    NavCell.Empty),
+        NavGridCol("Alt",   ks.alt,                      Action.ToggleAlt,       NavCell.Key("PGUP"), NavCell.Key("PGDN"), NavCell.Empty),
+        NavGridCol("Meta",  ks.gui,                      Action.ToggleGui,       NavCell.ScrollLock,   NavCell.Empty,      NavCell.Empty),
+        NavGridCol(null,    false,                       null,                   NavCell.Empty,       NavCell.Empty,       NavCell.Empty),
     )
 
     var page by remember { mutableStateOf(0) }
-    val maxPage = 1
     val scrollState = rememberScrollState()
-    val density = LocalDensity.current
 
     fun dispatchKey(label: String) {
         val code = labelToHid(label) ?: return
@@ -64,57 +90,56 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
         contentColor = MaterialTheme.colorScheme.onPrimary
     )
 
+    @Composable
+    fun KeyCell(cell: NavCell) {
+        when (cell) {
+            is NavCell.Empty -> Spacer(Modifier.height(48.dp))  // match button height
+            is NavCell.Key -> Button(
+                onClick = { dispatchKey(cell.label) },
+                enabled = labelToHid(cell.label) != null,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                ResponsiveText(text = cell.label, minSize = keyFontSize, maxSize = keyFontSize)
+            }
+            is NavCell.ScrollLock -> Button(
+                onClick = ::dispatchScrollLock,
+                modifier = Modifier.fillMaxWidth(),
+                colors = if (scrollLockActive) activeColors else inactiveColors
+            ) {
+                ResponsiveText(
+                    text = "Scrl Lk",
+                    minSize = 8.sp,
+                    maxSize = keyFontSize,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxSize().padding(contentPadding).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Modifier strip — all 5 always visible
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val gapDp = 6f
-            val modBtnWidthDp = (maxWidth.value - gapDp * (mods.size - 1)) / mods.size
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(gapDp.dp)
-            ) {
-                mods.forEach { mod ->
-                    Button(
-                        onClick = {
-                            StoreProvider.dispatch(Action.TrackPreviewKey(mod.label))
-                            StoreProvider.dispatch(mod.action)
-                            if (!connected) StoreProvider.dispatch(
-                                Action.UpdateMessage("Preview: ${mod.label} toggled")
-                            )
-                        },
-                        modifier = Modifier.width(modBtnWidthDp.dp),
-                        colors = if (mod.active) activeColors else inactiveColors
-                    ) {
-                        ResponsiveText(
-                            text = mod.label,
-                            minSize = 8.sp,
-                            maxSize = keyFontSize,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
 
-        // Paged content with smooth panning
-        BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
             val arrowWidthDp = 36f
             val gapDp = 6f
             val contentWidthDp = maxWidth.value - arrowWidthDp * 2
-            val cellWidthDp = (contentWidthDp - gapDp * 2) / 3
-            val pageWidthDp = contentWidthDp
+            val btnWidthDp = (contentWidthDp - gapDp * (colsPerPage - 1)) / colsPerPage
+            val colStrideDp = btnWidthDp + gapDp
 
-            LaunchedEffect(page, pageWidthDp) {
-                val targetPx = with(density) { (pageWidthDp * page).dp.roundToPx() }
+            val density = LocalDensity.current
+
+            // Scroll to the correct column when page changes
+            LaunchedEffect(page, colStrideDp) {
+                val targetPx = with(density) { (colStrideDp * colsPerPage * page).dp.roundToPx() }
                 scrollState.animateScrollTo(targetPx)
             }
 
-            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
 
-                Box(Modifier.width(arrowWidthDp.dp).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                // Left arrow — always reserves space, only shown on page > 0
+                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
                     if (page > 0) {
                         IconButton(onClick = { page-- }) {
                             Text("❮", style = MaterialTheme.typography.titleLarge)
@@ -122,77 +147,51 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
                     }
                 }
 
+                // Horizontal-scroll panel (touch disabled; programmatic only)
                 Row(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight()
                         .horizontalScroll(scrollState, enabled = false),
                     horizontalArrangement = Arrangement.spacedBy(gapDp.dp)
                 ) {
-                    // Page 0: D-pad (3×3 grid)
-                    Column(
-                        modifier = Modifier.width(pageWidthDp.dp).fillMaxHeight(),
-                        verticalArrangement = Arrangement.spacedBy(gapDp.dp, Alignment.CenterVertically)
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(gapDp.dp)) {
-                            Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
-                            Button(onClick = { dispatchKey("↑") }, modifier = Modifier.width(cellWidthDp.dp)) {
-                                ResponsiveText("↑", minSize = keyFontSize, maxSize = keyFontSize)
-                            }
-                            Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(gapDp.dp)) {
-                            Button(onClick = { dispatchKey("←") }, modifier = Modifier.width(cellWidthDp.dp)) {
-                                ResponsiveText("←", minSize = keyFontSize, maxSize = keyFontSize)
-                            }
-                            Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
-                            Button(onClick = { dispatchKey("→") }, modifier = Modifier.width(cellWidthDp.dp)) {
-                                ResponsiveText("→", minSize = keyFontSize, maxSize = keyFontSize)
-                            }
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(gapDp.dp)) {
-                            Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
-                            Button(onClick = { dispatchKey("↓") }, modifier = Modifier.width(cellWidthDp.dp)) {
-                                ResponsiveText("↓", minSize = keyFontSize, maxSize = keyFontSize)
-                            }
-                            Spacer(Modifier.width(cellWidthDp.dp).height(48.dp))
-                        }
-                    }
-
-                    // Page 1: Scrl Lk, PgUp, PgDn (horizontal)
-                    Row(
-                        modifier = Modifier.width(pageWidthDp.dp).fillMaxHeight(),
-                        horizontalArrangement = Arrangement.spacedBy(gapDp.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Button(
-                            onClick = ::dispatchScrollLock,
-                            modifier = Modifier.width(cellWidthDp.dp),
-                            colors = if (scrollLockActive) activeColors else inactiveColors
+                    gridCols.forEach { col ->
+                        Column(
+                            modifier = Modifier.width(btnWidthDp.dp),
+                            verticalArrangement = Arrangement.spacedBy(gapDp.dp)
                         ) {
-                            ResponsiveText(
-                                text = "Scrl Lk",
-                                minSize = 8.sp,
-                                maxSize = keyFontSize,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Button(
-                            onClick = { dispatchKey("PGUP") },
-                            modifier = Modifier.width(cellWidthDp.dp)
-                        ) {
-                            ResponsiveText("PGUP", minSize = keyFontSize, maxSize = keyFontSize)
-                        }
-                        Button(
-                            onClick = { dispatchKey("PGDN") },
-                            modifier = Modifier.width(cellWidthDp.dp)
-                        ) {
-                            ResponsiveText("PGDN", minSize = keyFontSize, maxSize = keyFontSize)
+                            // Modifier toggle button (or spacer for the padding column)
+                            if (col.modLabel != null && col.modAction != null) {
+                                Button(
+                                    onClick = {
+                                        StoreProvider.dispatch(Action.TrackPreviewKey(col.modLabel))
+                                        StoreProvider.dispatch(col.modAction)
+                                        if (!connected) StoreProvider.dispatch(
+                                            Action.UpdateMessage("Preview: ${col.modLabel} toggled")
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = if (col.modActive) activeColors else inactiveColors
+                                ) {
+                                    ResponsiveText(
+                                        text = col.modLabel,
+                                        minSize = 8.sp,
+                                        maxSize = keyFontSize,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            } else {
+                                Spacer(Modifier.height(48.dp))
+                            }
+                            // Key rows 0–2 (three rows form the D-pad cross)
+                            KeyCell(col.key0)
+                            KeyCell(col.key1)
+                            KeyCell(col.key2)
                         }
                     }
                 }
 
-                Box(Modifier.width(arrowWidthDp.dp).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                // Right arrow
+                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
                     if (page < maxPage) {
                         IconButton(onClick = { page++ }) {
                             Text("❯", style = MaterialTheme.typography.titleLarge)
