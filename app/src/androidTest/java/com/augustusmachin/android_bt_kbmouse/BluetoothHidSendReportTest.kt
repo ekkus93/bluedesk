@@ -64,6 +64,9 @@ class BluetoothHidSendReportTest {
         private var expectedHostAddress: String? = null
         private var expectedPhoneAddress: String? = null
 
+        // Host connection wait timeout (seconds)
+        private const val HOST_CONNECT_TIMEOUT_SECONDS = 90L
+
         // isReady=true only after @BeforeClass fully succeeds.
         @Volatile private var isReady = false
         @Volatile private var notReadyReason = "Setup not yet attempted"
@@ -202,12 +205,10 @@ class BluetoothHidSendReportTest {
             }
 
             // Log instructions for host-initiated connection
-            DebugLog.log("BluetoothHidSendReportTest", "HID profile registered.")
-            DebugLog.log("BluetoothHidSendReportTest", "Expected host/laptop address: $expectedHostAddress")
-            DebugLog.log("BluetoothHidSendReportTest", "From the laptop, connect to this Android phone: bluetoothctl connect $expectedPhoneAddress")
+            DebugLog.log("BluetoothHidSendReportTest", "HID profile registered.\n\nExpected host/laptop address:\n$expectedHostAddress\n\nFrom the laptop, connect to this Android phone:\nbluetoothctl connect $expectedPhoneAddress")
 
-            if (!connectionLatch.await(90, TimeUnit.SECONDS)) {
-                notReadyReason = "Host did not initiate HID connection within 90 seconds. After Android logs HID registration, run bluetoothctl connect $expectedPhoneAddress from the laptop."
+            if (!connectionLatch.await(HOST_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                notReadyReason = "Host did not initiate HID connection within $HOST_CONNECT_TIMEOUT_SECONDS seconds. After Android logs HID registration, run bluetoothctl connect $expectedPhoneAddress from the laptop."
                 return
             }
 
