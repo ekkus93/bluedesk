@@ -20,6 +20,7 @@ import org.junit.BeforeClass
 import org.junit.AfterClass
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
@@ -51,6 +52,7 @@ class BluetoothHidSendReportTest {
         private var hidProxy: BluetoothHidDevice? = null
         private var connectedDevice: BluetoothDevice? = null
         private var btAdapter: BluetoothAdapter? = null
+        private var expectedHostAddress: String? = null
 
         // isReady=true only after @BeforeClass fully succeeds.
         @Volatile private var isReady = false
@@ -60,6 +62,23 @@ class BluetoothHidSendReportTest {
         fun setupClass() {
             val instrumentation = InstrumentationRegistry.getInstrumentation()
             val context = instrumentation.targetContext
+
+            // Check opt-in flag for physical hardware test
+            val runPhysical = InstrumentationRegistry.getArguments()
+                .getString("runPhysicalHidTests") == "true"
+            if (!runPhysical) {
+                notReadyReason = "Physical HID tests require runPhysicalHidTests=true and host-side bluetoothctl connect"
+                return
+            }
+
+            // Require expected host address
+            expectedHostAddress = InstrumentationRegistry.getArguments()
+                .getString("hidHostAddress")
+                ?.uppercase(Locale.US)
+            if (expectedHostAddress.isNullOrBlank()) {
+                notReadyReason = "Physical HID tests require hidHostAddress=<laptop Bluetooth MAC>"
+                return
+            }
 
             // Grant runtime permissions (API 31+)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -128,8 +147,11 @@ class BluetoothHidSendReportTest {
                 }
                 override fun onConnectionStateChanged(device: BluetoothDevice, state: Int) {
                     if (state == BluetoothProfile.STATE_CONNECTED) {
-                        connectedDevice = device
-                        connectionLatch.countDown()
+                        val address = device.address.uppercase(Locale.US)
+                        if (address == expectedHostAddress) {
+                            connectedDevice = device
+                            connectionLatch.countDown()
+                        }
                     }
                 }
                 override fun onLeds(leds: Int) {}
@@ -142,25 +164,26 @@ class BluetoothHidSendReportTest {
                 return
             }
 
-            // ── Step 3: connect to a paired computer ──────────────────────────
-            // Prefer a bonded device of major class COMPUTER; fall back to any bonded device.
+            // ── Step 3: select target host by hidHostAddress ───────────────────
             val bonded = adapter.bondedDevices?.toList() ?: emptyList()
             if (bonded.isEmpty()) {
                 notReadyReason = "No paired devices found — pair the phone with the laptop first"
                 return
             }
-            val target = bonded.firstOrNull {
-                it.bluetoothClass?.majorDeviceClass == BluetoothClass.Device.Major.COMPUTER
-            } ?: bonded.first()
-
-            // Initiate connection if not already connected
-            if (connectionLatch.count > 0) {
-                hid.connect(target)
+            val target = bonded.firstOrNull { device ->
+                device.address.uppercase(Locale.US) == expectedHostAddress
+            }
+            if (target == null) {
+                notReadyReason = "Expected HID host $expectedHostAddress is not bonded. Pair the phone and laptop first"
+                return
             }
 
-            if (!connectionLatch.await(45, TimeUnit.SECONDS)) {
-                notReadyReason = "Host did not connect within 45 s — " +
-                    "ensure laptop Bluetooth is on and the phone is in the paired devices list"
+            // Log instructions for host-initiated connection
+            DebugLog.log("BluetoothHidSendReportTest", "HID profile registered. From the laptop, run: bluetoothctl connect ${adapter.address}")
+            DebugLog.log("BluetoothHidSendReportTest", "Expected host: $expectedHostAddress")
+
+            if (!connectionLatch.await(90, TimeUnit.SECONDS)) {
+                notReadyReason = "Host did not initiate HID connection within 90s. After HID registration, run bluetoothctl connect ${adapter.address} from the laptop"
                 return
             }
 
