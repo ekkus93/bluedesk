@@ -13,7 +13,16 @@ The `BluetoothHidSendReportTest` class validates that the Android app can succes
 
 ### Critical constraint
 
-**`BluetoothHidDevice.connect(host)` from Android is best-effort and may NOT initiate L2CAP on Linux/BlueZ.** The host (your laptop) must initiate the connection. This is a known limitation of BlueZ and is why manual `bluetoothctl connect` is required.
+**The connection must be host-initiated.** Device-initiated `BluetoothHidDevice.connect(host)` from Android does not reliably page the host — on at least one tested controller it fails with `HCI_ERR_PAGE_TIMEOUT` (the host's controller never answers the phone's BR/EDR page, so nothing even reaches BlueZ). The test therefore does **not** call `hid.connect()`; the phone exposes the HID app and waits for the host to open the HID L2CAP channels via `bluetoothctl connect <hidPhoneAddress>`.
+
+### Verified working end-to-end (2026-06-09)
+
+This procedure was confirmed with a `btmon` HCI air capture during a green run:
+
+- All **13** `BluetoothHidSendReportTest` cases pass (`failures=0, skipped=0`), reproducibly.
+- The phone establishes a real **encrypted (AES-CCM)** HID link (control PSM 17 + interrupt PSM 19) and **transmits real HID reports that the host receives** — decoded on the wire as, e.g., `a1 01 00 00 04 00..` (keyboard 'a' down), `a1 02 01 00 00` (mouse left-click), `a1 02 00 0f 0f` (mouse move x=15,y=15).
+- The HID connection closes when the test's `@AfterClass` calls `unregisterApp()` — this is normal teardown, not a dropped link. The connection stays healthy for the entire suite.
+- **No BlueZ configuration change is required.** Setting `UserspaceHID=true` in `/etc/bluetooth/input.conf` is **not** needed and should not be required of end users. (Note: whether the *host OS* turns the received reports into typed characters depends on that host's own HID-input stack — kernel HIDP / uhid — which is independent of this Android app.)
 
 ---
 
@@ -62,7 +71,7 @@ On **Linux**:
 bluetoothctl devices
 bluetoothctl info <PHONE_BT_ADDRESS>
 ```
-Example output: `Device 8C:6A:3B:5E:D3:48 arisu`
+Example output: `Device 8C:6A:3B:5E:D3:48 Phillip's A54` (the phone)
 
 On **Android phone**:
 ```bash
@@ -122,37 +131,41 @@ Example:
   -Pandroid.testInstrumentationRunnerArguments.hidPhoneAddress=8C:6A:3B:5E:D3:48
 ```
 
-### Step 3: Watch for the "HID profile registered" message in logcat
+### Step 3: Watch for the `READY_FOR_HOST_CONNECT` marker in logcat
 
-The test will log (in your terminal or Android Studio logcat):
+Once the phone has registered the HID app, the test emits a logcat marker under the tag `BtHidTest`:
+```bash
+adb logcat -d BtHidTest:W '*:S'
+# W/BtHidTest: READY_FOR_HOST_CONNECT
 ```
-HID profile registered.
-
-Expected host/laptop address:
-E8:FB:1C:25:E4:C2
-
-From the laptop, connect to this Android phone:
-bluetoothctl connect 8C:6A:3B:5E:D3:48
-```
+(The human-readable "HID profile registered…" message goes to the app's in-app `DebugLog` buffer only — it is **not** in logcat. Use the `READY_FOR_HOST_CONNECT` marker as the logcat signal.)
 
 ### Step 4: Run bluetoothctl connect from the laptop
 
-Open a terminal on your laptop and run:
+As soon as you see `READY_FOR_HOST_CONNECT`, open a terminal on your laptop and run:
 ```bash
 bluetoothctl
 [bluetooth]# connect 8C:6A:3B:5E:D3:48
 ```
 
-Use the **phone's Bluetooth address** (the `hidPhoneAddress` you passed to the test) from the log message above.
+Use the **phone's Bluetooth address** (the `hidPhoneAddress` you passed to the test).
 
-You have **90 seconds** from when HID registration completes to run this command.
+You have **90 seconds** from registration to run this command.
+
+> **Tip — automate the host connect.** Because the readiness marker is in logcat, you can have the laptop connect automatically instead of racing the 90s window:
+> ```bash
+> # On the laptop, with the phone on ADB:
+> until adb logcat -d BtHidTest:W '*:S' | grep -q READY_FOR_HOST_CONNECT; do sleep 1; done
+> bluetoothctl connect 8C:6A:3B:5E:D3:48
+> ```
 
 ### Step 5: Observe the connection
 
-After you run `bluetoothctl connect`, you should see in the Android logcat:
+After you run `bluetoothctl connect`, you should see in the Android logcat (tag `BtHidTest`):
 ```
-onConnectionStateChanged: host <laptop MAC> connected
+W/BtHidTest: onConnectionStateChanged state=2 dev=<LAPTOP_BT_ADDRESS>
 ```
+`state=2` is `STATE_CONNECTED`. (`bluetoothctl connect` also brings up audio/RFCOMM profiles — that is harmless; only the HID channels matter here.)
 
 If successful, the test cases proceed:
 - Keyboard key presses
@@ -163,7 +176,7 @@ If successful, the test cases proceed:
 
 ### Step 6: Verify results
 
-All 97 tests should pass. Exit code `0` from Gradle indicates success.
+All 13 tests in `BluetoothHidSendReportTest` should pass (`failures=0, skipped=0`). Exit code `0` from Gradle indicates success.
 
 ---
 
@@ -250,9 +263,13 @@ All 97 tests should pass. Exit code `0` from Gradle indicates success.
 
 ### Linux/BlueZ HID support
 
-If the corrected host-initiated flow still fails (Android logs HID profile registration, you run `bluetoothctl connect <hidPhoneAddress>` from the laptop during the 90-second wait, but Android does not receive `STATE_CONNECTED`), BlueZ may be rejecting or failing the HID host connection attempt. Before concluding that Ubuntu/BlueZ is the root cause, collect the evidence outlined in the troubleshooting section below.
+In a verified run (2026-06-09, BlueZ 5.64), the host-initiated flow worked: BlueZ accepted the HID connection, the link reached `STATE_CONNECTED`, and the host received the HID reports (confirmed by `btmon`). **Do not assume BlueZ is incapable of HID hosting** — earlier project notes that blamed "BlueZ can't do HID peripheral" were wrong.
 
-**Windows and macOS** have more mature HID host support and tests are expected to pass consistently on those platforms.
+If the host-initiated flow still fails for you (Android registers, you run `bluetoothctl connect <hidPhoneAddress>` during the wait window, but Android never reports `state=2`), collect the evidence in the section below before concluding it is a host-side problem — most failures trace to a stale/incomplete bond (re-pair from scratch) or to passing the wrong address.
+
+A separate, host-only consideration: even when the air-level HID connection works, whether the *host* turns the reports into actual input events depends on its HID-input backend (kernel `hidp` / userspace `uhid`). That is a property of the receiving computer, not of this app, and does not affect whether the tests pass.
+
+**Windows and macOS** have mature HID host support and tests are expected to pass consistently on those platforms.
 
 ### One HID registration at a time
 
@@ -275,7 +292,10 @@ bluetoothctl show
 bluetoothctl devices
 bluetoothctl info <PHONE_BT_ADDRESS>
 journalctl -u bluetooth --since "10 minutes ago"
-sudo btmon
+# Capture the radio traffic to a decodable file during a connection attempt:
+sudo sh -c 'timeout 80 btmon -w /tmp/hidcap.btsnoop; chmod 644 /tmp/hidcap.btsnoop'
+# then decode (no root needed) and look for PSM 17/19 and who sends the Disconnection Request:
+btmon -r /tmp/hidcap.btsnoop
 ```
 
 ### Step 2: Ubuntu/BlueZ is plausible only if ALL of these are true
@@ -385,11 +405,11 @@ Connection successful
 
 ```bash
 # Terminal 1: (back to test window)
-# [Test proceeds with 97 tests]
+# [Test proceeds with 13 tests]
 # keyboard_pressAndRelease_A ... PASSED
 # mouse_leftClick_accepted ... PASSED
 # ...
-# BluetoothHidSendReportTest PASSED
+# Finished 13 tests on <device>
 
 BUILD SUCCESSFUL
 ```
@@ -398,9 +418,9 @@ BUILD SUCCESSFUL
 
 ## Next Steps
 
-If all 97 tests pass, you have confirmed:
+If all 13 tests pass, you have confirmed:
 - ✅ Android HID stack is functional
-- ✅ Bluetooth L2CAP negotiation works
-- ✅ Host recognizes and accepts HID reports
+- ✅ Bluetooth L2CAP negotiation works (encrypted HID control + interrupt channels)
+- ✅ The phone transmits valid HID reports over the air (verified end-to-end via `btmon` — see "Verified working end-to-end" above)
 
-For **Layer 3C validation** (confirming the host actually processed the keystrokes), see the test class comments and run host-side verification scripts separately.
+For **Layer 3C validation** (confirming the *host OS* turns the received reports into typed characters / cursor movement in an application), use a host-side listener — e.g. open a text editor and watch for input, or capture with `btmon`/`evtest`. That depends on the host's own HID-input stack and is independent of this Android app.
