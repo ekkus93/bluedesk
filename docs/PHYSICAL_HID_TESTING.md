@@ -43,27 +43,52 @@ Before running the physical HID test, ensure you have:
 
 ---
 
+## Bluetooth address roles
+
+| Name | Meaning | Used for | How to find |
+|---|---|---|---|
+| `hidHostAddress` | Laptop/local controller address | Android validates incoming `STATE_CONNECTED` device | `bluetoothctl show` |
+| `hidPhoneAddress` | Android phone/remote paired device address | Laptop runs `bluetoothctl connect` against this address | `bluetoothctl devices` |
+
+---
+
 ## Finding Your Bluetooth Addresses
 
-### Android phone
+### Phone/remote paired device address
+
+On **Linux**:
+```bash
+# Phone/remote paired device address
+bluetoothctl devices
+bluetoothctl info <PHONE_BT_ADDRESS>
+```
+Example output: `Device 8C:6A:3B:5E:D3:48 arisu`
+
+On **Android phone**:
 ```bash
 adb shell settings get secure bluetooth_address
 ```
 Example output: `8C:6A:3B:5E:D3:48`
 
-### Linux laptop
-```bash
-bluetoothctl devices
-```
-Example output shows: `Device E8:FB:1C:25:E4:C2 arisu`
-
-The address is the part after "Device ".
-
-### macOS laptop
+On **macOS phone**:
 **System Settings > Bluetooth > [Device] > About...**
 
-### Windows laptop
-**Settings > Bluetooth & devices > Device properties > Device specifications > Address**
+### Laptop/controller address
+
+On **Linux**:
+```bash
+# Laptop/controller address
+bluetoothctl show
+```
+Example output includes: `Controller E8:FB:1C:25:E4:C2`
+
+The address is the part after "Controller ".
+
+On **macOS laptop**:
+**System Settings > Bluetooth > [Your Mac] > About > Bluetooth Address**
+
+On **Windows laptop**:
+**Settings > Bluetooth & devices > Device properties > Device specifications > Bluetooth address**
 
 ---
 
@@ -78,13 +103,14 @@ Verify your phone appears in the list.
 
 ### Step 2: Run the test with opt-in arguments
 
-Replace `<LAPTOP_BT_ADDRESS>` with your laptop's Bluetooth MAC address from the previous section.
+Replace `<LAPTOP_BT_ADDRESS>` (from `bluetoothctl show`) and `<PHONE_BT_ADDRESS>` (from `bluetoothctl devices`) with your actual addresses.
 
 ```bash
 ./gradlew :app:connectedDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.augustusmachin.android_bt_kbmouse.BluetoothHidSendReportTest \
   -Pandroid.testInstrumentationRunnerArguments.runPhysicalHidTests=true \
-  -Pandroid.testInstrumentationRunnerArguments.hidHostAddress=<LAPTOP_BT_ADDRESS>
+  -Pandroid.testInstrumentationRunnerArguments.hidHostAddress=<LAPTOP_BT_ADDRESS> \
+  -Pandroid.testInstrumentationRunnerArguments.hidPhoneAddress=<PHONE_BT_ADDRESS>
 ```
 
 Example:
@@ -92,15 +118,21 @@ Example:
 ./gradlew :app:connectedDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.augustusmachin.android_bt_kbmouse.BluetoothHidSendReportTest \
   -Pandroid.testInstrumentationRunnerArguments.runPhysicalHidTests=true \
-  -Pandroid.testInstrumentationRunnerArguments.hidHostAddress=E8:FB:1C:25:E4:C2
+  -Pandroid.testInstrumentationRunnerArguments.hidHostAddress=E8:FB:1C:25:E4:C2 \
+  -Pandroid.testInstrumentationRunnerArguments.hidPhoneAddress=8C:6A:3B:5E:D3:48
 ```
 
 ### Step 3: Watch for the "HID profile registered" message in logcat
 
 The test will log (in your terminal or Android Studio logcat):
 ```
-HID profile registered. From the laptop, run: bluetoothctl connect 8C:6A:3B:5E:D3:48
-Expected host: E8:FB:1C:25:E4:C2
+HID profile registered.
+
+Expected host/laptop address:
+E8:FB:1C:25:E4:C2
+
+From the laptop, connect to this Android phone:
+bluetoothctl connect 8C:6A:3B:5E:D3:48
 ```
 
 ### Step 4: Run bluetoothctl connect from the laptop
@@ -111,7 +143,7 @@ bluetoothctl
 [bluetooth]# connect 8C:6A:3B:5E:D3:48
 ```
 
-Use the **phone's Bluetooth MAC** from the log message above.
+Use the **phone's Bluetooth address** (the `hidPhoneAddress` you passed to the test) from the log message above.
 
 You have **90 seconds** from when HID registration completes to run this command.
 
@@ -141,13 +173,19 @@ All 97 tests should pass. Exit code `0` from Gradle indicates success.
 
 **Problem:** You ran `./gradlew :app:connectedDebugAndroidTest` without the `-Pandroid.testInstrumentationRunnerArguments.runPhysicalHidTests=true` argument.
 
-**Fix:** Re-run with the exact command from Step 2 above, including all three `-Pandroid.test...` arguments.
+**Fix:** Re-run with the exact command from Step 2 above, including all four `-Pandroid.test...` arguments.
 
 ### Test is skipped: "hidHostAddress=<laptop Bluetooth MAC>" missing
 
 **Problem:** You forgot to pass the `-Pandroid.testInstrumentationRunnerArguments.hidHostAddress=...` argument.
 
-**Fix:** Include your laptop's Bluetooth MAC address in the command (see Step 2).
+**Fix:** Include your laptop's Bluetooth MAC address (from `bluetoothctl show`) in the command (see Step 2).
+
+### Test is skipped: "hidPhoneAddress=<phone Bluetooth MAC>" missing
+
+**Problem:** You forgot to pass the `-Pandroid.testInstrumentationRunnerArguments.hidPhoneAddress=...` argument.
+
+**Fix:** Include your Android phone's Bluetooth MAC address (from `bluetoothctl devices`) in the command (see Step 2).
 
 ### Test is skipped: "Expected HID host <address> is not bonded"
 
@@ -212,9 +250,9 @@ All 97 tests should pass. Exit code `0` from Gradle indicates success.
 
 ### Linux/BlueZ HID support
 
-Ubuntu/Linux using BlueZ has limited support for HID **peripherals** (devices that act like keyboards/mice). While BlueZ can connect to HID peripherals (host role), accepting incoming HID peripheral connections is not fully reliable.
+If the corrected host-initiated flow still fails (Android logs HID profile registration, you run `bluetoothctl connect <hidPhoneAddress>` from the laptop during the 90-second wait, but Android does not receive `STATE_CONNECTED`), BlueZ may be rejecting or failing the HID host connection attempt. Before concluding that Ubuntu/BlueZ is the root cause, collect the evidence outlined in the troubleshooting section below.
 
-**Windows and macOS** have proper HID host support and tests are expected to pass consistently on those platforms.
+**Windows and macOS** have more mature HID host support and tests are expected to pass consistently on those platforms.
 
 ### One HID registration at a time
 
@@ -224,20 +262,26 @@ Android allows only one app to register as an HID device at a time. If the main 
 
 ## Example Session
 
-### Phone MAC: `8C:6A:3B:5E:D3:48`
-### Laptop MAC: `E8:FB:1C:25:E4:C2`
+### Phone address (from `bluetoothctl devices`): `8C:6A:3B:5E:D3:48`
+### Laptop address (from `bluetoothctl show`): `E8:FB:1C:25:E4:C2`
 
 ```bash
 # Terminal 1: Start the test
 ./gradlew :app:connectedDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.augustusmachin.android_bt_kbmouse.BluetoothHidSendReportTest \
   -Pandroid.testInstrumentationRunnerArguments.runPhysicalHidTests=true \
-  -Pandroid.testInstrumentationRunnerArguments.hidHostAddress=E8:FB:1C:25:E4:C2
+  -Pandroid.testInstrumentationRunnerArguments.hidHostAddress=E8:FB:1C:25:E4:C2 \
+  -Pandroid.testInstrumentationRunnerArguments.hidPhoneAddress=8C:6A:3B:5E:D3:48
 
 # [Output]:
 # ...
-# HID profile registered. From the laptop, run: bluetoothctl connect 8C:6A:3B:5E:D3:48
-# Expected host: E8:FB:1C:25:E4:C2
+# HID profile registered.
+# 
+# Expected host/laptop address:
+# E8:FB:1C:25:E4:C2
+# 
+# From the laptop, connect to this Android phone:
+# bluetoothctl connect 8C:6A:3B:5E:D3:48
 # [waiting for connection... timeout in 90s]
 ```
 
