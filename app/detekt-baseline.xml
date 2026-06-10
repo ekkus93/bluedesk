@@ -35,6 +35,72 @@
     <ID>LongMethod:PairingScreen.kt$@Composable fun PairingScreen(contentPadding: PaddingValues = PaddingValues())</ID>
     <ID>LongMethod:SettingsScreen.kt$@Composable fun SettingsScreen( contentPadding: PaddingValues = PaddingValues(), onOpenLogs: (() -&gt; Unit)? = null, )</ID>
     <ID>LongParameterList:GestureLogic.kt$GestureLogic$( accumV: Float, accumH: Float, dySum: Float, dxSum: Float, scrollSpeed: Float, invertV: Boolean, enableH: Boolean, invertH: Boolean, )</ID>
+    <ID>MagicNumber:BleHogpKeySender.kt$BleHogpKeySender$0x04</ID>
+    <ID>MagicNumber:BleHogpKeySender.kt$BleHogpKeySender$10</ID>
+    <ID>MagicNumber:BleHogpKeySender.kt$BleHogpKeySender$40</ID>
+    <ID>MagicNumber:BleHogpKeySender.kt$BleHogpKeySender$6</ID>
+    <ID>MagicNumber:BleHogpLogic.kt$BleHogpLogic$0xFF</ID>
+    <ID>MagicNumber:BleHogpLogic.kt$BleHogpLogic$8</ID>
+    <ID>MagicNumber:BleHogpService.kt$BleHogpService$0x11</ID>
+    <ID>MagicNumber:BleHogpService.kt$BleHogpService$23</ID>
+    <ID>MagicNumber:BleHogpService.kt$BleHogpService$26</ID>
+    <ID>MagicNumber:BluetoothService.kt$BluetoothService$2000L</ID>
+    <ID>MagicNumber:BluetoothService.kt$BluetoothService$24</ID>
+    <ID>MagicNumber:BluetoothService.kt$BluetoothService$33</ID>
+    <ID>MagicNumber:BootReceiver.kt$BootReceiver$26</ID>
+    <ID>MagicNumber:ExtendedKeyMappings.kt$0x39</ID>
+    <ID>MagicNumber:ExtendedKeyMappings.kt$12</ID>
+    <ID>MagicNumber:ExtendedKeysScreen.kt$0xFF</ID>
+    <ID>MagicNumber:ExtendedKeysScreen.kt$200</ID>
+    <ID>MagicNumber:ExtendedKeysScreen.kt$3</ID>
+    <ID>MagicNumber:ExtendedKeysScreen.kt$36f</ID>
+    <ID>MagicNumber:ExtendedKeysScreen.kt$6f</ID>
+    <ID>MagicNumber:ForegroundServiceLogic.kt$ForegroundServiceLogic$5000L</ID>
+    <ID>MagicNumber:FunctionKeysScreen.kt$0xFF</ID>
+    <ID>MagicNumber:FunctionKeysScreen.kt$3</ID>
+    <ID>MagicNumber:FunctionKeysScreen.kt$36f</ID>
+    <ID>MagicNumber:FunctionKeysScreen.kt$6f</ID>
+    <ID>MagicNumber:GestureLogic.kt$GestureLogic$0.1f</ID>
+    <ID>MagicNumber:GestureLogic.kt$GestureLogic$20</ID>
+    <ID>MagicNumber:GestureLogic.kt$GestureLogic$220</ID>
+    <ID>MagicNumber:GestureLogic.kt$GestureLogic$24f</ID>
+    <ID>MagicNumber:GestureLogic.kt$GestureLogic$3</ID>
+    <ID>MagicNumber:HidQuickTileService.kt$HidQuickTileService$23</ID>
+    <ID>MagicNumber:HidReportSender.kt$HidReportSender$0xFF</ID>
+    <ID>MagicNumber:HidReportSender.kt$HidReportSender$10</ID>
+    <ID>MagicNumber:HidReportSender.kt$HidReportSender$6</ID>
+    <ID>MagicNumber:KeyboardScreen.kt$10f</ID>
+    <ID>MagicNumber:KeyboardScreen.kt$16f</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$26</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity.&lt;no name provided&gt;.&lt;no name provided&gt;$0x04</ID>
+    <ID>MagicNumber:MainScreen.kt$33</ID>
+    <ID>MagicNumber:Middleware.kt$KeySenderMiddleware$0x04</ID>
+    <ID>MagicNumber:Middleware.kt$KeySenderMiddleware$0x08</ID>
+    <ID>MagicNumber:Middleware.kt$KeySenderMiddleware$40</ID>
+    <ID>MagicNumber:MouseScreen.kt$0.1f</ID>
+    <ID>MagicNumber:MouseScreen.kt$0.5f</ID>
+    <ID>MagicNumber:MouseScreen.kt$20</ID>
+    <ID>MagicNumber:MouseScreen.kt$220</ID>
+    <ID>MagicNumber:MouseScreen.kt$24f</ID>
+    <ID>MagicNumber:MouseScreen.kt$3</ID>
+    <ID>MagicNumber:NavigationKeysScreen.kt$0xFF</ID>
+    <ID>MagicNumber:NavigationKeysScreen.kt$3</ID>
+    <ID>MagicNumber:NavigationKeysScreen.kt$36f</ID>
+    <ID>MagicNumber:NavigationKeysScreen.kt$6f</ID>
+    <ID>MagicNumber:PairingScreen.kt$31</ID>
+    <ID>MagicNumber:PairingScreen.kt$33</ID>
+    <ID>MagicNumber:PermissionPolicy.kt$PermissionPolicy$31</ID>
+    <ID>MagicNumber:ReconnectLogic.kt$ReconnectLogic$2000L</ID>
+    <ID>MagicNumber:ReconnectLogic.kt$ReconnectLogic$30_000L</ID>
+    <ID>MagicNumber:ResponsiveText.kt$0.5f</ID>
+    <ID>MagicNumber:ServiceNotifications.kt$ServiceNotifications$23</ID>
+    <ID>MagicNumber:ServiceNotifications.kt$ServiceNotifications$26</ID>
+    <ID>MagicNumber:ServiceNotifications.kt$ServiceNotifications$3</ID>
+    <ID>MagicNumber:SettingsScreen.kt$0.5f</ID>
+    <ID>MagicNumber:SettingsScreen.kt$1000</ID>
+    <ID>MagicNumber:SettingsScreen.kt$150</ID>
+    <ID>MagicNumber:SettingsScreen.kt$23</ID>
+    <ID>MagicNumber:SettingsScreen.kt$3.0f</ID>
     <ID>NestedBlockDepth:BleHogpService.kt$BleHogpService$@Suppress("DEPRECATION") fun notifyKeyboard(report: ByteArray)</ID>
     <ID>NestedBlockDepth:BleHogpService.kt$BleHogpService$@Suppress("DEPRECATION") fun notifyMouse(report: ByteArray)</ID>
     <ID>NestedBlockDepth:BluetoothService.kt$BluetoothService$override fun disconnectDevice()</ID>

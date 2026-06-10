@@ -5,8 +5,10 @@
 
 style:
   MagicNumber:
-    # HID report descriptors, bit masks, and byte offsets are inherently numeric.
-    active: false
+    # Enforced. Pure byte/keycode tables use @file:Suppress("MagicNumber");
+    # property declarations (color/setting constants) are ignored.
+    active: true
+    ignorePropertyDeclaration: true
   MaxLineLength:
     maxLineLength: 120
     excludePackageStatements: true

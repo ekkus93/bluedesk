@@ -1,3 +1,6 @@
+// Char→HID keycode mapping table; the numeric literals are HID usage codes.
+@file:Suppress("MagicNumber")
+
 package com.augustusmachin.android_bt_kbmouse
 
 /**

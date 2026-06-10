@@ -1,3 +1,6 @@
+// HID report byte builders; the numeric literals are report IDs / byte offsets.
+@file:Suppress("MagicNumber")
+
 package com.augustusmachin.android_bt_kbmouse
 
 /**

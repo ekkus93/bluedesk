@@ -1,6 +1,6 @@
 // HID descriptors are documented with an inline comment on each byte argument;
 // keep those inline rather than splitting every byte onto its own line.
-@file:Suppress("ktlint:standard:discouraged-comment-location")
+@file:Suppress("ktlint:standard:discouraged-comment-location", "MagicNumber")
 
 package com.augustusmachin.android_bt_kbmouse
 
