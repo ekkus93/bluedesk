@@ -189,7 +189,8 @@ class BleHogpService : Service() {
                 it.addDescriptor(
                     BluetoothGattDescriptor(
                         UUID_CCC,
-                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
+                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or
+                            BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
                     ),
                 )
             }
@@ -211,7 +212,8 @@ class BleHogpService : Service() {
                 it.addDescriptor(
                     BluetoothGattDescriptor(
                         UUID_CCC,
-                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
+                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or
+                            BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
                     ),
                 )
             }
@@ -238,7 +240,8 @@ class BleHogpService : Service() {
                 it.addDescriptor(
                     BluetoothGattDescriptor(
                         UUID_CCC,
-                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
+                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or
+                            BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
                     ),
                 )
             }
@@ -260,7 +263,8 @@ class BleHogpService : Service() {
                 it.addDescriptor(
                     BluetoothGattDescriptor(
                         UUID_CCC,
-                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
+                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or
+                            BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
                     ),
                 )
             }
@@ -278,7 +282,8 @@ class BleHogpService : Service() {
                 it.addDescriptor(
                     BluetoothGattDescriptor(
                         UUID_CCC,
-                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
+                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or
+                            BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
                     ),
                 )
             }
@@ -502,14 +507,17 @@ class BleHogpService : Service() {
         val channelId = "ble_hogp_service"
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(channelId) == null) {
-            nm.createNotificationChannel(NotificationChannel(channelId, "BLE HID Service", NotificationManager.IMPORTANCE_LOW))
+            nm.createNotificationChannel(
+                NotificationChannel(channelId, "BLE HID Service", NotificationManager.IMPORTANCE_LOW),
+            )
         }
         val pi =
             PendingIntent.getActivity(
                 this,
                 0,
                 Intent(this, MainActivity::class.java),
-                PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0),
+                PendingIntent.FLAG_UPDATE_CURRENT or
+                    (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0),
             )
         val notif: Notification =
             NotificationCompat.Builder(this, channelId)

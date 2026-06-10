@@ -53,7 +53,14 @@ class HidReportBuilderTest {
         val vInv = HidReportBuilder.wheelValue(3, invert = true)
         assertEquals(3.toByte(), v)
         assertEquals((-3).toByte(), vInv)
-        val rpt = HidReportBuilder.mouseReport(0, 0, 0, wheel = v.toInt(), hWheel = HidReportBuilder.wheelValue(-2, invert = true).toInt())
+        val rpt =
+            HidReportBuilder.mouseReport(
+                0,
+                0,
+                0,
+                wheel = v.toInt(),
+                hWheel = HidReportBuilder.wheelValue(-2, invert = true).toInt(),
+            )
         assertEquals(0x03.toByte(), rpt[3])
         assertEquals(0x02.toByte(), rpt[4])
     }

@@ -82,7 +82,9 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                 StoreProvider.dispatch(Action.StartDiscovery)
             } else {
                 val denied = granted.filterValues { !it }.keys.toTypedArray()
-                if (activity != null && denied.any { !ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }) {
+                if (activity != null &&
+                    denied.any { !ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }
+                ) {
                     pendingPermissions = denied
                     showSettings = true
                 } else {
@@ -111,7 +113,11 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
         }
 
     fun openAppSettings() {
-        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", context.packageName, null))
+        val intent =
+            Intent(
+                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                android.net.Uri.fromParts("package", context.packageName, null),
+            )
         context.startActivity(intent)
     }
 
@@ -202,7 +208,10 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                 view.playSoundEffect(SoundEffectConstants.CLICK)
                 view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                 val req = requiredPermissions()
-                val missing = req.filter { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
+                val missing =
+                    req.filter {
+                        ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+                    }
                 if (missing.isEmpty()) {
                     StoreProvider.dispatch(Action.StartDiscovery)
                 } else {
@@ -220,7 +229,11 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
 
         // Discovered devices — collapses to nothing when empty (TASK-10)
         if (discoveredDevices.isNotEmpty()) {
-            Text(text = "Discovered Devices", modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "Discovered Devices",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.titleMedium,
+            )
             LazyColumn(
                 modifier =
                     Modifier
@@ -264,7 +277,11 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
         }
 
         // Paired devices — always visible (TASK-13)
-        Text(text = "Paired Devices", modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = "Paired Devices",
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.titleMedium,
+        )
         val defaultAddr = appState.connection.defaultDeviceAddress
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -274,9 +291,15 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                 val display = ServiceAliasHelper.getAlias(dev) ?: (dev.name ?: dev.address)
                 val isConn = connectedDevice?.address == dev.address
                 val isDef = defaultAddr == dev.address
-                val cardDesc = "Paired device: $display. ${if (isConn) "Connected." else "Disconnected."} ${if (isDef) "Default device." else ""}"
+                val cardDesc =
+                    "Paired device: $display. " +
+                        "${if (isConn) "Connected." else "Disconnected."} " +
+                        "${if (isDef) "Default device." else ""}"
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).semantics { this[SemanticsProperties.ContentDescription] = listOf(cardDesc) },
+                    modifier =
+                        Modifier.fillMaxWidth().padding(vertical = 6.dp).semantics {
+                            this[SemanticsProperties.ContentDescription] = listOf(cardDesc)
+                        },
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
@@ -286,10 +309,20 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             androidx.compose.foundation.layout.Box(
-                                modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
+                                modifier =
+                                    Modifier.size(
+                                        40.dp,
+                                    ).clip(
+                                        CircleShape,
+                                    ).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_bluetooth),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp),
+                                )
                             }
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
@@ -313,12 +346,24 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                                 IconButton(
                                     onClick = { StoreProvider.dispatch(Action.DisconnectDevice) },
                                     modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
-                                ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Disconnect", tint = iconTint) }
+                                ) {
+                                    Icon(
+                                        painterResource(id = R.drawable.ic_bluetooth),
+                                        contentDescription = "Disconnect",
+                                        tint = iconTint,
+                                    )
+                                }
                             } else {
                                 IconButton(
                                     onClick = { StoreProvider.dispatch(Action.ConnectDevice(dev)) },
                                     modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
-                                ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Connect", tint = iconTint) }
+                                ) {
+                                    Icon(
+                                        painterResource(id = R.drawable.ic_bluetooth),
+                                        contentDescription = "Connect",
+                                        tint = iconTint,
+                                    )
+                                }
                             }
                             IconButton(
                                 onClick = { StoreProvider.dispatch(Action.SetDefaultDevice(dev)) },
@@ -326,7 +371,11 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                                 modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
                             ) {
                                 val starRes = if (isDef) R.drawable.ic_star_filled else R.drawable.ic_star_outline
-                                Icon(painterResource(id = starRes), contentDescription = if (isDef) "Default device" else "Set default device", tint = if (isDef) MaterialTheme.colorScheme.primary else iconTint)
+                                Icon(
+                                    painterResource(id = starRes),
+                                    contentDescription = if (isDef) "Default device" else "Set default device",
+                                    tint = if (isDef) MaterialTheme.colorScheme.primary else iconTint,
+                                )
                             }
                             IconButton(
                                 onClick = {
@@ -334,11 +383,23 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                                     renameText = display
                                 },
                                 modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
-                            ) { Icon(painterResource(id = R.drawable.ic_edit), contentDescription = "Rename", tint = iconTint) }
+                            ) {
+                                Icon(
+                                    painterResource(id = R.drawable.ic_edit),
+                                    contentDescription = "Rename",
+                                    tint = iconTint,
+                                )
+                            }
                             IconButton(
                                 onClick = { toForget = dev },
                                 modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
-                            ) { Icon(painterResource(id = R.drawable.ic_delete), contentDescription = "Forget", tint = MaterialTheme.colorScheme.error) }
+                            ) {
+                                Icon(
+                                    painterResource(id = R.drawable.ic_delete),
+                                    contentDescription = "Forget",
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            }
                         }
                     }
                 }

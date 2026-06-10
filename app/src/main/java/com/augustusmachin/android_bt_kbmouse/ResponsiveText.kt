@@ -41,7 +41,12 @@ fun ResponsiveText(
         while (lo <= hi) {
             val mid = (lo + hi) / 2f
             val style = TextStyle(fontSize = mid.sp, fontWeight = fontWeight, letterSpacing = letterSpacing)
-            val result = measurer.measure(AnnotatedString(text), style = style, constraints = Constraints(maxWidth = maxWidthPx))
+            val result =
+                measurer.measure(
+                    AnnotatedString(text),
+                    style = style,
+                    constraints = Constraints(maxWidth = maxWidthPx),
+                )
             val fits = result.size.width <= maxWidthPx && result.lineCount <= 1
             if (fits) {
                 best = mid

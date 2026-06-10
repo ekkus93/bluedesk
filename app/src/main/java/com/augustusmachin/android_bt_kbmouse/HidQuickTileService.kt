@@ -31,7 +31,9 @@ class HidQuickTileService : TileService() {
                 // no last device; open app
                 val i = Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 // Use the PendingIntent overload on newer platforms to avoid UnsupportedOperationException
-                val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
+                val flags =
+                    PendingIntent.FLAG_UPDATE_CURRENT or
+                        (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
                 val pi = PendingIntent.getActivity(this, 0, i, flags)
                 if (Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     // Preferred new API

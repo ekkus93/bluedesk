@@ -72,7 +72,9 @@ fun MainScreen() {
         if (Build.VERSION.SDK_INT >= 33) {
             val sp = context.getSharedPreferences("perm", Context.MODE_PRIVATE)
             if (!sp.getBoolean("notif_asked", false)) {
-                val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                val granted =
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                        PackageManager.PERMISSION_GRANTED
                 if (!granted) {
                     notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 } else {
@@ -85,7 +87,9 @@ fun MainScreen() {
     // (Background reliability), instead of as a prompt on launch.
     // read settings from SettingsViewModel to avoid duplicate collectors
     val settingsViewModel: SettingsViewModel = viewModel()
-    val settings by settingsViewModel.settings.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
+    val settings by settingsViewModel.settings.collectAsState(
+        initial = com.augustusmachin.android_bt_kbmouse.Settings(),
+    )
     Scaffold(
         topBar = {
             Column {
@@ -94,7 +98,9 @@ fun MainScreen() {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentDestination = navBackStackEntry?.destination
                     Screen.values().forEach { screen ->
-                        val isEnabled = connected != null || screen == Screen.Pairing || screen == Screen.Settings || settings.debugLogging || settings.offlinePreview
+                        val isEnabled =
+                            connected != null || screen == Screen.Pairing ||
+                                screen == Screen.Settings || settings.debugLogging || settings.offlinePreview
                         NavigationBarItem(
                             icon = { Icon(painterResource(id = screen.icon), contentDescription = screen.title) },
                             label = { Text(screen.title) },
@@ -147,12 +153,23 @@ fun MainScreen() {
                                 }
                             // Compact status: indicator + device name; omit the large app title to save space.
                             val connectedName = connected?.name
-                            val statusText = if (connectedName != null) "Connected to $connectedName" else "Disconnected"
+                            val statusText =
+                                if (connectedName != null) "Connected to $connectedName" else "Disconnected"
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.semantics { this[SemanticsProperties.ContentDescription] = listOf(statusText) },
+                                modifier =
+                                    Modifier.semantics {
+                                        this[SemanticsProperties.ContentDescription] = listOf(statusText)
+                                    },
                             ) {
-                                val indicatorColor = if (connectedName != null) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f)
+                                val indicatorColor =
+                                    if (connectedName != null) {
+                                        MaterialTheme.colorScheme.tertiary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface.copy(
+                                            alpha = 0.34f,
+                                        )
+                                    }
                                 Box(
                                     modifier =
                                         Modifier
@@ -174,14 +191,22 @@ fun MainScreen() {
                                 onClick = { StoreProvider.dispatch(Action.StartDiscovery) },
                                 modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
                             ) {
-                                Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Scan", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_bluetooth),
+                                    contentDescription = "Scan",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                             // Settings action
                             IconButton(
                                 onClick = { navController.navigate(Screen.Settings.route) },
                                 modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
                             ) {
-                                Icon(painter = painterResource(id = R.drawable.ic_settings), contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_settings),
+                                    contentDescription = "Settings",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                         },
                     )
@@ -210,7 +235,9 @@ fun MainScreen() {
             composable(Screen.Pairing.route) { PairingScreen(contentPadding = innerPadding) }
             composable(Screen.Keyboard.route) { KeyboardScreen(contentPadding = innerPadding) }
             composable(Screen.Mouse.route) { MouseScreen(contentPadding = innerPadding) }
-            composable(Screen.Settings.route) { SettingsScreen(contentPadding = innerPadding, onOpenLogs = { navController.navigate("logs") }) }
+            composable(Screen.Settings.route) {
+                SettingsScreen(contentPadding = innerPadding, onOpenLogs = { navController.navigate("logs") })
+            }
             composable("logs") { LogsScreen(contentPadding = innerPadding) }
         }
     }

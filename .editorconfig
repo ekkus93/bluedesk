@@ -4,8 +4,9 @@ root = true
 # @Composable functions are intentionally PascalCase; keep the rule active for
 # everything else by ignoring only Composables.
 ktlint_function_naming_ignore_when_annotated_with = Composable
-# Compose UI builds deeply nested trees; the default max line length fights it.
-max_line_length = off
+# Enforce a 120-char line limit (readability). ktlint auto-wraps most long
+# argument lists / chains via ktlintFormat.
+max_line_length = 120
 # The package intentionally contains an underscore (it matches the applicationId
 # com.augustusmachin.android_bt_kbmouse, which must not be renamed).
 ktlint_standard_package-name = disabled

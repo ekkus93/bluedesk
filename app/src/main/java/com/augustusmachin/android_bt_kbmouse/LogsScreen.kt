@@ -41,7 +41,13 @@ fun LogsScreen(contentPadding: PaddingValues = PaddingValues()) {
             Button(onClick = { DebugLog.clear() }, modifier = Modifier.padding(end = 8.dp)) { Text("Clear") }
             Button(onClick = {
                 val meta =
-                    "App: ${context.packageName}\nDevice: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (SDK ${android.os.Build.VERSION.SDK_INT})\nTime: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date())}\nFilter: " +
+                    "App: ${context.packageName}\n" +
+                        "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} " +
+                        "(SDK ${android.os.Build.VERSION.SDK_INT})\n" +
+                        "Time: ${java.text.SimpleDateFormat(
+                            "yyyy-MM-dd HH:mm:ss",
+                            java.util.Locale.US,
+                        ).format(java.util.Date())}\nFilter: " +
                         when (filter) {
                             0 -> "All"
                             1 -> "Info"

@@ -145,7 +145,9 @@ fun KeyboardScreen(contentPadding: PaddingValues = PaddingValues()) {
                             .focusRequester(focusRequester)
                             .onPreviewKeyEvent { event ->
                                 val native = event.nativeKeyEvent
-                                if (native.keyCode == android.view.KeyEvent.KEYCODE_DEL && native.action == android.view.KeyEvent.ACTION_DOWN) {
+                                if (native.keyCode == android.view.KeyEvent.KEYCODE_DEL &&
+                                    native.action == android.view.KeyEvent.ACTION_DOWN
+                                ) {
                                     StoreProvider.dispatch(Action.TrackPreviewKey("DEL"))
                                     if (connected) {
                                         StoreProvider.dispatch(Action.SendKey(0x2A.toByte(), 0))

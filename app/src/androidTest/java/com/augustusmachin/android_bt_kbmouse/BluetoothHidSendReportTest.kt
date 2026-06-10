@@ -80,7 +80,8 @@ class BluetoothHidSendReportTest {
                 InstrumentationRegistry.getArguments()
                     .getString("runPhysicalHidTests") == "true"
             if (!runPhysical) {
-                notReadyReason = "Physical HID tests require runPhysicalHidTests=true and host-side bluetoothctl connect"
+                notReadyReason =
+                    "Physical HID tests require runPhysicalHidTests=true and host-side bluetoothctl connect"
                 return
             }
 
@@ -90,7 +91,9 @@ class BluetoothHidSendReportTest {
                     .getString("hidHostAddress")
                     ?.uppercase(Locale.US)
             if (expectedHostAddress.isNullOrBlank()) {
-                notReadyReason = "Physical HID test requires hidHostAddress=<laptop/controller Bluetooth MAC>. Find it with bluetoothctl show."
+                notReadyReason =
+                    "Physical HID test requires hidHostAddress=<laptop/controller Bluetooth MAC>. " +
+                    "Find it with bluetoothctl show."
                 return
             }
 
@@ -100,7 +103,9 @@ class BluetoothHidSendReportTest {
                     .getString("hidPhoneAddress")
                     ?.uppercase(Locale.US)
             if (expectedPhoneAddress.isNullOrBlank()) {
-                notReadyReason = "Physical HID test requires hidPhoneAddress=<Android phone Bluetooth MAC>. Find it from the laptop with bluetoothctl devices."
+                notReadyReason =
+                    "Physical HID test requires hidPhoneAddress=<Android phone Bluetooth MAC>. " +
+                    "Find it from the laptop with bluetoothctl devices."
                 return
             }
 
@@ -204,7 +209,10 @@ class BluetoothHidSendReportTest {
                                 connectedDevice = device
                                 connectionLatch.countDown()
                             } else {
-                                DebugLog.log("BluetoothHidSendReportTest", "Ignoring HID connection from unexpected host $address")
+                                DebugLog.log(
+                                    "BluetoothHidSendReportTest",
+                                    "Ignoring HID connection from unexpected host $address",
+                                )
                             }
                         }
                     }
@@ -240,7 +248,12 @@ class BluetoothHidSendReportTest {
             }
 
             // Log instructions for host-initiated connection
-            DebugLog.log("BluetoothHidSendReportTest", "HID profile registered.\n\nExpected host/laptop address:\n$expectedHostAddress\n\nFrom the laptop, connect to this Android phone:\nbluetoothctl connect $expectedPhoneAddress")
+            DebugLog.log(
+                "BluetoothHidSendReportTest",
+                "HID profile registered.\n\nExpected host/laptop address:\n$expectedHostAddress\n\n" +
+                    "From the laptop, connect to this Android phone:\n" +
+                    "bluetoothctl connect $expectedPhoneAddress",
+            )
             android.util.Log.w("BtHidTest", "READY_FOR_HOST_CONNECT")
 
             // Host-initiated only: the phone exposes the HID app and waits for the
@@ -248,7 +261,10 @@ class BluetoothHidSendReportTest {
             // $expectedPhoneAddress). The phone does NOT page the host itself — on
             // this hardware device-initiated paging fails with HCI_ERR_PAGE_TIMEOUT.
             if (!connectionLatch.await(HOST_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                notReadyReason = "Host did not initiate HID connection within $HOST_CONNECT_TIMEOUT_SECONDS seconds. After Android logs READY_FOR_HOST_CONNECT, run bluetoothctl connect $expectedPhoneAddress from the laptop."
+                notReadyReason =
+                    "Host did not initiate HID connection within $HOST_CONNECT_TIMEOUT_SECONDS seconds. " +
+                    "After Android logs READY_FOR_HOST_CONNECT, " +
+                    "run bluetoothctl connect $expectedPhoneAddress from the laptop."
                 return
             }
 
@@ -295,8 +311,7 @@ class BluetoothHidSendReportTest {
     private fun sendKey(
         reportId: Byte,
         data: ByteArray,
-    ): Boolean =
-        hidProxy!!.sendReport(connectedDevice!!, reportId.toInt(), data)
+    ): Boolean = hidProxy!!.sendReport(connectedDevice!!, reportId.toInt(), data)
 
     private fun key(report: ByteArray) = sendKey(HidDescriptorVariants.REPORT_ID_KEYBOARD, report)
 

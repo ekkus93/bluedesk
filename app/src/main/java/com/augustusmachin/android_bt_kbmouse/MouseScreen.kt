@@ -139,7 +139,9 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
                     },
         ) {
             Text(
-                text = "Use this area as a touchpad\n• 1-finger move/tap\n• 2-finger scroll/tap=right\n• 3-finger tap=middle",
+                text =
+                    "Use this area as a touchpad\n• 1-finger move/tap\n" +
+                        "• 2-finger scroll/tap=right\n• 3-finger tap=middle",
                 modifier = Modifier.align(Alignment.Center),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -151,9 +153,23 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val mouseBtnPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
-            ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), contentPadding = mouseBtnPadding, onClick = { StoreProvider.dispatch(Action.LeftClick) }) { Text("Left", fontSize = 12.sp, maxLines = 1, softWrap = false) }
-            ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), contentPadding = mouseBtnPadding, enabled = settings.enableMiddleClick, onClick = { if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick) }) { Text("Middle", fontSize = 12.sp, maxLines = 1, softWrap = false) }
-            ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), contentPadding = mouseBtnPadding, onClick = { StoreProvider.dispatch(Action.RightClick) }) { Text("Right", fontSize = 12.sp, maxLines = 1, softWrap = false) }
+            ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), contentPadding = mouseBtnPadding, onClick = {
+                StoreProvider.dispatch(Action.LeftClick)
+            }) { Text("Left", fontSize = 12.sp, maxLines = 1, softWrap = false) }
+            ElevatedButton(
+                modifier =
+                    Modifier.weight(
+                        1f,
+                    ).height(44.dp),
+                contentPadding = mouseBtnPadding,
+                enabled = settings.enableMiddleClick,
+                onClick = {
+                    if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick)
+                },
+            ) { Text("Middle", fontSize = 12.sp, maxLines = 1, softWrap = false) }
+            ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), contentPadding = mouseBtnPadding, onClick = {
+                StoreProvider.dispatch(Action.RightClick)
+            }) { Text("Right", fontSize = 12.sp, maxLines = 1, softWrap = false) }
             ElevatedButton(
                 modifier = Modifier.weight(1f).height(44.dp),
                 contentPadding = mouseBtnPadding,

@@ -108,7 +108,9 @@ class HidReportSender(
         val report = HidReportBuilder.keyboardReport(currentModifiers, keys)
         DebugLog.log(TAG, "kbd mods=" + currentModifiers + " keys=" + keys)
         // Ensure BLUETOOTH_CONNECT before sending HID report
-        val hasBtConnectReport = ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasBtConnectReport =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
         if (hasBtConnectReport) {
             try {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
@@ -156,7 +158,9 @@ class HidReportSender(
                 HidReportBuilder.mouseReport(buttons, dx, dy, wheel, hWheel)
             }
         DebugLog.log(TAG, "mouse btn=$buttons dx=$dx dy=$dy wheel=$wheel hwheel=$hWheel simplified=$simplified")
-        val hasBtConnect = ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasBtConnect =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
         if (hasBtConnect) {
             try {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {

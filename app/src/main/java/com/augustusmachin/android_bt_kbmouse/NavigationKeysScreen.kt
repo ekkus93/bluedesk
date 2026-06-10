@@ -78,7 +78,14 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
         listOf(
             NavGridCol("Ctrl", ks.ctrl, Action.ToggleCtrl, NavCell.Empty, NavCell.Key("←"), NavCell.Empty),
             NavGridCol("Shift", ks.shift, Action.ToggleShift, NavCell.Key("↑"), NavCell.Empty, NavCell.Key("↓")),
-            NavGridCol("CAPS", appState.connection.capsLock, Action.ToggleCapsLock, NavCell.Empty, NavCell.Key("→"), NavCell.Empty),
+            NavGridCol(
+                "CAPS",
+                appState.connection.capsLock,
+                Action.ToggleCapsLock,
+                NavCell.Empty,
+                NavCell.Key("→"),
+                NavCell.Empty,
+            ),
             NavGridCol("Alt", ks.alt, Action.ToggleAlt, NavCell.Key("PGUP"), NavCell.Key("PGDN"), NavCell.Empty),
             NavGridCol("Meta", ks.gui, Action.ToggleGui, NavCell.ScrollLock, NavCell.Empty, NavCell.Empty),
             NavGridCol(null, false, null, NavCell.Empty, NavCell.Empty, NavCell.Empty),

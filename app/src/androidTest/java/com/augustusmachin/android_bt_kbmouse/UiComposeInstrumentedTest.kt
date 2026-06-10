@@ -87,7 +87,11 @@ class UiComposeInstrumentedTest {
 
     @Composable
     private fun TestScan() {
-        Button(onClick = { com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.StartDiscovery) }) { Text("Scan for devices") }
+        Button(onClick = {
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+                com.augustusmachin.android_bt_kbmouse.store.Action.StartDiscovery,
+            )
+        }) { Text("Scan for devices") }
         val appState by com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().collectAsState()
         val msg = appState.connection.message
         if (msg != null) Text(msg)

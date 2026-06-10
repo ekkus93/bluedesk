@@ -8,8 +8,12 @@ style:
     # HID report descriptors, bit masks, and byte offsets are inherently numeric.
     active: false
   MaxLineLength:
-    # Compose builds deeply nested trees; matches the ktlint max-line decision.
-    active: false
+    maxLineLength: 120
+    excludePackageStatements: true
+    excludeImportStatements: true
+    # ktlint's max-line-length already exempts comments (KDoc, a copy-paste
+    # command line, etc.); match that so the two tools agree.
+    excludeCommentStatements: true
   WildcardImport:
     # Several Compose files use package wildcard imports by convention.
     active: false

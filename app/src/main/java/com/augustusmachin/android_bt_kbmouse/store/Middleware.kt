@@ -19,7 +19,9 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
     fun create() =
         middleware<AppState> { store: Store<AppState>, next, action ->
             // Modifier toggles need to update store state first, then push modifier mask to device
-            if (action == Action.ToggleCtrl || action == Action.ToggleShift || action == Action.ToggleAlt || action == Action.ToggleGui) {
+            if (action == Action.ToggleCtrl || action == Action.ToggleShift ||
+                action == Action.ToggleAlt || action == Action.ToggleGui
+            ) {
                 val res = next(action)
                 val k = store.state.keyboard
                 var mods = 0

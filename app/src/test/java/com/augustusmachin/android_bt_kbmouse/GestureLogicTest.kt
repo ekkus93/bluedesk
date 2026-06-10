@@ -19,13 +19,33 @@ class GestureLogicTest {
     fun twoFinger_vertical_scroll_thresholds_and_accumulation() {
         var accV = 0f
         var accH = 0f
-        val r1 = GestureLogic.accumulateTwoFingerScroll(accV, accH, dySum = 30f, dxSum = 0f, scrollSpeed = 1.0f, invertV = false, enableH = false, invertH = false)
+        val r1 =
+            GestureLogic.accumulateTwoFingerScroll(
+                accV,
+                accH,
+                dySum = 30f,
+                dxSum = 0f,
+                scrollSpeed = 1.0f,
+                invertV = false,
+                enableH = false,
+                invertH = false,
+            )
         assertEquals(listOf(1), r1.verticalSteps) // 30 >= 24 => one step
         assertTrue(r1.horizontalSteps.isEmpty())
         // remaining accum approx 6
         assertTrue(r1.accumV in 5.5f..6.5f)
         // Now negative movement large enough for one -step
-        val r2 = GestureLogic.accumulateTwoFingerScroll(r1.accumV, r1.accumH, dySum = -50f, dxSum = 0f, scrollSpeed = 1.0f, invertV = false, enableH = false, invertH = false)
+        val r2 =
+            GestureLogic.accumulateTwoFingerScroll(
+                r1.accumV,
+                r1.accumH,
+                dySum = -50f,
+                dxSum = 0f,
+                scrollSpeed = 1.0f,
+                invertV = false,
+                enableH = false,
+                invertH = false,
+            )
         assertEquals(listOf(-1), r2.verticalSteps)
         // ~6-50 = -44 -> after one step (add 24) ~ -20 remains
         assertTrue(r2.accumV in -21f..-19f)
@@ -33,7 +53,17 @@ class GestureLogicTest {
 
     @Test
     fun twoFinger_horizontal_scroll_invert_behavior() {
-        val r = GestureLogic.accumulateTwoFingerScroll(0f, 0f, dySum = 0f, dxSum = 25f, scrollSpeed = 1.0f, invertV = false, enableH = true, invertH = true)
+        val r =
+            GestureLogic.accumulateTwoFingerScroll(
+                0f,
+                0f,
+                dySum = 0f,
+                dxSum = 25f,
+                scrollSpeed = 1.0f,
+                invertV = false,
+                enableH = true,
+                invertH = true,
+            )
         assertEquals(emptyList<Int>(), r.verticalSteps)
         assertEquals(listOf(-1), r.horizontalSteps) // invert flips + to -
         assertTrue(r.accumH in 0.5f..1.5f)
@@ -41,9 +71,21 @@ class GestureLogicTest {
 
     @Test
     fun threeFinger_middleClick_detection_debounce() {
-        assertEquals(GestureLogic.Tap.Middle, GestureLogic.tapAction(moved = false, durationMs = 150, maxPointers = 3, enableMiddle = true))
-        assertEquals(GestureLogic.Tap.None, GestureLogic.tapAction(moved = false, durationMs = 300, maxPointers = 3, enableMiddle = true))
-        assertEquals(GestureLogic.Tap.None, GestureLogic.tapAction(moved = true, durationMs = 150, maxPointers = 3, enableMiddle = true))
-        assertEquals(GestureLogic.Tap.None, GestureLogic.tapAction(moved = false, durationMs = 150, maxPointers = 3, enableMiddle = false))
+        assertEquals(
+            GestureLogic.Tap.Middle,
+            GestureLogic.tapAction(moved = false, durationMs = 150, maxPointers = 3, enableMiddle = true),
+        )
+        assertEquals(
+            GestureLogic.Tap.None,
+            GestureLogic.tapAction(moved = false, durationMs = 300, maxPointers = 3, enableMiddle = true),
+        )
+        assertEquals(
+            GestureLogic.Tap.None,
+            GestureLogic.tapAction(moved = true, durationMs = 150, maxPointers = 3, enableMiddle = true),
+        )
+        assertEquals(
+            GestureLogic.Tap.None,
+            GestureLogic.tapAction(moved = false, durationMs = 150, maxPointers = 3, enableMiddle = false),
+        )
     }
 }

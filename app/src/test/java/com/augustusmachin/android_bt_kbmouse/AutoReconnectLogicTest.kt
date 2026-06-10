@@ -18,7 +18,14 @@ class AutoReconnectLogicTest {
         val base = 2000L
         val delays = mutableListOf<Long>()
         repeat(5) {
-            val d = ReconnectLogic.nextDelay(manualDisconnect = false, success = false, btEnabled = true, base = base, currentAttempt = attempt)
+            val d =
+                ReconnectLogic.nextDelay(
+                    manualDisconnect = false,
+                    success = false,
+                    btEnabled = true,
+                    base = base,
+                    currentAttempt = attempt,
+                )
             assertNotNull(d)
             delays += d!!
             attempt++
@@ -29,13 +36,34 @@ class AutoReconnectLogicTest {
     @Test
     fun stops_retry_on_success_or_manual_disconnect() {
         // Manual disconnect stops
-        val d1 = ReconnectLogic.nextDelay(manualDisconnect = true, success = false, btEnabled = true, base = 2000L, currentAttempt = 0)
+        val d1 =
+            ReconnectLogic.nextDelay(
+                manualDisconnect = true,
+                success = false,
+                btEnabled = true,
+                base = 2000L,
+                currentAttempt = 0,
+            )
         assertNull(d1)
         // Success stops
-        val d2 = ReconnectLogic.nextDelay(manualDisconnect = false, success = true, btEnabled = true, base = 2000L, currentAttempt = 2)
+        val d2 =
+            ReconnectLogic.nextDelay(
+                manualDisconnect = false,
+                success = true,
+                btEnabled = true,
+                base = 2000L,
+                currentAttempt = 2,
+            )
         assertNull(d2)
         // BT off pauses
-        val d3 = ReconnectLogic.nextDelay(manualDisconnect = false, success = false, btEnabled = false, base = 2000L, currentAttempt = 2)
+        val d3 =
+            ReconnectLogic.nextDelay(
+                manualDisconnect = false,
+                success = false,
+                btEnabled = false,
+                base = 2000L,
+                currentAttempt = 2,
+            )
         assertNull(d3)
     }
 }

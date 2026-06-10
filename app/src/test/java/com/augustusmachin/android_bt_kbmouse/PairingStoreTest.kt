@@ -22,13 +22,27 @@ class PairingStoreTest {
         Dispatchers.setMain(StandardTestDispatcher())
         // Ensure the global store is reset between tests to avoid state leakage
         com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(null)
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateDiscoveredDevices(emptyList()))
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdatePairedDevices(emptyList()))
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateConnectedDevice(null))
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateMessage(null))
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateDefaultDevice(null))
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateLocks(false, false))
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateIsScanning(false))
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            com.augustusmachin.android_bt_kbmouse.store.Action.UpdateDiscoveredDevices(emptyList()),
+        )
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            com.augustusmachin.android_bt_kbmouse.store.Action.UpdatePairedDevices(emptyList()),
+        )
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            com.augustusmachin.android_bt_kbmouse.store.Action.UpdateConnectedDevice(null),
+        )
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            com.augustusmachin.android_bt_kbmouse.store.Action.UpdateMessage(null),
+        )
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            com.augustusmachin.android_bt_kbmouse.store.Action.UpdateDefaultDevice(null),
+        )
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            com.augustusmachin.android_bt_kbmouse.store.Action.UpdateLocks(false, false),
+        )
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            com.augustusmachin.android_bt_kbmouse.store.Action.UpdateIsScanning(false),
+        )
     }
 
     @After
@@ -58,13 +72,20 @@ class PairingStoreTest {
                     }
                 }
             com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(fakeSender)
-            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.StartDiscovery)
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+                com.augustusmachin.android_bt_kbmouse.store.Action.StartDiscovery,
+            )
             runCurrent()
             assert(startCalls >= 1)
             // VM maps message from store; startDiscovery dispatches UpdateMessage("Scanning for devices...")
             // State updates flow through the store; assert directly on the store's current snapshot
-            assertEquals("Scanning for devices...", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)
-            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.StopDiscovery)
+            assertEquals(
+                "Scanning for devices...",
+                com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message,
+            )
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+                com.augustusmachin.android_bt_kbmouse.store.Action.StopDiscovery,
+            )
             Dispatchers.resetMain()
         }
 
@@ -80,10 +101,17 @@ class PairingStoreTest {
                     }
                 }
             com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(fakeSender)
-            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.StartDiscovery)
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+                com.augustusmachin.android_bt_kbmouse.store.Action.StartDiscovery,
+            )
             runCurrent()
-            assertEquals("Scanning for devices...", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)
-            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.StopDiscovery)
+            assertEquals(
+                "Scanning for devices...",
+                com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message,
+            )
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+                com.augustusmachin.android_bt_kbmouse.store.Action.StopDiscovery,
+            )
             assert(stopCalls >= 1)
             assertNull(com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)
             Dispatchers.resetMain()
@@ -114,8 +142,12 @@ class PairingStoreTest {
                 }
             }
         com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(fakeSender)
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.KeyDown(0x04.toByte(), 0x02))
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.KeyUp(0x04.toByte()))
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            com.augustusmachin.android_bt_kbmouse.store.Action.KeyDown(0x04.toByte(), 0x02),
+        )
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            com.augustusmachin.android_bt_kbmouse.store.Action.KeyUp(0x04.toByte()),
+        )
         assertEquals(1, fakeSender.pressCalls)
         assertEquals(1, fakeSender.releaseCalls)
         assertEquals(0x04.toByte(), fakeSender.lastPressed)
@@ -151,10 +183,18 @@ class PairingStoreTest {
                 }
             }
         com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(fakeSender)
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.MoveMouse(5, -3))
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.LeftClick)
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.RightClick)
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.MiddleClick)
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            com.augustusmachin.android_bt_kbmouse.store.Action.MoveMouse(5, -3),
+        )
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            com.augustusmachin.android_bt_kbmouse.store.Action.LeftClick,
+        )
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            com.augustusmachin.android_bt_kbmouse.store.Action.RightClick,
+        )
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            com.augustusmachin.android_bt_kbmouse.store.Action.MiddleClick,
+        )
         assertEquals(listOf(5 to -3), fakeSender.moves)
         assertEquals(1, fakeSender.left)
         assertEquals(1, fakeSender.right)
@@ -173,13 +213,22 @@ class PairingStoreTest {
                     }
                 }
             com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(fakeSender)
-            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.StartDiscovery)
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+                com.augustusmachin.android_bt_kbmouse.store.Action.StartDiscovery,
+            )
             runCurrent()
-            assertEquals("Scanning for devices...", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)
-            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateMessage(null))
+            assertEquals(
+                "Scanning for devices...",
+                com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message,
+            )
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+                com.augustusmachin.android_bt_kbmouse.store.Action.UpdateMessage(null),
+            )
             runCurrent()
             assertNull(com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)
-            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.StopDiscovery)
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+                com.augustusmachin.android_bt_kbmouse.store.Action.StopDiscovery,
+            )
             Dispatchers.resetMain()
         }
 
@@ -193,15 +242,31 @@ class PairingStoreTest {
         org.mockito.Mockito.`when`(d2.address).thenReturn("66:77:88:99:AA:BB")
         com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateDiscoveredDevices(listOf(d1)))
         com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdatePairedDevices(listOf(d2)))
-        assertEquals(1, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.discoveredDevices.size)
-        assertEquals(1, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.pairedDevices.size)
+        assertEquals(
+            1,
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+                .asStateFlow().value.connection.discoveredDevices.size,
+        )
+        assertEquals(
+            1,
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.pairedDevices.size,
+        )
         // Add another and refresh
         val d3 = org.mockito.Mockito.mock(BluetoothDevice::class.java)
         org.mockito.Mockito.`when`(d3.address).thenReturn("CC:DD:EE:FF:00:11")
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateDiscoveredDevices(listOf(d1, d3)))
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+            Action.UpdateDiscoveredDevices(listOf(d1, d3)),
+        )
         com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdatePairedDevices(listOf(d2, d1)))
-        assertEquals(2, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.discoveredDevices.size)
-        assertEquals(2, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.pairedDevices.size)
+        assertEquals(
+            2,
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+                .asStateFlow().value.connection.discoveredDevices.size,
+        )
+        assertEquals(
+            2,
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.pairedDevices.size,
+        )
     }
 
     @Test
@@ -292,7 +357,10 @@ class PairingStoreTest {
         assertEquals(1, connectCalls)
         // simulate service callback into store
         com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
-        assertEquals(device, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.connectedDevice)
+        assertEquals(
+            device,
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.connectedDevice,
+        )
     }
 
     @Test
@@ -376,13 +444,21 @@ class PairingStoreTest {
         org.mockito.Mockito.`when`(device.address).thenReturn("DE:AD:BE:EF:00:01")
         // simulate connected state
         com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
-        assertEquals(device, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.connectedDevice)
+        assertEquals(
+            device,
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.connectedDevice,
+        )
         com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.DisconnectDevice)
         assertEquals(1, disconnectCalls)
         com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
         com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateMessage("Disconnected"))
-        assertNull(com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.connectedDevice)
-        assertEquals("Disconnected", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)
+        assertNull(
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.connectedDevice,
+        )
+        assertEquals(
+            "Disconnected",
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message,
+        )
     }
 
     @Test
@@ -455,7 +531,10 @@ class PairingStoreTest {
         }
         // Simulate error callback from service by dispatching into store
         com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateMessage("Failed to connect"))
-        assertEquals("Failed to connect", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)
+        assertEquals(
+            "Failed to connect",
+            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message,
+        )
         // Simulate navigation consuming message
         com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateMessage(null))
         assertNull(com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)

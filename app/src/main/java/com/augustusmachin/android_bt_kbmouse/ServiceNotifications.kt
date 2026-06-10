@@ -37,7 +37,13 @@ object ServiceNotifications {
         val pkg = service.packageName
         val pi = PendingIntent.getActivity(service, 0, Intent(service, MainActivity::class.java), pendingFlags())
         val connectPi = PendingIntent.getBroadcast(service, 1, Intent(connectAction).setPackage(pkg), pendingFlags())
-        val disconnectPi = PendingIntent.getBroadcast(service, 2, Intent(disconnectAction).setPackage(pkg), pendingFlags())
+        val disconnectPi =
+            PendingIntent.getBroadcast(
+                service,
+                2,
+                Intent(disconnectAction).setPackage(pkg),
+                pendingFlags(),
+            )
         val forgetPi = PendingIntent.getBroadcast(service, 3, Intent(forgetAction).setPackage(pkg), pendingFlags())
         return NotificationCompat.Builder(service, FGS_CHANNEL_ID)
             .setContentTitle("BlueDeck running")
@@ -63,7 +69,11 @@ object ServiceNotifications {
             ch.lightColor = Color.RED
             nm.createNotificationChannel(ch)
         }
-        val settingsIntent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", context.packageName, null))
+        val settingsIntent =
+            Intent(
+                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                android.net.Uri.fromParts("package", context.packageName, null),
+            )
         settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val pi = PendingIntent.getActivity(context, 0, settingsIntent, pendingFlags())
         val notif =

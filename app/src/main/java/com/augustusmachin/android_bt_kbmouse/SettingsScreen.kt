@@ -43,7 +43,9 @@ private fun requestIgnoreBatteryOptimizations(context: android.content.Context) 
         )
     } catch (_: Exception) {
         try {
-            context.startActivity(android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            context.startActivity(
+                android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+            )
         } catch (_: Exception) {
         }
     }
@@ -119,7 +121,8 @@ fun SettingsScreen(
 
         if (settings.hidSimplified) {
             Text(
-                "Scrolling requires the full HID descriptor. Disable \"Use simplified HID descriptor\" below to enable scroll controls.",
+                "Scrolling requires the full HID descriptor. " +
+                    "Disable \"Use simplified HID descriptor\" below to enable scroll controls.",
                 style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                 color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 16.dp),
@@ -186,9 +189,20 @@ fun SettingsScreen(
             Row(Modifier.padding(top = 8.dp)) {
                 Text("Log level:", modifier = Modifier.padding(end = 8.dp))
                 val sel = settings.logLevel
-                Button(onClick = { scope.launch { SettingsManager.setLogLevel(context, 0) } }, modifier = Modifier.padding(end = 4.dp), enabled = sel != 0) { Text("All") }
-                Button(onClick = { scope.launch { SettingsManager.setLogLevel(context, 1) } }, modifier = Modifier.padding(end = 4.dp), enabled = sel != 1) { Text("Info") }
-                Button(onClick = { scope.launch { SettingsManager.setLogLevel(context, 2) } }, enabled = sel != 2) { Text("Error") }
+                Button(onClick = {
+                    scope.launch {
+                        SettingsManager.setLogLevel(context, 0)
+                    }
+                }, modifier = Modifier.padding(end = 4.dp), enabled = sel != 0) { Text("All") }
+                Button(onClick = {
+                    scope.launch {
+                        SettingsManager.setLogLevel(context, 1)
+                    }
+                }, modifier = Modifier.padding(end = 4.dp), enabled = sel != 1) { Text("Info") }
+                Button(
+                    onClick = { scope.launch { SettingsManager.setLogLevel(context, 2) } },
+                    enabled = sel != 2,
+                ) { Text("Error") }
             }
         }
         Row(Modifier.padding(top = 16.dp)) {
@@ -200,23 +214,34 @@ fun SettingsScreen(
 
         // Background reliability — only offered while the app is still battery-optimized.
         if (!batteryExempt) {
-            Text("Background reliability", style = androidx.compose.material3.MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 24.dp, bottom = 4.dp))
+            Text(
+                "Background reliability",
+                style = androidx.compose.material3.MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(top = 24.dp, bottom = 4.dp),
+            )
             Row(Modifier.padding(top = 4.dp)) {
                 Column(Modifier.weight(1f)) {
                     Text("Disable battery optimization")
                     Text(
-                        "Let Android keep the Bluetooth HID service running so the connection isn't dropped when the screen is off or the app is in the background.",
+                        "Let Android keep the Bluetooth HID service running so the connection isn't dropped " +
+                            "when the screen is off or the app is in the background.",
                         style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                         color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp),
                     )
                 }
-                Button(onClick = { requestIgnoreBatteryOptimizations(context) }, modifier = Modifier.padding(start = 8.dp)) { Text("Disable") }
+                Button(onClick = {
+                    requestIgnoreBatteryOptimizations(context)
+                }, modifier = Modifier.padding(start = 8.dp)) { Text("Disable") }
             }
         }
 
         // Compatibility
-        Text("Compatibility", style = androidx.compose.material3.MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 24.dp, bottom = 4.dp))
+        Text(
+            "Compatibility",
+            style = androidx.compose.material3.MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(top = 24.dp, bottom = 4.dp),
+        )
         Row(Modifier.padding(top = 4.dp)) {
             androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
                 Text("Use simplified HID descriptor (Windows)")
@@ -235,7 +260,8 @@ fun SettingsScreen(
             androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
                 Text("Use BLE HOGP (experimental)")
                 Text(
-                    "Uses Bluetooth Low Energy instead of Classic BT. Restart the app after changing. May improve Windows compatibility.",
+                    "Uses Bluetooth Low Energy instead of Classic BT. Restart the app after changing. " +
+                        "May improve Windows compatibility.",
                     style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                     color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp),

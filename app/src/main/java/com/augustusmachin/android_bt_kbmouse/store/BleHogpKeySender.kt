@@ -26,8 +26,7 @@ class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
     private fun buildMouseReport(
         dx: Int = 0,
         dy: Int = 0,
-    ): ByteArray =
-        HidReportBuilder.mouseReportSimple(buttonsMask, dx, dy)
+    ): ByteArray = HidReportBuilder.mouseReportSimple(buttonsMask, dx, dy)
 
     override fun sendKeyDown(
         code: Byte,

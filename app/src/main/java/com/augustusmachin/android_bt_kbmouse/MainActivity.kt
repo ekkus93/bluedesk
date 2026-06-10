@@ -51,15 +51,24 @@ class MainActivity : ComponentActivity() {
                 context: Context?,
                 intent: Intent?,
             ) {
-                if (intent?.action == com.augustusmachin.android_bt_kbmouse.BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT) {
+                if (intent?.action ==
+                    com.augustusmachin.android_bt_kbmouse.BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT
+                ) {
                     // Show a dialog on UI thread and finish gracefully
                     runOnUiThread {
                         try {
                             androidx.appcompat.app.AlertDialog.Builder(this@MainActivity)
                                 .setTitle("Missing permission")
-                                .setMessage("This app requires the BLUETOOTH_CONNECT permission. Please grant it in Settings. The app will now exit.")
+                                .setMessage(
+                                    "This app requires the BLUETOOTH_CONNECT permission. " +
+                                        "Please grant it in Settings. The app will now exit.",
+                                )
                                 .setPositiveButton("Open Settings") { _, _ ->
-                                    val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+                                    val i =
+                                        Intent(
+                                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                            Uri.fromParts("package", packageName, null),
+                                        )
                                     startActivity(i)
                                     finish()
                                 }
@@ -114,7 +123,8 @@ class MainActivity : ComponentActivity() {
                             override fun onConnected(device: BluetoothDevice) {
                                 DebugLog.log("MainActivity", "onConnected ${device.address}")
                                 StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
-                                // Avoid reading device.name here to prevent BLUETOOTH_CONNECT permission lint in non-UI contexts; use address for message
+                                // Avoid reading device.name here to prevent BLUETOOTH_CONNECT permission lint
+                                // in non-UI contexts; use address for message
                                 StoreProvider.dispatch(Action.UpdateMessage("Connected to ${device.address}"))
                             }
 
@@ -218,7 +228,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Register receiver for permission-error reports from services
         try {
-            androidx.core.content.ContextCompat.registerReceiver(this, permReceiver, IntentFilter(BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
+            androidx.core.content.ContextCompat.registerReceiver(
+                this,
+                permReceiver,
+                IntentFilter(BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT),
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
         } catch (_: Exception) {
         }
         // SettingsViewModel drives DebugLog enable/level after persisted settings load.
@@ -369,9 +384,16 @@ class MainActivity : ComponentActivity() {
             try {
                 androidx.appcompat.app.AlertDialog.Builder(this@MainActivity)
                     .setTitle("Permissions required")
-                    .setMessage("This app needs Bluetooth permissions to operate. Open App Settings to grant permissions or close the app.")
+                    .setMessage(
+                        "This app needs Bluetooth permissions to operate. " +
+                            "Open App Settings to grant permissions or close the app.",
+                    )
                     .setPositiveButton("Open Settings") { _, _ ->
-                        val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+                        val i =
+                            Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", packageName, null),
+                            )
                         startActivity(i)
                         finish()
                     }

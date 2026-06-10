@@ -222,8 +222,7 @@ class HidReportInstrumentedTest {
         fun ByteArray.hasPair(
             a: Byte,
             b: Byte,
-        ): Boolean =
-            (0 until this.size - 1).any { i -> this[i] == a && this[i + 1] == b }
+        ): Boolean = (0 until this.size - 1).any { i -> this[i] == a && this[i + 1] == b }
         assertTrue(HidDescriptorVariants.SIMPLE.hasPair(0x05, 0x01)) // Generic Desktop page
         assertTrue(HidDescriptorVariants.FULL.hasPair(0x05, 0x01))
     }

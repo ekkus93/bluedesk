@@ -130,7 +130,10 @@ object SettingsManager {
         }.toMap()
     }
 
-    private fun formatKeyMap(m: Map<Int, Int>): String = m.entries.joinToString(",") { it.key.toString() + "=" + it.value.toString() }
+    private fun formatKeyMap(m: Map<Int, Int>): String =
+        m.entries.joinToString(",") {
+            it.key.toString() + "=" + it.value.toString()
+        }
 
     suspend fun setTouchpadSensitivity(
         context: Context,
@@ -305,7 +308,9 @@ object SettingsManager {
         addr: String,
         map: Map<Int, Int>,
     ) {
-        context.settingsDataStore.edit { it[androidx.datastore.preferences.core.stringPreferencesKey(pk(addr, "keymap"))] = formatKeyMap(map) }
+        context.settingsDataStore.edit {
+            it[androidx.datastore.preferences.core.stringPreferencesKey(pk(addr, "keymap"))] = formatKeyMap(map)
+        }
     }
 
     suspend fun addDeviceKeyRemap(
