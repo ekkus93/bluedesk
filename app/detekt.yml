@@ -47,3 +47,15 @@ complexity:
     # A flat dispatch/lookup `when` with one-line branches is not "complex" in the
     # harmful sense; don't count single-expression when-entries toward complexity.
     ignoreSimpleWhenEntries: true
+  TooManyFunctions:
+    # A HID service/interface is cohesive but large by nature (keyboard + mouse +
+    # connection + discovery + pairing is naturally 20-40 methods). Use
+    # domain-appropriate thresholds rather than fragmenting cohesive types.
+    thresholdInClasses: 60
+    thresholdInInterfaces: 35
+    thresholdInObjects: 60
+    thresholdInFiles: 60
+  LargeClass:
+    # BluetoothService is a large but cohesive foreground service; allow headroom
+    # so extracting private helpers (for readability) doesn't trip this.
+    threshold: 800

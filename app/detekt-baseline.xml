@@ -5,12 +5,5 @@
     <ID>CyclomaticComplexMethod:SettingsManager.kt$SettingsManager$fun fromPreferences(p: androidx.datastore.preferences.core.Preferences): Settings</ID>
     <ID>LongMethod:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$override fun onAppStatus(registered: Boolean)</ID>
     <ID>LongMethod:BleHogpService.kt$BleHogpService$private fun setupGattServices()</ID>
-    <ID>TooManyFunctions:BleHogpKeySender.kt$BleHogpKeySender : KeySender</ID>
-    <ID>TooManyFunctions:BluetoothKeySender.kt$BluetoothKeySender : KeySender</ID>
-    <ID>TooManyFunctions:BluetoothService.kt$BluetoothService : ServiceIBluetoothService</ID>
-    <ID>TooManyFunctions:HidReportSender.kt$HidReportSender</ID>
-    <ID>TooManyFunctions:IBluetoothService.kt$IBluetoothService</ID>
-    <ID>TooManyFunctions:Middleware.kt$KeySender</ID>
-    <ID>TooManyFunctions:SettingsManager.kt$SettingsManager</ID>
   </CurrentIssues>
 </SmellBaseline>
