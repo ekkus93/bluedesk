@@ -6,7 +6,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
@@ -105,7 +104,7 @@ class BleHogpService : Service() {
         }
         gattServer = mgr.openGattServer(this, gattCb)
         setupGattServices()
-        startAdvertising(adapter)
+        startAdvertising()
     }
 
     override fun onDestroy() {
@@ -290,7 +289,7 @@ class BleHogpService : Service() {
         gattServer?.addService(BluetoothGattService(UUID_DEVINFO_SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY))
     }
 
-    private fun startAdvertising(adapter: BluetoothAdapter) {
+    private fun startAdvertising() {
         val settings =
             AdvertiseSettings.Builder()
                 .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)

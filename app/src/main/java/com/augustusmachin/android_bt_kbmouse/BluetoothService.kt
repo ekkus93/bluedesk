@@ -184,7 +184,7 @@ class BluetoothService : Service(), IBluetoothService {
                     DebugLog.log("BluetoothService", "HID service connected")
                     eventListener?.onInfo("HID profile proxy connected; registering app")
                     bluetoothHidModule =
-                        BluetoothHidModule(bluetoothAdapter!!).also { module ->
+                        BluetoothHidModule().also { module ->
                             module.listener =
                                 object : BluetoothHidModule.HidEventListenerExt {
                                     override fun onAppStatus(registered: Boolean) {
@@ -565,7 +565,6 @@ class BluetoothService : Service(), IBluetoothService {
                 eventListener?.onError("HID connect failed due to missing permission")
             } catch (e: Exception) {
                 DebugLog.e("BluetoothService", "connect error: ${e.message}")
-                e.printStackTrace()
                 scheduleReconnect()
             }
         } else {
@@ -598,7 +597,6 @@ class BluetoothService : Service(), IBluetoothService {
             }
         } catch (e: Exception) {
             DebugLog.e("BluetoothService", "disconnect error: ${e.message}")
-            e.printStackTrace()
         } finally {
             connectedDevice = null
             devicePrefs.setConnectedName(null)

@@ -6,7 +6,7 @@
     <ID>ComplexCondition:Middleware.kt$KeySenderMiddleware$k.ctrl || k.shift || k.alt || k.gui</ID>
     <ID>CyclomaticComplexMethod:BluetoothServiceLogicTest.kt$BluetoothServiceLogicTest$@Test fun maps_onConnectionStateChanged_to_VM_state()</ID>
     <ID>CyclomaticComplexMethod:ExtendedKeyMappings.kt$fun labelToHid(label: String): Byte?</ID>
-    <ID>CyclomaticComplexMethod:KeyboardScreen.kt$@Composable fun KeyboardScreen( navController: NavHostController, contentPadding: PaddingValues = PaddingValues(), )</ID>
+    <ID>CyclomaticComplexMethod:KeyboardScreen.kt$@Composable fun KeyboardScreen(contentPadding: PaddingValues = PaddingValues())</ID>
     <ID>CyclomaticComplexMethod:MainScreen.kt$@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class) @Composable fun MainScreen()</ID>
     <ID>CyclomaticComplexMethod:Middleware.kt$KeySenderMiddleware$fun create()</ID>
     <ID>CyclomaticComplexMethod:MouseScreen.kt$@Composable fun MouseScreen(contentPadding: PaddingValues = PaddingValues())</ID>
@@ -19,26 +19,12 @@
     <ID>CyclomaticComplexMethod:PairingViewModelTest.kt$PairingViewModelTest$@Test fun disconnect_updatesState_and_message()</ID>
     <ID>CyclomaticComplexMethod:PairingViewModelTest.kt$PairingViewModelTest$@Test fun surfacesErrorMessages_and_clearsOnNavigate()</ID>
     <ID>CyclomaticComplexMethod:SettingsManager.kt$SettingsManager$fun fromPreferences(p: androidx.datastore.preferences.core.Preferences): Settings</ID>
-    <ID>EmptyFunctionBlock:BluetoothServiceLogicTest.kt$BluetoothServiceLogicTest.EventService${}</ID>
-    <ID>EmptyFunctionBlock:PairingStoreTest.kt$PairingStoreTest.CaptureService${}</ID>
-    <ID>EmptyFunctionBlock:PairingStoreTest.kt$PairingStoreTest.DiscService${}</ID>
-    <ID>EmptyFunctionBlock:PairingStoreTest.kt$PairingStoreTest.ErrorService${}</ID>
-    <ID>EmptyFunctionBlock:PairingStoreTest.kt$PairingStoreTest.FakeService${ }</ID>
-    <ID>EmptyFunctionBlock:PairingStoreTest.kt$PairingStoreTest.FakeService${}</ID>
-    <ID>EmptyFunctionBlock:PairingViewModelTest.kt$PairingViewModelTest.CaptureService${}</ID>
-    <ID>EmptyFunctionBlock:PairingViewModelTest.kt$PairingViewModelTest.DiscService${}</ID>
-    <ID>EmptyFunctionBlock:PairingViewModelTest.kt$PairingViewModelTest.ErrorService${}</ID>
-    <ID>EmptyFunctionBlock:PairingViewModelTest.kt$PairingViewModelTest.FakeService${ }</ID>
-    <ID>EmptyFunctionBlock:PairingViewModelTest.kt$PairingViewModelTest.FakeService${}</ID>
     <ID>FunctionOnlyReturningConstant:ForegroundServiceLogic.kt$ForegroundServiceLogic$fun buildNotificationText(connectedName: String?): String</ID>
-    <ID>ImplicitDefaultLocale:ExtendedKeysScreen.kt$String.format("0x%02X", code.toInt() and 0xFF)</ID>
-    <ID>ImplicitDefaultLocale:FunctionKeysScreen.kt$String.format("0x%02X", code.toInt() and 0xFF)</ID>
-    <ID>ImplicitDefaultLocale:NavigationKeysScreen.kt$String.format("0x%02X", code.toInt() and 0xFF)</ID>
     <ID>LongMethod:BleHogpService.kt$BleHogpService$@Suppress("DEPRECATION") private fun setupGattServices()</ID>
     <ID>LongMethod:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$override fun onReceive( context: Context, intent: Intent, )</ID>
     <ID>LongMethod:ExtendedKeysScreen.kt$@Composable fun ExtendedKeysScreen()</ID>
     <ID>LongMethod:FunctionKeysScreen.kt$@Composable fun FunctionKeysScreen()</ID>
-    <ID>LongMethod:KeyboardScreen.kt$@Composable fun KeyboardScreen( navController: NavHostController, contentPadding: PaddingValues = PaddingValues(), )</ID>
+    <ID>LongMethod:KeyboardScreen.kt$@Composable fun KeyboardScreen(contentPadding: PaddingValues = PaddingValues())</ID>
     <ID>LongMethod:MainScreen.kt$@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class) @Composable fun MainScreen()</ID>
     <ID>LongMethod:Middleware.kt$KeySenderMiddleware$fun create()</ID>
     <ID>LongMethod:MouseScreen.kt$@Composable fun MouseScreen(contentPadding: PaddingValues = PaddingValues())</ID>
@@ -52,8 +38,6 @@
     <ID>NestedBlockDepth:BluetoothService.kt$BluetoothService$override fun forgetDevice( device: BluetoothDevice, unpair: Boolean, )</ID>
     <ID>NestedBlockDepth:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$override fun onReceive( context: Context, intent: Intent, )</ID>
     <ID>NestedBlockDepth:BootReceiver.kt$BootReceiver$override fun onReceive( context: Context, intent: Intent, )</ID>
-    <ID>PrintStackTrace:BluetoothService.kt$BluetoothService$e</ID>
-    <ID>PrintStackTrace:HidReportSender.kt$HidReportSender$e</ID>
     <ID>TooManyFunctions:BleHogpKeySender.kt$BleHogpKeySender : KeySender</ID>
     <ID>TooManyFunctions:BluetoothKeySender.kt$BluetoothKeySender : KeySender</ID>
     <ID>TooManyFunctions:BluetoothService.kt$BluetoothService : ServiceIBluetoothService</ID>
@@ -61,11 +45,6 @@
     <ID>TooManyFunctions:IBluetoothService.kt$IBluetoothService</ID>
     <ID>TooManyFunctions:Middleware.kt$KeySender</ID>
     <ID>TooManyFunctions:SettingsManager.kt$SettingsManager</ID>
-    <ID>UnusedParameter:BleHogpService.kt$BleHogpService$adapter: BluetoothAdapter</ID>
     <ID>UnusedParameter:ForegroundServiceLogic.kt$ForegroundServiceLogic$connectedName: String?</ID>
-    <ID>UnusedParameter:KeyboardScreen.kt$navController: NavHostController</ID>
-    <ID>UnusedPrivateClass:PairingStoreTest.kt$PairingStoreTest$FakeService : IBluetoothService</ID>
-    <ID>UnusedPrivateClass:PairingViewModelTest.kt$PairingViewModelTest$FakeService : IBluetoothService</ID>
-    <ID>UnusedPrivateProperty:BluetoothHidModule.kt$BluetoothHidModule$private val bluetoothAdapter: BluetoothAdapter</ID>
   </CurrentIssues>
 </SmellBaseline>

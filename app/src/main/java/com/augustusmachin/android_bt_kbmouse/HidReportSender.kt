@@ -121,7 +121,6 @@ class HidReportSender(
                 onError("HID report failed due to missing permission")
             } catch (e: Exception) {
                 DebugLog.e(TAG, "kbd report error: ${e.message}")
-                e.printStackTrace()
                 onError("HID report failed: ${e.message}")
             }
         } else {
@@ -170,7 +169,6 @@ class HidReportSender(
                 onError("Mouse click failed due to missing permission")
             } catch (e: Exception) {
                 DebugLog.e(TAG, "mouse report error: ${e.message}")
-                e.printStackTrace()
             }
         } else {
             DebugLog.e(TAG, "BLUETOOTH_CONNECT not granted; cannot send mouse report")

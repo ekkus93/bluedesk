@@ -76,7 +76,7 @@ fun FunctionKeysScreen() {
         if (connected) {
             StoreProvider.dispatch(Action.SendKey(code))
         } else {
-            val hex = String.format("0x%02X", code.toInt() and 0xFF)
+            val hex = String.format(java.util.Locale.US, "0x%02X", code.toInt() and 0xFF)
             val msg = "Preview: $label -> $hex"
             StoreProvider.dispatch(Action.UpdateMessage(msg))
             DebugLog.log("FunctionKeys", msg)

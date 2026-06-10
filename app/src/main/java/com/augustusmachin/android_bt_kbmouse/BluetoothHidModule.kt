@@ -1,13 +1,12 @@
 package com.augustusmachin.android_bt_kbmouse
 
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothHidDevice
 import android.bluetooth.BluetoothHidDeviceAppSdpSettings
 import android.bluetooth.BluetoothProfile
 
-class BluetoothHidModule(private val bluetoothAdapter: BluetoothAdapter) {
+class BluetoothHidModule {
     interface HidEventListener {
         fun onAppStatus(registered: Boolean)
 

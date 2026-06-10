@@ -30,3 +30,8 @@ naming:
   FunctionNaming:
     # @Composable functions are intentionally PascalCase.
     ignoreAnnotated: ['Composable']
+
+empty-blocks:
+  EmptyFunctionBlock:
+    # No-op overrides (e.g. interface stubs / unused service callbacks) are intentional.
+    ignoreOverridden: true

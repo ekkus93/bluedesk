@@ -39,7 +39,6 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 
@@ -47,10 +46,7 @@ private const val KEY_FONT_SCALE = 4200
 val LocalKeyFontSize = staticCompositionLocalOf { 16.sp }
 
 @Composable
-fun KeyboardScreen(
-    navController: NavHostController,
-    contentPadding: PaddingValues = PaddingValues(),
-) {
+fun KeyboardScreen(contentPadding: PaddingValues = PaddingValues()) {
     // Replace the tiny demo with the full Extended Keys UI by default.
     // The ExtendedKeysScreen already handles modifier toggles and connected-state gating.
     val tabs = listOf("Extended", "Function", "Navigation")

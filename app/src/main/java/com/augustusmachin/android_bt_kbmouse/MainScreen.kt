@@ -208,7 +208,7 @@ fun MainScreen() {
         }
         NavHost(navController, startDestination = Screen.Pairing.route, Modifier) {
             composable(Screen.Pairing.route) { PairingScreen(contentPadding = innerPadding) }
-            composable(Screen.Keyboard.route) { KeyboardScreen(navController, contentPadding = innerPadding) }
+            composable(Screen.Keyboard.route) { KeyboardScreen(contentPadding = innerPadding) }
             composable(Screen.Mouse.route) { MouseScreen(contentPadding = innerPadding) }
             composable(Screen.Settings.route) { SettingsScreen(contentPadding = innerPadding, onOpenLogs = { navController.navigate("logs") }) }
             composable("logs") { LogsScreen(contentPadding = innerPadding) }

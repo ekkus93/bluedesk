@@ -93,7 +93,7 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
         if (connected) {
             StoreProvider.dispatch(Action.SendKey(code))
         } else {
-            val hex = String.format("0x%02X", code.toInt() and 0xFF)
+            val hex = String.format(java.util.Locale.US, "0x%02X", code.toInt() and 0xFF)
             StoreProvider.dispatch(Action.UpdateMessage("Preview: $label -> $hex"))
             DebugLog.log("NavigationKeys", "Preview: $label -> $hex")
             StoreProvider.dispatch(Action.ReleaseLockedModifiers)
