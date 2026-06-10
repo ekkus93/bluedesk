@@ -3,6 +3,28 @@
 
 package com.augustusmachin.android_bt_kbmouse
 
+private const val MAX_IME_BATCH = 8
+
+/**
+ * Characters newly appended to the invisible IME buffer between [previous] and [current],
+ * or null if the change isn't a small append (deletion, replacement, or a desync).
+ *
+ * The IME field accumulates text and we forward the appended characters, rather than
+ * resetting the field to "" after every keystroke. Resetting raced with rapid input and
+ * dropped repeated characters (typing "aa" produced one "a"), because Compose dedupes an
+ * identical controlled value. Diffing the appended suffix handles repeats: "a" -> "aa"
+ * appends "a". The [maxBatch] guard rejects large jumps (e.g. a buffer-reset desync) so we
+ * never replay the whole buffer.
+ */
+fun imeAppendedText(
+    previous: String,
+    current: String,
+    maxBatch: Int = MAX_IME_BATCH,
+): String? {
+    val delta = current.length - previous.length
+    return if (delta in 1..maxBatch && current.startsWith(previous)) current.takeLast(delta) else null
+}
+
 /**
  * Map an input character from the system IME to a HID usage code (byte) and shift modifier bits (Int).
  * Returns null if the character can't be mapped.

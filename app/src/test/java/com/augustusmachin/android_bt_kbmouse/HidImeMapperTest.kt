@@ -68,4 +68,50 @@ class HidImeMapperTest {
         val greek = charToHid('α')
         assertNull(greek)
     }
+
+    // ── imeAppendedText: the repeated-key fix ──────────────────────────────
+
+    @Test
+    fun imeAppended_firstCharacter() {
+        assertEquals("a", imeAppendedText("", "a"))
+    }
+
+    @Test
+    fun imeAppended_repeatedSameCharacter() {
+        // The bug: "a" -> "aa" must report the appended "a" (not be dropped as a dup).
+        assertEquals("a", imeAppendedText("a", "aa"))
+        assertEquals("a", imeAppendedText("aa", "aaa"))
+    }
+
+    @Test
+    fun imeAppended_distinctCharacter() {
+        assertEquals("b", imeAppendedText("aa", "aab"))
+    }
+
+    @Test
+    fun imeAppended_multiCharBatch() {
+        assertEquals("xy", imeAppendedText("ab", "abxy"))
+    }
+
+    @Test
+    fun imeAppended_noChangeIsNull() {
+        assertNull(imeAppendedText("abc", "abc"))
+    }
+
+    @Test
+    fun imeAppended_backspaceShrinkIsNull() {
+        assertNull(imeAppendedText("abc", "ab"))
+    }
+
+    @Test
+    fun imeAppended_nonPrefixReplacementIsNull() {
+        // e.g. autocorrect replacing the text, not a clean append.
+        assertNull(imeAppendedText("teh", "the"))
+    }
+
+    @Test
+    fun imeAppended_largeJumpRejectedAsDesync() {
+        // Guards against replaying the whole buffer after a reset desync.
+        assertNull(imeAppendedText("", "abcdefghij", maxBatch = 8))
+    }
 }

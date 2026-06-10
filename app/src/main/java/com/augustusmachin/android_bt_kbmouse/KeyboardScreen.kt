@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +35,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
@@ -45,6 +47,10 @@ import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 private const val KEY_FONT_SCALE = 4200
 private const val KEY_FONT_MIN_SP = 10f
 private const val KEY_FONT_MAX_SP = 16f
+
+// Reset the invisible IME buffer once it exceeds this length (avoids unbounded growth
+// while not resetting every keystroke, which would race rapid input).
+private const val IME_BUFFER_LIMIT = 64
 val LocalKeyFontSize = staticCompositionLocalOf { 16.sp }
 
 // Shared styling for the Extended/Function/Navigation key grids: active/inactive
@@ -226,6 +232,46 @@ private fun KeyboardTabRow(
     }
 }
 
+/**
+ * Forward IME buffer changes as HID keystrokes: newly appended characters become key
+ * presses; a shrink (soft-keyboard backspace deletes from the buffer rather than sending
+ * KEYCODE_DEL) becomes one DEL per removed character. Accumulating + diffing (instead of
+ * resetting the field to "" each keystroke) is what lets repeated keys through.
+ */
+private fun forwardImeInput(
+    previous: String,
+    current: String,
+    connected: Boolean,
+) {
+    val appended = imeAppendedText(previous, current)
+    if (appended != null) {
+        appended.forEach { char ->
+            val (label, decorate, mapping) =
+                when (char) {
+                    ' ' -> Triple(" ", false, charToHid(char))
+                    '\n' -> Triple("ENTER", false, charToHid(char))
+                    '\t' -> Triple("TAB", false, charToHid(char))
+                    else -> Triple(char.toString(), false, charToHid(char))
+                }
+            StoreProvider.dispatch(Action.TrackPreviewKey(label, decorate = decorate))
+            if (connected && mapping != null) {
+                StoreProvider.dispatch(Action.SendKey(mapping.first, mapping.second))
+            } else {
+                StoreProvider.dispatch(Action.ReleaseLockedModifiers)
+            }
+        }
+    } else if (current.length < previous.length) {
+        repeat(previous.length - current.length) {
+            StoreProvider.dispatch(Action.TrackPreviewKey("DEL"))
+            if (connected) {
+                StoreProvider.dispatch(Action.SendKey(0x2A.toByte(), 0))
+            } else {
+                StoreProvider.dispatch(Action.ReleaseLockedModifiers)
+            }
+        }
+    }
+}
+
 @Composable
 private fun HiddenImeField(
     previewText: String,
@@ -245,25 +291,16 @@ private fun HiddenImeField(
         TextField(
             value = previewText,
             onValueChange = { newValue ->
-                if (newValue.isNotEmpty()) {
-                    newValue.forEach { char ->
-                        val (label, decorate, mapping) =
-                            when (char) {
-                                ' ' -> Triple(" ", false, charToHid(char))
-                                '\n' -> Triple("ENTER", false, charToHid(char))
-                                '\t' -> Triple("TAB", false, charToHid(char))
-                                else -> Triple(char.toString(), false, charToHid(char))
-                            }
-                        StoreProvider.dispatch(Action.TrackPreviewKey(label, decorate = decorate))
-                        if (connected && mapping != null) {
-                            StoreProvider.dispatch(Action.SendKey(mapping.first, mapping.second))
-                        } else {
-                            StoreProvider.dispatch(Action.ReleaseLockedModifiers)
-                        }
-                    }
-                }
-                onPreviewTextChange("")
+                forwardImeInput(previewText, newValue, connected)
+                // Bound the invisible buffer without resetting every keystroke (which races
+                // rapid input); reset only once it grows large.
+                onPreviewTextChange(if (newValue.length > IME_BUFFER_LIMIT) "" else newValue)
             },
+            keyboardOptions =
+                KeyboardOptions(
+                    autoCorrectEnabled = false,
+                    keyboardType = KeyboardType.Ascii,
+                ),
             modifier =
                 Modifier
                     .fillMaxWidth()
