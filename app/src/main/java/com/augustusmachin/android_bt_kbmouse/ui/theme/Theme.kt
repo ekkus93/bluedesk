@@ -15,27 +15,34 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowInsetsControllerCompat
 
+// BlueDeck palette mapped to Material 3 roles. On-colors are chosen for contrast:
+// dark text on the bright accents (cyan/teal), light text on the dark surfaces/indigo.
 private val DarkColorScheme =
     darkColorScheme(
-        primary = TealLight,
-        secondary = LavenderLight,
-        tertiary = PinkLight,
+        primary = BlueDeckCyan,
+        onPrimary = BlueDeckNavyDark,
+        secondary = BlueDeckTeal,
+        onSecondary = BlueDeckNavyDark,
+        tertiary = BlueDeckIndigo,
+        onTertiary = BlueDeckSoftWhite,
+        background = BlueDeckNavyDark,
+        onBackground = BlueDeckSoftWhite,
+        surface = BlueDeckNavy,
+        onSurface = BlueDeckSoftWhite,
     )
 
 private val LightColorScheme =
     lightColorScheme(
-        primary = TealDark,
-        secondary = IndigoDark,
-        tertiary = PinkMedium,
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-     */
+        primary = BlueDeckIndigo,
+        onPrimary = BlueDeckSoftWhite,
+        secondary = BlueDeckTeal,
+        onSecondary = BlueDeckNavyDark,
+        tertiary = BlueDeckCyan,
+        onTertiary = BlueDeckNavyDark,
+        background = BlueDeckSoftWhite,
+        onBackground = BlueDeckNavy,
+        surface = BlueDeckSurfaceLight,
+        onSurface = BlueDeckNavy,
     )
 
 @Composable
@@ -58,8 +65,10 @@ fun AndroidbtkbmouseTheme(
     if (!view.isInEditMode) {
         val window = (view.context as Activity).window
         SideEffect {
-            window.statusBarColor = colorScheme.primary.toArgb()
-            window.navigationBarColor = colorScheme.primary.toArgb()
+            // Match the system bars to the background (not the bright accent primary) so the
+            // status/nav icons stay legible in both themes.
+            window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.background.toArgb()
             val wic = WindowInsetsControllerCompat(window, view)
             wic.isAppearanceLightStatusBars = !darkTheme
             wic.isAppearanceLightNavigationBars = !darkTheme

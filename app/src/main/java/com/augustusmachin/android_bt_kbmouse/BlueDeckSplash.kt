@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,14 +56,14 @@ fun BlueDeckSplash(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(24.dp))
         Text(
-            text = "BlueDeck",
+            text = stringResource(R.string.app_name),
             color = BlueDeckCyan,
             fontSize = 44.sp,
             fontWeight = FontWeight.Bold,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "The handy keyboard and mouse",
+            text = stringResource(R.string.bluedeck_tagline),
             color = BlueDeckSoftWhite,
             fontSize = 16.sp,
             textAlign = TextAlign.Center,
