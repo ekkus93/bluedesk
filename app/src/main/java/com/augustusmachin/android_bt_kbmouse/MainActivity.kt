@@ -367,8 +367,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun switchBackend(useBle: Boolean) {
-        DebugLog.log("MainActivity", "switchBackend → ${BackendSelector.fromSettings(useBle)}")
+    private fun currentBackend(): BackendMode? =
+        when {
+            serviceBound -> BackendMode.CLASSIC_HID
+            bleHogpBound -> BackendMode.BLE_HOGP
+            else -> null
+        }
+
+    /** Stop + unbind the Classic backend so its started/foreground service does not linger. */
+    private fun stopClassicBackend() {
         if (serviceBound) {
             try {
                 StoreProvider.setKeySender(null)
@@ -376,10 +383,16 @@ class MainActivity : ComponentActivity() {
             }
             try {
                 unbindService(connection)
-            } catch (_: Exception) {
+            } catch (e: IllegalArgumentException) {
+                DebugLog.e("MainActivity", "Classic unbind failed: ${e.message}")
             }
             serviceBound = false
         }
+        stopService(Intent(this, BluetoothService::class.java))
+    }
+
+    /** Stop + unbind the BLE backend so its started/foreground service does not linger. */
+    private fun stopBleBackend() {
         if (bleHogpBound) {
             try {
                 StoreProvider.setKeySender(null)
@@ -387,13 +400,28 @@ class MainActivity : ComponentActivity() {
             }
             try {
                 unbindService(bleHogpConnection)
-            } catch (_: Exception) {
+            } catch (e: IllegalArgumentException) {
+                DebugLog.e("MainActivity", "BLE unbind failed: ${e.message}")
             }
             bleHogpBound = false
         }
+        stopService(Intent(this, BleHogpService::class.java))
+    }
+
+    private fun switchBackend(useBle: Boolean) {
+        val target = BackendSelector.fromSettings(useBle)
+        val steps = BackendTransitionPlanner.plan(currentBackend(), target)
+        if (steps.isEmpty()) return
+        DebugLog.log("MainActivity", "switchBackend → $target")
+        // Stop the inactive backend's service before starting the target — never both at once.
+        steps.filterIsInstance<BackendStep.Stop>().forEach {
+            if (it.mode == BackendMode.CLASSIC_HID) stopClassicBackend() else stopBleBackend()
+        }
         StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
         StoreProvider.dispatch(Action.UpdateMessage("Switching HID backend…"))
-        if (useBle) startAndBindBleBackend() else startAndBindClassicBackend()
+        steps.filterIsInstance<BackendStep.Start>().forEach {
+            if (it.mode == BackendMode.BLE_HOGP) startAndBindBleBackend() else startAndBindClassicBackend()
+        }
     }
 
     private fun showPermissionNeededDialog() {
