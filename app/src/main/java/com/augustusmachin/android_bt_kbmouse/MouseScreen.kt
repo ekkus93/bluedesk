@@ -44,6 +44,14 @@ import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+private const val MOUSE_MOVE_MIN = -20
+private const val MOUSE_MOVE_MAX = 20
+private const val SCROLL_MOVE_THRESHOLD_PX = 0.5f
+private const val SCROLL_STEP_BASE_PX = 24f
+private const val MIN_SCROLL_SPEED = 0.1f
+private const val TAP_TIMEOUT_MS = 220
+private const val THREE_FINGER_TAP = 3
+
 @Composable
 fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
     val context = LocalContext.current
@@ -85,8 +93,14 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
                                         val d = change.positionChange()
                                         if (d != Offset.Zero) {
                                             moved = true
-                                            val dx = (d.x * settings.touchpadSensitivity).roundToInt().coerceIn(-20, 20)
-                                            val dy = (d.y * settings.touchpadSensitivity).roundToInt().coerceIn(-20, 20)
+                                            val dx =
+                                                (d.x * settings.touchpadSensitivity)
+                                                    .roundToInt()
+                                                    .coerceIn(MOUSE_MOVE_MIN, MOUSE_MOVE_MAX)
+                                            val dy =
+                                                (d.y * settings.touchpadSensitivity)
+                                                    .roundToInt()
+                                                    .coerceIn(MOUSE_MOVE_MIN, MOUSE_MOVE_MAX)
                                             if (dx != 0 || dy != 0) StoreProvider.dispatch(Action.MoveMouse(dx, dy))
                                             change.consume()
                                         }
@@ -99,8 +113,11 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
                                         dySum += d.y
                                         dxSum += d.x
                                     }
-                                    moved = moved || (abs(dySum) > 0.5f || abs(dxSum) > 0.5f)
-                                    val stepPx = (24f / settings.scrollSpeed.coerceAtLeast(0.1f))
+                                    moved =
+                                        moved ||
+                                        (abs(dySum) > SCROLL_MOVE_THRESHOLD_PX || abs(dxSum) > SCROLL_MOVE_THRESHOLD_PX)
+                                    val stepPx =
+                                        (SCROLL_STEP_BASE_PX / settings.scrollSpeed.coerceAtLeast(MIN_SCROLL_SPEED))
                                     scrollAccumV += dySum
                                     while (abs(scrollAccumV) >= stepPx) {
                                         val step = if (scrollAccumV > 0) 1 else -1
@@ -123,7 +140,7 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
                                 }
                             } while (event.changes.any { it.pressed })
                             val duration = System.currentTimeMillis() - startTime
-                            if (!moved && duration < 220) {
+                            if (!moved && duration < TAP_TIMEOUT_MS) {
                                 if (dragLock) {
                                     dragLock = false
                                     StoreProvider.dispatch(Action.MouseButtonUp)
@@ -131,7 +148,8 @@ fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
                                     when (maxPointers) {
                                         1 -> StoreProvider.dispatch(Action.LeftClick)
                                         2 -> StoreProvider.dispatch(Action.RightClick)
-                                        3 -> if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick)
+                                        THREE_FINGER_TAP ->
+                                            if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick)
                                     }
                                 }
                             }

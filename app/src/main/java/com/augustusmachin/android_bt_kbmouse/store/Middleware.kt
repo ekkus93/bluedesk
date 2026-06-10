@@ -7,6 +7,12 @@ import kotlinx.coroutines.launch
 import org.reduxkotlin.Store
 import org.reduxkotlin.middleware
 
+private const val MODIFIER_CTRL = 0x01
+private const val MODIFIER_SHIFT = 0x02
+private const val MODIFIER_ALT = 0x04
+private const val MODIFIER_GUI = 0x08
+private const val KEY_PRESS_HOLD_MS = 40L
+
 /**
  * Middleware that forwards HID and connection intent actions to platform services.
  * The [KeySender] abstraction allows the activity/service layer to bridge actual HID calls
@@ -25,10 +31,10 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
                 val res = next(action)
                 val k = store.state.keyboard
                 var mods = 0
-                if (k.ctrl) mods = mods or 0x01
-                if (k.shift) mods = mods or 0x02
-                if (k.alt) mods = mods or 0x04
-                if (k.gui) mods = mods or 0x08
+                if (k.ctrl) mods = mods or MODIFIER_CTRL
+                if (k.shift) mods = mods or MODIFIER_SHIFT
+                if (k.alt) mods = mods or MODIFIER_ALT
+                if (k.gui) mods = mods or MODIFIER_GUI
                 sender?.setModifiers(mods)
                 return@middleware res
             }
@@ -37,16 +43,16 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
                 is Action.SendKey -> {
                     val k = store.state.keyboard
                     var mods = action.mods
-                    if (k.ctrl) mods = mods or 0x01
-                    if (k.shift) mods = mods or 0x02
-                    if (k.alt) mods = mods or 0x04
-                    if (k.gui) mods = mods or 0x08
+                    if (k.ctrl) mods = mods or MODIFIER_CTRL
+                    if (k.shift) mods = mods or MODIFIER_SHIFT
+                    if (k.alt) mods = mods or MODIFIER_ALT
+                    if (k.gui) mods = mods or MODIFIER_GUI
                     val s = sender
                     if (s != null) {
                         scope.launch {
                             try {
                                 s.sendKeyDown(action.code, mods)
-                                delay(40)
+                                delay(KEY_PRESS_HOLD_MS)
                             } finally {
                                 s.sendKeyUp(action.code)
                             }
@@ -62,10 +68,10 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
                     val res = next(action)
                     val k = store.state.keyboard
                     var mods = 0
-                    if (k.ctrl) mods = mods or 0x01
-                    if (k.shift) mods = mods or 0x02
-                    if (k.alt) mods = mods or 0x04
-                    if (k.gui) mods = mods or 0x08
+                    if (k.ctrl) mods = mods or MODIFIER_CTRL
+                    if (k.shift) mods = mods or MODIFIER_SHIFT
+                    if (k.alt) mods = mods or MODIFIER_ALT
+                    if (k.gui) mods = mods or MODIFIER_GUI
                     sender?.setModifiers(mods)
                     return@middleware res
                 }

@@ -6,6 +6,10 @@ import android.bluetooth.BluetoothHidDevice
 import android.content.Context
 import androidx.core.content.ContextCompat
 
+private const val MODIFIER_BYTE_MASK = 0xFF
+private const val MAX_ROLLOVER_KEYS = 6
+private const val KEY_PRESS_HOLD_MS = 10L
+
 /**
  * Owns the HID output state — the 6-key rollover chord set, current modifiers,
  * and held mouse buttons — and writes keyboard/mouse reports to the connected
@@ -29,7 +33,7 @@ class HidReportSender(
     @Volatile private var heldMouseButtons = 0
 
     fun setModifiers(mods: Int) {
-        synchronized(this) { currentModifiers = mods and 0xFF }
+        synchronized(this) { currentModifiers = mods and MODIFIER_BYTE_MASK }
         sendCurrentKeyboardReport()
     }
 
@@ -39,7 +43,7 @@ class HidReportSender(
     ) {
         pressKey(keyCode, modifiers)
         try {
-            Thread.sleep(10)
+            Thread.sleep(KEY_PRESS_HOLD_MS)
         } catch (_: InterruptedException) {
         }
         releaseKey(keyCode)
@@ -50,8 +54,8 @@ class HidReportSender(
         modifiers: Int,
     ) {
         synchronized(this) {
-            currentModifiers = modifiers and 0xFF
-            if (pressedKeys.size < 6) {
+            currentModifiers = modifiers and MODIFIER_BYTE_MASK
+            if (pressedKeys.size < MAX_ROLLOVER_KEYS) {
                 pressedKeys.add(keyCode)
             } else {
                 // replace the oldest to ensure a report still goes out
@@ -104,7 +108,7 @@ class HidReportSender(
     private fun sendCurrentKeyboardReport() {
         val device = currentDevice() ?: return
         val hid = currentHid() ?: return
-        val keys = synchronized(this) { pressedKeys.toList().take(6) }
+        val keys = synchronized(this) { pressedKeys.toList().take(MAX_ROLLOVER_KEYS) }
         val report = HidReportBuilder.keyboardReport(currentModifiers, keys)
         DebugLog.log(TAG, "kbd mods=" + currentModifiers + " keys=" + keys)
         // Ensure BLUETOOTH_CONNECT before sending HID report
@@ -134,7 +138,7 @@ class HidReportSender(
         DebugLog.log(TAG, "mouse click mask=" + buttonMask)
         sendMouseReport(buttonMask, 0, 0, 0, 0)
         try {
-            Thread.sleep(10)
+            Thread.sleep(KEY_PRESS_HOLD_MS)
         } catch (_: InterruptedException) {
         }
         sendMouseReport(0, 0, 0, 0, 0)

@@ -3,6 +3,11 @@ package com.augustusmachin.android_bt_kbmouse.store
 import com.augustusmachin.android_bt_kbmouse.BleHogpService
 import com.augustusmachin.android_bt_kbmouse.HidReportBuilder
 
+private const val MAX_ROLLOVER_KEYS = 6
+private const val MOUSE_BUTTON_MIDDLE = 0x04
+private const val CLICK_HOLD_MS = 10L
+private const val KEY_PRESS_HOLD_MS = 40L
+
 /**
  * KeySender bridge for BLE HOGP. Builds HID reports and delivers them via
  * BleHogpService GATT notifications.
@@ -21,7 +26,10 @@ class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
     @Volatile private var buttonsMask: Int = 0
 
     private fun buildKeyReport(): ByteArray =
-        HidReportBuilder.keyboardReport(modifierByte, synchronized(pressedKeys) { pressedKeys.take(6).toList() })
+        HidReportBuilder.keyboardReport(
+            modifierByte,
+            synchronized(pressedKeys) { pressedKeys.take(MAX_ROLLOVER_KEYS).toList() },
+        )
 
     private fun buildMouseReport(
         dx: Int = 0,
@@ -58,14 +66,14 @@ class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
     }
 
     override fun middleClick() {
-        click(0x04)
+        click(MOUSE_BUTTON_MIDDLE)
     }
 
     private fun click(mask: Int) {
         buttonsMask = buttonsMask or mask
         svc.notifyMouse(buildMouseReport())
         try {
-            Thread.sleep(10)
+            Thread.sleep(CLICK_HOLD_MS)
         } catch (_: InterruptedException) {
         }
         buttonsMask = buttonsMask and mask.inv()
@@ -85,7 +93,7 @@ class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
     override fun toggleCapsLock() {
         sendKeyDown(0x39.toByte(), modifierByte)
         try {
-            Thread.sleep(40)
+            Thread.sleep(KEY_PRESS_HOLD_MS)
         } catch (_: InterruptedException) {
         }
         sendKeyUp(0x39.toByte())
@@ -94,7 +102,7 @@ class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
     override fun toggleScrollLock() {
         sendKeyDown(0x47.toByte(), modifierByte)
         try {
-            Thread.sleep(40)
+            Thread.sleep(KEY_PRESS_HOLD_MS)
         } catch (_: InterruptedException) {
         }
         sendKeyUp(0x47.toByte())

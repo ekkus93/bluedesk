@@ -1,5 +1,11 @@
 package com.augustusmachin.android_bt_kbmouse
 
+private const val FUNCTION_KEY_MIN = 1
+private const val FUNCTION_KEY_MAX = 12
+
+// HID usage for F1 is 0x3A; (0x39 + n) yields F1..F12 for n in 1..12.
+private const val FUNCTION_KEY_USAGE_BASE = 0x39
+
 /**
  * Small helper to map extended key labels to HID usage bytes.
  * Extracted from ExtendedKeysScreen for unit testing.
@@ -25,7 +31,11 @@ fun labelToHid(label: String): Byte? =
         else ->
             if (label.startsWith("F")) {
                 val n = label.removePrefix("F").toIntOrNull()
-                if (n != null && n in 1..12) (0x39 + n).toByte() else null
+                if (n != null && n in FUNCTION_KEY_MIN..FUNCTION_KEY_MAX) {
+                    (FUNCTION_KEY_USAGE_BASE + n).toByte()
+                } else {
+                    null
+                }
             } else {
                 null
             }

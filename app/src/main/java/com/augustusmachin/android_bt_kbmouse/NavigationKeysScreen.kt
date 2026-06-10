@@ -35,6 +35,12 @@ import androidx.compose.ui.unit.sp
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 
+private const val COLS_PER_PAGE = 3
+private const val MAX_PAGE_INDEX = 1
+private const val KEY_CODE_BYTE_MASK = 0xFF
+private const val ARROW_WIDTH_DP = 36f
+private const val COLUMN_GAP_DP = 6f
+
 // A cell in a navigation column's two key rows.
 private sealed interface NavCell {
     object Empty : NavCell // invisible spacer (keeps grid aligned)
@@ -64,8 +70,8 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
     val ks = appState.keyboard
     val scrollLockActive = appState.connection.scrollLock
 
-    val colsPerPage = 3
-    val maxPage = 1 // 6 cols / 3 per page → 2 pages → maxPage index = 1
+    val colsPerPage = COLS_PER_PAGE
+    val maxPage = MAX_PAGE_INDEX // 6 cols / 3 per page → 2 pages → maxPage index = 1
 
     // Column-centric layout: each column is (modifier, key0, key1, key2), matching
     // the Extended and Function tabs. Arrows form a D-pad cross over cols 1-3:
@@ -100,7 +106,7 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
         if (connected) {
             StoreProvider.dispatch(Action.SendKey(code))
         } else {
-            val hex = String.format(java.util.Locale.US, "0x%02X", code.toInt() and 0xFF)
+            val hex = String.format(java.util.Locale.US, "0x%02X", code.toInt() and KEY_CODE_BYTE_MASK)
             StoreProvider.dispatch(Action.UpdateMessage("Preview: $label -> $hex"))
             DebugLog.log("NavigationKeys", "Preview: $label -> $hex")
             StoreProvider.dispatch(Action.ReleaseLockedModifiers)
@@ -156,8 +162,8 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val arrowWidthDp = 36f
-            val gapDp = 6f
+            val arrowWidthDp = ARROW_WIDTH_DP
+            val gapDp = COLUMN_GAP_DP
             val contentWidthDp = maxWidth.value - arrowWidthDp * 2
             val btnWidthDp = (contentWidthDp - gapDp * (colsPerPage - 1)) / colsPerPage
             val colStrideDp = btnWidthDp + gapDp

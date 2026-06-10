@@ -3,6 +3,9 @@ package com.augustusmachin.android_bt_kbmouse
 import android.bluetooth.BluetoothDevice
 import kotlin.math.min
 
+private const val DEFAULT_RECONNECT_BASE_MS = 2000L
+private const val MAX_RECONNECT_DELAY_MS = 30_000L
+
 /** Pure helpers for reconnect/backoff logic to enable host JVM unit testing without Android Handler. */
 object ReconnectLogic {
     /** Exponential backoff doubling up to 30s cap. Base defaults to 2000ms if <=0. attempt starts at 1. */
@@ -10,9 +13,9 @@ object ReconnectLogic {
         base: Long,
         attempt: Int,
     ): Long {
-        val effectiveBase = if (base > 0) base else 2000L
+        val effectiveBase = if (base > 0) base else DEFAULT_RECONNECT_BASE_MS
         val shift = (attempt - 1).coerceAtLeast(0)
-        return min(30_000L, effectiveBase shl shift)
+        return min(MAX_RECONNECT_DELAY_MS, effectiveBase shl shift)
     }
 
     /** Whether reconnect should proceed given manualDisconnect and bluetooth adapter enabled state. */

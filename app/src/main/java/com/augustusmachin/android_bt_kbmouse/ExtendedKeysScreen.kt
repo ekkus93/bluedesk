@@ -45,6 +45,13 @@ import androidx.compose.ui.unit.sp
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 
+private const val COLS_PER_PAGE = 3
+private const val MAX_PAGE_INDEX = 1
+private const val KEY_CODE_BYTE_MASK = 0xFF
+private const val MAX_PREVIEW_HISTORY = 200
+private const val ARROW_WIDTH_DP = 36f
+private const val COLUMN_GAP_DP = 6f
+
 // Per-column data (mod button + two key rows)
 private data class GridCol(
     val modLabel: String,
@@ -61,8 +68,8 @@ fun ExtendedKeysScreen() {
     val keyFontSize = LocalKeyFontSize.current
     val ks = appState.keyboard
 
-    val colsPerPage = 3
-    val maxPage = 1 // 5 cols / 3 per page → 2 pages → maxPage index = 1
+    val colsPerPage = COLS_PER_PAGE
+    val maxPage = MAX_PAGE_INDEX // 5 cols / 3 per page → 2 pages → maxPage index = 1
 
     // Column-centric layout: each entry is one vertical column of (modifier, key0, key1?)
     val gridCols =
@@ -87,7 +94,7 @@ fun ExtendedKeysScreen() {
         if (connected) {
             StoreProvider.dispatch(Action.SendKey(code))
         } else {
-            val hex = String.format(java.util.Locale.US, "0x%02X", code.toInt() and 0xFF)
+            val hex = String.format(java.util.Locale.US, "0x%02X", code.toInt() and KEY_CODE_BYTE_MASK)
             val msg = "Preview: $label -> $hex"
             StoreProvider.dispatch(Action.UpdateMessage(msg))
             DebugLog.log("ExtendedKeys", msg)
@@ -95,7 +102,7 @@ fun ExtendedKeysScreen() {
                 0,
                 "${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())} $msg",
             )
-            if (previewHistory.size > 200) previewHistory.removeAt(previewHistory.lastIndex)
+            if (previewHistory.size > MAX_PREVIEW_HISTORY) previewHistory.removeAt(previewHistory.lastIndex)
             StoreProvider.dispatch(Action.ReleaseLockedModifiers)
         }
     }
@@ -113,8 +120,8 @@ fun ExtendedKeysScreen() {
 
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val arrowWidthDp = 36f
-            val gapDp = 6f
+            val arrowWidthDp = ARROW_WIDTH_DP
+            val gapDp = COLUMN_GAP_DP
             val contentWidthDp = maxWidth.value - arrowWidthDp * 2
             val btnWidthDp = (contentWidthDp - gapDp * (colsPerPage - 1)) / colsPerPage
             val colStrideDp = btnWidthDp + gapDp

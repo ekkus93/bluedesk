@@ -26,14 +26,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
+private const val SDK_INT_MARSHMALLOW = 23
+private const val SENSITIVITY_MIN = 0.5f
+private const val SENSITIVITY_MAX = 3.0f
+private const val SCROLL_SPEED_MIN = 0.5f
+private const val SCROLL_SPEED_MAX = 3.0f
+private const val KEY_REPEAT_MIN_MS = 150
+private const val KEY_REPEAT_MAX_MS = 1000
+
 private fun isIgnoringBatteryOptimizations(context: android.content.Context): Boolean {
-    if (android.os.Build.VERSION.SDK_INT < 23) return true
+    if (android.os.Build.VERSION.SDK_INT < SDK_INT_MARSHMALLOW) return true
     val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
     return pm.isIgnoringBatteryOptimizations(context.packageName)
 }
 
 private fun requestIgnoreBatteryOptimizations(context: android.content.Context) {
-    if (android.os.Build.VERSION.SDK_INT < 23) return
+    if (android.os.Build.VERSION.SDK_INT < SDK_INT_MARSHMALLOW) return
     try {
         context.startActivity(
             android.content.Intent(
@@ -116,8 +124,13 @@ fun SettingsScreen(
     ) {
         Text("Touchpad sensitivity: ${"%.2f".format(settings.touchpadSensitivity)}")
         Slider(value = settings.touchpadSensitivity, onValueChange = {
-            scope.launch { SettingsManager.setTouchpadSensitivity(context, it.coerceIn(0.5f, 3.0f)) }
-        }, valueRange = 0.5f..3.0f)
+            scope.launch {
+                SettingsManager.setTouchpadSensitivity(
+                    context,
+                    it.coerceIn(SENSITIVITY_MIN, SENSITIVITY_MAX),
+                )
+            }
+        }, valueRange = SENSITIVITY_MIN..SENSITIVITY_MAX)
 
         if (settings.hidSimplified) {
             Text(
@@ -130,8 +143,13 @@ fun SettingsScreen(
         } else {
             Text("Scroll speed: ${"%.2f".format(settings.scrollSpeed)}", modifier = Modifier.padding(top = 16.dp))
             Slider(value = settings.scrollSpeed, onValueChange = {
-                scope.launch { SettingsManager.setScrollSpeed(context, it.coerceIn(0.5f, 3.0f)) }
-            }, valueRange = 0.5f..3.0f)
+                scope.launch {
+                    SettingsManager.setScrollSpeed(
+                        context,
+                        it.coerceIn(SCROLL_SPEED_MIN, SCROLL_SPEED_MAX),
+                    )
+                }
+            }, valueRange = SCROLL_SPEED_MIN..SCROLL_SPEED_MAX)
 
             Row(Modifier.padding(top = 16.dp)) {
                 Text("Invert vertical scroll", modifier = Modifier.weight(1f))
@@ -163,7 +181,12 @@ fun SettingsScreen(
 
         Text("Key repeat delay: ${settings.keyRepeatDelayMs} ms", modifier = Modifier.padding(top = 16.dp))
         Slider(value = settings.keyRepeatDelayMs.toFloat(), onValueChange = {
-            scope.launch { SettingsManager.setKeyRepeatDelay(context, it.toInt().coerceIn(150, 1000)) }
+            scope.launch {
+                SettingsManager.setKeyRepeatDelay(
+                    context,
+                    it.toInt().coerceIn(KEY_REPEAT_MIN_MS, KEY_REPEAT_MAX_MS),
+                )
+            }
         }, valueRange = 150f..1000f)
 
         Row(Modifier.padding(top = 16.dp)) {

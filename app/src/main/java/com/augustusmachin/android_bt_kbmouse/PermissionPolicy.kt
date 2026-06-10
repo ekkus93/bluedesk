@@ -2,6 +2,8 @@ package com.augustusmachin.android_bt_kbmouse
 
 import android.Manifest
 
+private const val SDK_INT_S = 31
+
 /**
  * Pure helper that classifies Bluetooth/notification permissions by category.
  * All methods are stateless and accept sdkInt to allow JVM-level unit testing.
@@ -10,14 +12,14 @@ object PermissionPolicy {
     /** Permissions essential for Classic HID to function at all. */
     fun requiredForClassic(sdkInt: Int): List<String> =
         when {
-            sdkInt >= 31 -> listOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+            sdkInt >= SDK_INT_S -> listOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
             else -> listOf(Manifest.permission.ACCESS_FINE_LOCATION)
         }
 
     /** Additional permission required only for BLE HOGP advertising (API 31+). */
     fun requiredForBle(sdkInt: Int): List<String> =
         when {
-            sdkInt >= 31 -> listOf(Manifest.permission.BLUETOOTH_ADVERTISE)
+            sdkInt >= SDK_INT_S -> listOf(Manifest.permission.BLUETOOTH_ADVERTISE)
             else -> emptyList()
         }
 

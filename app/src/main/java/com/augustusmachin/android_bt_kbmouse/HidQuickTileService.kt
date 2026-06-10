@@ -8,6 +8,8 @@ import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 
+private const val SDK_INT_MARSHMALLOW = 23
+
 class HidQuickTileService : TileService() {
     override fun onStartListening() {
         super.onStartListening()
@@ -33,7 +35,7 @@ class HidQuickTileService : TileService() {
                 // Use the PendingIntent overload on newer platforms to avoid UnsupportedOperationException
                 val flags =
                     PendingIntent.FLAG_UPDATE_CURRENT or
-                        (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
+                        (if (Build.VERSION.SDK_INT >= SDK_INT_MARSHMALLOW) PendingIntent.FLAG_IMMUTABLE else 0)
                 val pi = PendingIntent.getActivity(this, 0, i, flags)
                 if (Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     // Preferred new API

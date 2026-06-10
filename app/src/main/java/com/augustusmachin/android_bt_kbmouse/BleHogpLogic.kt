@@ -1,5 +1,8 @@
 package com.augustusmachin.android_bt_kbmouse
 
+private const val BYTE_MASK = 0xFF
+private const val HIGH_BYTE_SHIFT = 8
+
 /** Pure helpers to unit test BLE HOGP decisions. */
 object BleHogpLogic {
     /** Return selected report map variant bytes length and flags summary. */
@@ -12,7 +15,7 @@ object BleHogpLogic {
     /** Decide if CCCD notify should be enabled given descriptor value (0x0001 little-endian for notifications). */
     fun cccdEnabled(cccValue: ByteArray?): Boolean {
         if (cccValue == null || cccValue.size < 2) return false
-        val flag = ((cccValue[1].toInt() and 0xFF) shl 8) or (cccValue[0].toInt() and 0xFF)
+        val flag = ((cccValue[1].toInt() and BYTE_MASK) shl HIGH_BYTE_SHIFT) or (cccValue[0].toInt() and BYTE_MASK)
         return (flag and 0x0001) != 0
     }
 

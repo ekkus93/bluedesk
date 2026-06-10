@@ -39,6 +39,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+private const val LED_CAPS_LOCK = 0x02
+private const val LED_SCROLL_LOCK = 0x04
+private const val SDK_INT_OREO = 26
+
 class MainActivity : ComponentActivity() {
     private companion object {
         // How long the branded BlueDeck launch screen stays visible, in ms. Tune to taste.
@@ -145,8 +149,8 @@ class MainActivity : ComponentActivity() {
                             }
 
                             override fun onLeds(leds: Int) {
-                                val caps = (leds and 0x02) != 0
-                                val scroll = (leds and 0x04) != 0
+                                val caps = (leds and LED_CAPS_LOCK) != 0
+                                val scroll = (leds and LED_SCROLL_LOCK) != 0
                                 StoreProvider.dispatch(Action.UpdateLocks(caps, scroll))
                             }
                         },
@@ -203,8 +207,8 @@ class MainActivity : ComponentActivity() {
                         }
 
                         override fun onLeds(leds: Int) {
-                            val caps = (leds and 0x02) != 0
-                            val scroll = (leds and 0x04) != 0
+                            val caps = (leds and LED_CAPS_LOCK) != 0
+                            val scroll = (leds and LED_SCROLL_LOCK) != 0
                             StoreProvider.dispatch(Action.UpdateLocks(caps, scroll))
                         }
                     }
@@ -332,7 +336,7 @@ class MainActivity : ComponentActivity() {
 
     private fun startAndBindClassicBackend() {
         val intent = Intent(this, BluetoothService::class.java)
-        if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
+        if (android.os.Build.VERSION.SDK_INT >= SDK_INT_OREO) startForegroundService(intent) else startService(intent)
         try {
             serviceBound = bindService(intent, connection, Context.BIND_AUTO_CREATE)
         } catch (e: Exception) {
@@ -342,7 +346,7 @@ class MainActivity : ComponentActivity() {
 
     private fun startAndBindBleBackend() {
         val intent = Intent(this, BleHogpService::class.java)
-        if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
+        if (android.os.Build.VERSION.SDK_INT >= SDK_INT_OREO) startForegroundService(intent) else startService(intent)
         try {
             bleHogpBound = bindService(intent, bleHogpConnection, Context.BIND_AUTO_CREATE)
         } catch (e: Exception) {

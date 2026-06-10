@@ -43,6 +43,8 @@ import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 
 private const val KEY_FONT_SCALE = 4200
+private const val KEY_FONT_MIN_SP = 10f
+private const val KEY_FONT_MAX_SP = 16f
 val LocalKeyFontSize = staticCompositionLocalOf { 16.sp }
 
 @Composable
@@ -89,7 +91,8 @@ fun KeyboardScreen(contentPadding: PaddingValues = PaddingValues()) {
     val connected = appState.connection.connectedDevice != null
     val configuration = LocalConfiguration.current
     val screenWidthDp = configuration.screenWidthDp.toFloat().coerceAtLeast(1f)
-    val keyFontSize = remember(screenWidthDp) { (KEY_FONT_SCALE / screenWidthDp).coerceIn(10f, 16f).sp }
+    val keyFontSize =
+        remember(screenWidthDp) { (KEY_FONT_SCALE / screenWidthDp).coerceIn(KEY_FONT_MIN_SP, KEY_FONT_MAX_SP).sp }
 
     CompositionLocalProvider(LocalKeyFontSize provides keyFontSize) {
         Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {

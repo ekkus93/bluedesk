@@ -26,6 +26,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
+private const val SDK_INT_TIRAMISU = 33
+private const val SDK_INT_NOUGAT = 24
+private const val DEFAULT_RECONNECT_BASE_MS = 2000L
+
 class BluetoothService : Service(), IBluetoothService {
     companion object {
         private const val ACTION_CONNECT = "com.augustusmachin.android_bt_kbmouse.ACTION_CONNECT"
@@ -387,7 +391,7 @@ class BluetoothService : Service(), IBluetoothService {
                 addAction(ACTION_DISCONNECT)
                 addAction(ACTION_FORGET)
             }
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
+        if (android.os.Build.VERSION.SDK_INT >= SDK_INT_TIRAMISU) {
             try {
                 registerReceiver(notifActionReceiver, notifFilter, Context.RECEIVER_NOT_EXPORTED)
             } catch (se: SecurityException) {
@@ -599,7 +603,7 @@ class BluetoothService : Service(), IBluetoothService {
                 bluetoothAdapter?.getRemoteDevice(addr)
             } ?: return
         val attempt = (++reconnectAttempt).coerceAtLeast(1)
-        val base = if (delayMs > 0) delayMs else 2000L
+        val base = if (delayMs > 0) delayMs else DEFAULT_RECONNECT_BASE_MS
         val computed = ReconnectLogic.computeReconnectDelay(base, attempt)
         reconnectRunnable?.let { mainHandler.removeCallbacks(it) }
         val r =
@@ -775,7 +779,7 @@ class BluetoothService : Service(), IBluetoothService {
         }
 
     private fun refreshQsTile() {
-        if (android.os.Build.VERSION.SDK_INT >= 24) {
+        if (android.os.Build.VERSION.SDK_INT >= SDK_INT_NOUGAT) {
             try {
                 TileService.requestListeningState(this, ComponentName(this, HidQuickTileService::class.java))
             } catch (_: Exception) {

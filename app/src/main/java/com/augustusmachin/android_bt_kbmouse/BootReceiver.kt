@@ -7,6 +7,8 @@ import android.os.Build
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
+private const val SDK_INT_OREO = 26
+
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(
         context: Context,
@@ -24,7 +26,13 @@ class BootReceiver : BroadcastReceiver() {
             if (start) {
                 val svc = Intent(context, BluetoothService::class.java)
                 try {
-                    if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(svc) else context.startService(svc)
+                    if (Build.VERSION.SDK_INT >= SDK_INT_OREO) {
+                        context.startForegroundService(
+                            svc,
+                        )
+                    } else {
+                        context.startService(svc)
+                    }
                 } catch (_: Exception) {
                 }
             }

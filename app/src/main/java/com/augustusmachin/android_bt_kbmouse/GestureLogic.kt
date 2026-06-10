@@ -3,6 +3,13 @@ package com.augustusmachin.android_bt_kbmouse
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+private const val MOUSE_MOVE_MIN = -20
+private const val MOUSE_MOVE_MAX = 20
+private const val SCROLL_STEP_BASE_PX = 24f
+private const val MIN_SCROLL_SPEED = 0.1f
+private const val TAP_TIMEOUT_MS = 220
+private const val THREE_FINGER_TAP = 3
+
 /** Pure helpers mirroring MouseScreen gesture math, for unit testing. */
 object GestureLogic {
     /** Translate one-finger movement by sensitivity, clamped to [-20, 20] like MouseScreen. */
@@ -11,8 +18,8 @@ object GestureLogic {
         dyPx: Float,
         sensitivity: Float,
     ): Pair<Int, Int> {
-        val dx = (dxPx * sensitivity).roundToInt().coerceIn(-20, 20)
-        val dy = (dyPx * sensitivity).roundToInt().coerceIn(-20, 20)
+        val dx = (dxPx * sensitivity).roundToInt().coerceIn(MOUSE_MOVE_MIN, MOUSE_MOVE_MAX)
+        val dy = (dyPx * sensitivity).roundToInt().coerceIn(MOUSE_MOVE_MIN, MOUSE_MOVE_MAX)
         return dx to dy
     }
 
@@ -37,7 +44,7 @@ object GestureLogic {
         enableH: Boolean,
         invertH: Boolean,
     ): ScrollResult {
-        val stepPx = (24f / scrollSpeed.coerceAtLeast(0.1f))
+        val stepPx = (SCROLL_STEP_BASE_PX / scrollSpeed.coerceAtLeast(MIN_SCROLL_SPEED))
         var vAcc = accumV + dySum
         var hAcc = accumH
         val vSteps = mutableListOf<Int>()
@@ -69,11 +76,11 @@ object GestureLogic {
         maxPointers: Int,
         enableMiddle: Boolean,
     ): Tap {
-        if (moved || durationMs >= 220) return Tap.None
+        if (moved || durationMs >= TAP_TIMEOUT_MS) return Tap.None
         return when (maxPointers) {
             1 -> Tap.Left
             2 -> Tap.Right
-            3 -> if (enableMiddle) Tap.Middle else Tap.None
+            THREE_FINGER_TAP -> if (enableMiddle) Tap.Middle else Tap.None
             else -> Tap.None
         }
     }

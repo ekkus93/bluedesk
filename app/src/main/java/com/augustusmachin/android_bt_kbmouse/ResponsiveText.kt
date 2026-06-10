@@ -14,6 +14,8 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
+private const val BINARY_SEARCH_STEP_SP = 0.5f
+
 /**
  * Text that auto-sizes (binary search) to the largest font that fits the
  * available width on a single line. Shared by the on-screen key grids.
@@ -50,9 +52,9 @@ fun ResponsiveText(
             val fits = result.size.width <= maxWidthPx && result.lineCount <= 1
             if (fits) {
                 best = mid
-                lo = mid + 0.5f
+                lo = mid + BINARY_SEARCH_STEP_SP
             } else {
-                hi = mid - 0.5f
+                hi = mid - BINARY_SEARCH_STEP_SP
             }
         }
 

@@ -11,6 +11,10 @@ import android.graphics.Color
 import android.os.Build
 import androidx.core.app.NotificationCompat
 
+private const val SDK_INT_OREO = 26
+private const val SDK_INT_MARSHMALLOW = 23
+private const val REQUEST_CODE_FORGET = 3
+
 /**
  * Builds the notifications used by [BluetoothService]: the ongoing
  * foreground-service notification and the "missing permission" alert.
@@ -28,7 +32,7 @@ object ServiceNotifications {
         forgetAction: String,
     ): Notification {
         val mgr = service.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= 26 && mgr.getNotificationChannel(FGS_CHANNEL_ID) == null) {
+        if (Build.VERSION.SDK_INT >= SDK_INT_OREO && mgr.getNotificationChannel(FGS_CHANNEL_ID) == null) {
             val ch = NotificationChannel(FGS_CHANNEL_ID, "Bluetooth HID Service", NotificationManager.IMPORTANCE_LOW)
             ch.enableLights(false)
             ch.enableVibration(false)
@@ -44,7 +48,13 @@ object ServiceNotifications {
                 Intent(disconnectAction).setPackage(pkg),
                 pendingFlags(),
             )
-        val forgetPi = PendingIntent.getBroadcast(service, 3, Intent(forgetAction).setPackage(pkg), pendingFlags())
+        val forgetPi =
+            PendingIntent.getBroadcast(
+                service,
+                REQUEST_CODE_FORGET,
+                Intent(forgetAction).setPackage(pkg),
+                pendingFlags(),
+            )
         return NotificationCompat.Builder(service, FGS_CHANNEL_ID)
             .setContentTitle("BlueDeck running")
             .setContentText("Tap to manage connection")
@@ -63,7 +73,7 @@ object ServiceNotifications {
         message: String,
     ) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(ERROR_CHANNEL_ID) == null) {
+        if (Build.VERSION.SDK_INT >= SDK_INT_OREO && nm.getNotificationChannel(ERROR_CHANNEL_ID) == null) {
             val ch = NotificationChannel(ERROR_CHANNEL_ID, "Bluetooth HID errors", NotificationManager.IMPORTANCE_HIGH)
             ch.enableLights(true)
             ch.lightColor = Color.RED
@@ -88,5 +98,6 @@ object ServiceNotifications {
     }
 
     private fun pendingFlags(): Int =
-        PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
+        PendingIntent.FLAG_UPDATE_CURRENT or
+            (if (Build.VERSION.SDK_INT >= SDK_INT_MARSHMALLOW) PendingIntent.FLAG_IMMUTABLE else 0)
 }

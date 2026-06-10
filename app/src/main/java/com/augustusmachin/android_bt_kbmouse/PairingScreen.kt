@@ -59,6 +59,9 @@ import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.ServiceAliasHelper
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 
+private const val SDK_INT_TIRAMISU = 33
+private const val SDK_INT_S = 31
+
 @Composable
 fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
     val appState by StoreProvider.asStateFlow().collectAsState()
@@ -95,14 +98,14 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
         }
 
     fun requiredPermissions(): Array<String> =
-        if (Build.VERSION.SDK_INT >= 33) {
+        if (Build.VERSION.SDK_INT >= SDK_INT_TIRAMISU) {
             arrayOf(
                 Manifest.permission.BLUETOOTH_SCAN,
                 Manifest.permission.BLUETOOTH_CONNECT,
                 Manifest.permission.BLUETOOTH_ADVERTISE,
                 Manifest.permission.POST_NOTIFICATIONS,
             )
-        } else if (Build.VERSION.SDK_INT >= 31) {
+        } else if (Build.VERSION.SDK_INT >= SDK_INT_S) {
             arrayOf(
                 Manifest.permission.BLUETOOTH_SCAN,
                 Manifest.permission.BLUETOOTH_CONNECT,

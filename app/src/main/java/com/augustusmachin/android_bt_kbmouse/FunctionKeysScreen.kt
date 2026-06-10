@@ -37,6 +37,12 @@ import androidx.compose.ui.unit.sp
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 
+private const val COLS_PER_PAGE = 3
+private const val MAX_PAGE_INDEX = 1
+private const val KEY_CODE_BYTE_MASK = 0xFF
+private const val ARROW_WIDTH_DP = 36f
+private const val COLUMN_GAP_DP = 6f
+
 // Col 5 has no modifier (spacer); represented with modLabel = null
 private data class FnGridCol(
     val modLabel: String?,
@@ -53,8 +59,8 @@ fun FunctionKeysScreen() {
     val keyFontSize = LocalKeyFontSize.current
     val ks = appState.keyboard
 
-    val colsPerPage = 3
-    val maxPage = 1 // 6 cols / 3 per page
+    val colsPerPage = COLS_PER_PAGE
+    val maxPage = MAX_PAGE_INDEX // 6 cols / 3 per page
 
     // Column-centric: modifier + F(1–6) + F(7–12) per column
     val gridCols =
@@ -76,7 +82,7 @@ fun FunctionKeysScreen() {
         if (connected) {
             StoreProvider.dispatch(Action.SendKey(code))
         } else {
-            val hex = String.format(java.util.Locale.US, "0x%02X", code.toInt() and 0xFF)
+            val hex = String.format(java.util.Locale.US, "0x%02X", code.toInt() and KEY_CODE_BYTE_MASK)
             val msg = "Preview: $label -> $hex"
             StoreProvider.dispatch(Action.UpdateMessage(msg))
             DebugLog.log("FunctionKeys", msg)
@@ -97,8 +103,8 @@ fun FunctionKeysScreen() {
 
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val arrowWidthDp = 36f
-            val gapDp = 6f
+            val arrowWidthDp = ARROW_WIDTH_DP
+            val gapDp = COLUMN_GAP_DP
             val contentWidthDp = maxWidth.value - arrowWidthDp * 2
             val btnWidthDp = (contentWidthDp - gapDp * (colsPerPage - 1)) / colsPerPage
             val colStrideDp = btnWidthDp + gapDp

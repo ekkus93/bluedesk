@@ -30,6 +30,10 @@ import androidx.core.app.NotificationCompat
 import java.util.Collections
 import java.util.UUID
 
+private const val HID_INFO_BCD_HID_LSB: Byte = 0x11
+private const val SDK_INT_OREO = 26
+private const val SDK_INT_MARSHMALLOW = 23
+
 class BleHogpService : Service() {
     companion object {
         private val UUID_HID_SERVICE = UUID.fromString("00001812-0000-1000-8000-00805f9b34fb")
@@ -160,7 +164,7 @@ class BleHogpService : Service() {
                 UUID_HID_INFORMATION,
                 BluetoothGattCharacteristic.PROPERTY_READ,
                 BluetoothGattCharacteristic.PERMISSION_READ,
-            ).also { it.setValue(byteArrayOf(0x11, 0x01, 0x00, 0x02)) }
+            ).also { it.setValue(byteArrayOf(HID_INFO_BCD_HID_LSB, 0x01, 0x00, 0x02)) }
         hidService.addCharacteristic(hidInfo)
 
         val ctrlPt =
@@ -506,7 +510,7 @@ class BleHogpService : Service() {
     private fun startInForeground() {
         val channelId = "ble_hogp_service"
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(channelId) == null) {
+        if (Build.VERSION.SDK_INT >= SDK_INT_OREO && nm.getNotificationChannel(channelId) == null) {
             nm.createNotificationChannel(
                 NotificationChannel(channelId, "BLE HID Service", NotificationManager.IMPORTANCE_LOW),
             )
@@ -517,7 +521,7 @@ class BleHogpService : Service() {
                 0,
                 Intent(this, MainActivity::class.java),
                 PendingIntent.FLAG_UPDATE_CURRENT or
-                    (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0),
+                    (if (Build.VERSION.SDK_INT >= SDK_INT_MARSHMALLOW) PendingIntent.FLAG_IMMUTABLE else 0),
             )
         val notif: Notification =
             NotificationCompat.Builder(this, channelId)

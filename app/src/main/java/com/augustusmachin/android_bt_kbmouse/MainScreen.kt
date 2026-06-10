@@ -53,6 +53,8 @@ import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 import kotlinx.coroutines.launch
 
+private const val SDK_INT_TIRAMISU = 33
+
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
@@ -69,7 +71,7 @@ fun MainScreen() {
             DebugLog.log("Main", "POST_NOTIFICATIONS granted=$granted")
         }
     LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= 33) {
+        if (Build.VERSION.SDK_INT >= SDK_INT_TIRAMISU) {
             val sp = context.getSharedPreferences("perm", Context.MODE_PRIVATE)
             if (!sp.getBoolean("notif_asked", false)) {
                 val granted =
