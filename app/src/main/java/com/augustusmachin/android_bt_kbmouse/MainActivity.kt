@@ -133,6 +133,11 @@ val LocalKeyFontSize = staticCompositionLocalOf { 16.sp }
 
 class MainActivity : ComponentActivity() {
 
+    private companion object {
+        // Minimum time the cold-start splash stays visible, in ms. Tune to taste.
+        const val SPLASH_MIN_DISPLAY_MS = 1200L
+    }
+
     private val permReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == com.augustusmachin.android_bt_kbmouse.BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT) {
@@ -272,9 +277,18 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install the BlueDeck splash screen before the content view is created.
-        // It dismisses as soon as the first frame is ready (no artificial delay).
-        installSplashScreen()
+        // App startup is never blocked; we only hold the splash on screen for a
+        // brief MINIMUM so it's actually visible (it would otherwise flash by).
+        val splashScreen = installSplashScreen()
+        var keepSplashOnScreen = true
+        splashScreen.setKeepOnScreenCondition { keepSplashOnScreen }
         super.onCreate(savedInstanceState)
+        // Release the splash after the minimum display time, then force a draw
+        // pass so the keep-on-screen condition is re-evaluated and it dismisses.
+        window.decorView.postDelayed({
+            keepSplashOnScreen = false
+            window.decorView.invalidate()
+        }, SPLASH_MIN_DISPLAY_MS)
         // Register receiver for permission-error reports from services
         try {
             androidx.core.content.ContextCompat.registerReceiver(this, permReceiver, IntentFilter(BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
