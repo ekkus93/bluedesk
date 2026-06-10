@@ -60,3 +60,20 @@ object DebugLog {
 
     fun dump(): String = _lines.value.joinToString("\n")
 }
+
+/**
+ * Run [block], logging (not rethrowing) any exception via DebugLog. The broad catch is
+ * intentional: these are best-effort operations that must not crash the service/UI.
+ */
+@Suppress("TooGenericExceptionCaught")
+inline fun runCatchingLogged(
+    tag: String,
+    message: String,
+    block: () -> Unit,
+) {
+    try {
+        block()
+    } catch (e: Exception) {
+        DebugLog.e(tag, "$message: ${e.message}")
+    }
+}

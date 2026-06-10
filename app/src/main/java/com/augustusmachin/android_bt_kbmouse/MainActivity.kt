@@ -79,8 +79,10 @@ class MainActivity : ComponentActivity() {
                                 .setNegativeButton("Close") { _, _ -> finish() }
                                 .setCancelable(false)
                                 .show()
-                        } catch (e: Exception) {
-                            // As a fallback, just finish
+                        } catch (
+                            @Suppress("TooGenericExceptionCaught") e: Exception,
+                        ) {
+                            // defensive: if the dialog can't show, just finish
                             DebugLog.e("MainActivity", "missing-perm dialog failed: ${e.message}")
                             finish()
                         }
@@ -110,7 +112,10 @@ class MainActivity : ComponentActivity() {
                 ServiceAliasHelper.setService(svc)
                 try {
                     StoreProvider.setKeySender(com.augustusmachin.android_bt_kbmouse.store.BluetoothKeySender(svc))
-                } catch (t: Throwable) {
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") t: Throwable,
+                ) {
+                    // defensive: catches Throwable to keep service binding alive
                     DebugLog.e("MainActivity", "setKeySender failed: ${t.message}")
                 }
 
@@ -180,7 +185,10 @@ class MainActivity : ComponentActivity() {
                 // useBleHogp is enabled — install BleHogpKeySender and wire store events
                 try {
                     StoreProvider.setKeySender(com.augustusmachin.android_bt_kbmouse.store.BleHogpKeySender(svc))
-                } catch (t: Throwable) {
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") t: Throwable,
+                ) {
+                    // defensive: catches Throwable to keep service binding alive
                     DebugLog.e("MainActivity", "BleHogp setKeySender failed: ${t.message}")
                 }
                 svc.eventListener =
@@ -338,20 +346,16 @@ class MainActivity : ComponentActivity() {
     private fun startAndBindClassicBackend() {
         val intent = Intent(this, BluetoothService::class.java)
         if (android.os.Build.VERSION.SDK_INT >= SDK_INT_OREO) startForegroundService(intent) else startService(intent)
-        try {
+        runCatchingLogged("MainActivity", "bind BluetoothService failed") {
             serviceBound = bindService(intent, connection, Context.BIND_AUTO_CREATE)
-        } catch (e: Exception) {
-            DebugLog.e("MainActivity", "bind BluetoothService failed: ${e.message}")
         }
     }
 
     private fun startAndBindBleBackend() {
         val intent = Intent(this, BleHogpService::class.java)
         if (android.os.Build.VERSION.SDK_INT >= SDK_INT_OREO) startForegroundService(intent) else startService(intent)
-        try {
+        runCatchingLogged("MainActivity", "bind BleHogpService failed") {
             bleHogpBound = bindService(intent, bleHogpConnection, Context.BIND_AUTO_CREATE)
-        } catch (e: Exception) {
-            DebugLog.e("MainActivity", "bind BleHogpService failed: ${e.message}")
         }
     }
 
@@ -405,7 +409,10 @@ class MainActivity : ComponentActivity() {
                     .setNegativeButton("Close") { _, _ -> finish() }
                     .setCancelable(false)
                     .show()
-            } catch (e: Exception) {
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                // defensive: finishes activity as fallback
                 DebugLog.e("MainActivity", "permission dialog failed: ${e.message}")
                 finish()
             }

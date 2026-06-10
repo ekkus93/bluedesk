@@ -125,7 +125,10 @@ class HidReportSender(
             } catch (se: SecurityException) {
                 DebugLog.e(TAG, "sendReport SecurityException: ${se.message}")
                 onError("HID report failed due to missing permission")
-            } catch (e: Exception) {
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                // defensive: multi-catch; also notifies onError
                 DebugLog.e(TAG, "kbd report error: ${e.message}")
                 onError("HID report failed: ${e.message}")
             }
@@ -175,7 +178,10 @@ class HidReportSender(
             } catch (se: SecurityException) {
                 DebugLog.e(TAG, "mouse sendReport SecurityException: ${se.message}")
                 onError("Mouse click failed due to missing permission")
-            } catch (e: Exception) {
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                // defensive: multi-catch alongside SecurityException
                 DebugLog.e(TAG, "mouse report error: ${e.message}")
             }
         } else {

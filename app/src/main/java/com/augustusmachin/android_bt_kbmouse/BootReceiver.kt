@@ -19,7 +19,10 @@ class BootReceiver : BroadcastReceiver() {
             runBlocking {
                 try {
                     SettingsManager.flow(context).first().startOnBoot
-                } catch (e: Exception) {
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    // defensive: log and fall back to not starting on boot
                     DebugLog.e("BootReceiver", "startOnBoot read failed: ${e.message}")
                     false
                 }

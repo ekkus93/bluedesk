@@ -529,7 +529,10 @@ class BleHogpService : Service() {
                 .build()
         try {
             startForeground(2, notif)
-        } catch (e: Exception) {
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception,
+        ) {
+            // defensive: falls back to plain notify
             DebugLog.e("BleHogpService", "startForeground failed: ${e.message}")
             nm.notify(2, notif)
         }

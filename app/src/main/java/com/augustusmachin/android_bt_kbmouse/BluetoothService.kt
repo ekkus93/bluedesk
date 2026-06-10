@@ -260,7 +260,10 @@ class BluetoothService : Service(), IBluetoothService {
                                                                 eventListener?.onError(
                                                                     "HID connect failed due to missing permission",
                                                                 )
-                                                            } catch (e: Exception) {
+                                                            } catch (
+                                                                @Suppress("TooGenericExceptionCaught") e: Exception,
+                                                            ) {
+                                                                // defensive: multi-catch; schedules a reconnect retry
                                                                 DebugLog.e(
                                                                     "BluetoothService",
                                                                     "immediate reconnect error: ${e.message}",
@@ -276,7 +279,10 @@ class BluetoothService : Service(), IBluetoothService {
                                                             reportMissingBluetoothConnect()
                                                         }
                                                     }
-                                                } catch (e: Exception) {
+                                                } catch (
+                                                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                                                ) {
+                                                    // defensive: schedules a reconnect retry
                                                     DebugLog.e(
                                                         "BluetoothService",
                                                         "immediate reconnect error: ${e.message}",
@@ -574,7 +580,10 @@ class BluetoothService : Service(), IBluetoothService {
             } catch (se: SecurityException) {
                 DebugLog.e("BluetoothService", "createBond SecurityException: ${se.message}")
                 eventListener?.onError("Pairing failed due to missing permission")
-            } catch (e: Exception) {
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                // defensive: multi-catch alongside SecurityException
                 DebugLog.e("BluetoothService", "createBond error: ${e.message}")
             }
         } else {
@@ -636,7 +645,10 @@ class BluetoothService : Service(), IBluetoothService {
                         } catch (se: SecurityException) {
                             DebugLog.e("BluetoothService", "hid.connect SecurityException: ${se.message}")
                             eventListener?.onError("HID connect failed due to missing permission")
-                        } catch (e: Exception) {
+                        } catch (
+                            @Suppress("TooGenericExceptionCaught") e: Exception,
+                        ) {
+                            // defensive: multi-catch; schedules a reconnect retry
                             DebugLog.e("BluetoothService", "reconnect error: ${e.message}")
                             scheduleReconnect()
                         }
@@ -644,7 +656,10 @@ class BluetoothService : Service(), IBluetoothService {
                         DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; skipping auto reconnect")
                         reportMissingBluetoothConnect()
                     }
-                } catch (e: Exception) {
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    // defensive: schedules a reconnect retry
                     DebugLog.e("BluetoothService", "reconnect error: ${e.message}")
                     scheduleReconnect()
                 }
@@ -687,7 +702,10 @@ class BluetoothService : Service(), IBluetoothService {
             } catch (se: SecurityException) {
                 DebugLog.e("BluetoothService", "hid.connect SecurityException: ${se.message}")
                 eventListener?.onError("HID connect failed due to missing permission")
-            } catch (e: Exception) {
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                // defensive: multi-catch; schedules a reconnect retry
                 DebugLog.e("BluetoothService", "connect error: ${e.message}")
                 scheduleReconnect()
             }
@@ -724,7 +742,10 @@ class BluetoothService : Service(), IBluetoothService {
                     DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; skipping disconnect")
                 }
             }
-        } catch (e: Exception) {
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception,
+        ) {
+            // defensive: has finally that clears connection state
             DebugLog.e("BluetoothService", "disconnect error: ${e.message}")
         } finally {
             connectedDevice = null
@@ -796,7 +817,10 @@ class BluetoothService : Service(), IBluetoothService {
         // types; guard against that so the service doesn't crash the app.
         try {
             startForeground(1, notif)
-        } catch (e: Exception) {
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception,
+        ) {
+            // defensive: falls back to plain notify
             // Fall back to posting the notification without calling
             // startForeground so the process won't be killed during
             // startup on restrictive platform builds. This keeps the
@@ -811,18 +835,14 @@ class BluetoothService : Service(), IBluetoothService {
         val msg = "App requires BLUETOOTH_CONNECT permission. Please grant it in Settings."
         DebugLog.e("BluetoothService", msg)
         // Post a user-visible notification with a shortcut to app settings
-        try {
+        runCatchingLogged("BluetoothService", "failed to post settings notification") {
             ServiceNotifications.postMissingPermission(this, msg)
-        } catch (e: Exception) {
-            DebugLog.e("BluetoothService", "failed to post settings notification: ${e.message}")
         }
 
         // Broadcast so Activity can show UI and exit gracefully
-        try {
+        runCatchingLogged("BluetoothService", "failed to send missing-perm broadcast") {
             val b = Intent(ACTION_MISSING_BLUETOOTH_CONNECT).setPackage(packageName)
             sendBroadcast(b)
-        } catch (e: Exception) {
-            DebugLog.e("BluetoothService", "failed to send missing-perm broadcast: ${e.message}")
         }
 
         // Stop the service gracefully
@@ -903,12 +923,10 @@ class BluetoothService : Service(), IBluetoothService {
             }
             devicePrefs.removeAlias(device.address)
             if (unpair) {
-                try {
+                runCatchingLogged("BluetoothService", "unpair failed") {
                     val m = device.javaClass.getMethod("removeBond")
                     m.isAccessible = true
                     m.invoke(device)
-                } catch (e: Exception) {
-                    DebugLog.e("BluetoothService", "unpair failed: ${e.message}")
                 }
             }
         } finally {
