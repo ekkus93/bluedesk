@@ -1,30 +1,30 @@
 package com.augustusmachin.android_bt_kbmouse
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
 
 private fun isIgnoringBatteryOptimizations(context: android.content.Context): Boolean {
     if (android.os.Build.VERSION.SDK_INT < 23) return true
@@ -38,19 +38,20 @@ private fun requestIgnoreBatteryOptimizations(context: android.content.Context) 
         context.startActivity(
             android.content.Intent(
                 android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                android.net.Uri.parse("package:" + context.packageName)
-            )
+                android.net.Uri.parse("package:" + context.packageName),
+            ),
         )
     } catch (_: Exception) {
         try {
             context.startActivity(android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+        }
     }
 }
 
 private suspend fun loadImeLabels(
     context: android.content.Context,
-    overrides: Map<String, Boolean>
+    overrides: Map<String, Boolean>,
 ): Map<String, String> {
     val pm = context.packageManager
     return overrides.keys.associateWith { pkg ->
@@ -63,7 +64,10 @@ private suspend fun loadImeLabels(
 }
 
 @Composable
-fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: (() -> Unit)? = null) {
+fun SettingsScreen(
+    contentPadding: PaddingValues = PaddingValues(),
+    onOpenLogs: (() -> Unit)? = null,
+) {
     val context = LocalContext.current
     val flow = remember { SettingsManager.flow(context) }
     val settings by flow.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
@@ -76,11 +80,12 @@ fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: 
     var batteryExempt by remember { mutableStateOf(isIgnoringBatteryOptimizations(context)) }
     val lifecycle = (context as? androidx.lifecycle.LifecycleOwner)?.lifecycle
     DisposableEffect(lifecycle) {
-        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
-                batteryExempt = isIgnoringBatteryOptimizations(context)
+        val observer =
+            androidx.lifecycle.LifecycleEventObserver { _, event ->
+                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                    batteryExempt = isIgnoringBatteryOptimizations(context)
+                }
             }
-        }
         lifecycle?.addObserver(observer)
         onDispose { lifecycle?.removeObserver(observer) }
     }
@@ -105,7 +110,7 @@ fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: 
             .padding(contentPadding)
             .navigationBarsPadding()
             .padding(16.dp)
-            .verticalScroll(scrollState)
+            .verticalScroll(scrollState),
     ) {
         Text("Touchpad sensitivity: ${"%.2f".format(settings.touchpadSensitivity)}")
         Slider(value = settings.touchpadSensitivity, onValueChange = {
@@ -117,7 +122,7 @@ fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: 
                 "Scrolling requires the full HID descriptor. Disable \"Use simplified HID descriptor\" below to enable scroll controls.",
                 style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                 color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 16.dp)
+                modifier = Modifier.padding(top = 16.dp),
             )
         } else {
             Text("Scroll speed: ${"%.2f".format(settings.scrollSpeed)}", modifier = Modifier.padding(top = 16.dp))
@@ -203,7 +208,7 @@ fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: 
                         "Let Android keep the Bluetooth HID service running so the connection isn't dropped when the screen is off or the app is in the background.",
                         style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                         color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
+                        modifier = Modifier.padding(top = 2.dp),
                     )
                 }
                 Button(onClick = { requestIgnoreBatteryOptimizations(context) }, modifier = Modifier.padding(start = 8.dp)) { Text("Disable") }
@@ -219,7 +224,7 @@ fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: 
                     "Enable if your Windows host shows a \"Driver error\" after pairing.",
                     style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                     color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp)
+                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
             Switch(checked = settings.hidSimplified, onCheckedChange = {
@@ -233,7 +238,7 @@ fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: 
                     "Uses Bluetooth Low Energy instead of Classic BT. Restart the app after changing. May improve Windows compatibility.",
                     style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                     color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp)
+                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
             Switch(checked = settings.useBleHogp, onCheckedChange = {

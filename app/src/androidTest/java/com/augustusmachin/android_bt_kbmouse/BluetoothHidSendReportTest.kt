@@ -3,7 +3,6 @@ package com.augustusmachin.android_bt_kbmouse
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothHidDevice
 import android.bluetooth.BluetoothManager
@@ -13,11 +12,11 @@ import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
+import org.junit.AfterClass
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.BeforeClass
-import org.junit.AfterClass
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.Locale
@@ -56,7 +55,6 @@ import java.util.concurrent.TimeUnit
 @SuppressLint("NewApi", "MissingPermission")
 @RunWith(AndroidJUnit4::class)
 class BluetoothHidSendReportTest {
-
     companion object {
         private var hidProxy: BluetoothHidDevice? = null
         private var connectedDevice: BluetoothDevice? = null
@@ -69,6 +67,7 @@ class BluetoothHidSendReportTest {
 
         // isReady=true only after @BeforeClass fully succeeds.
         @Volatile private var isReady = false
+
         @Volatile private var notReadyReason = "Setup not yet attempted"
 
         @BeforeClass @JvmStatic
@@ -77,26 +76,29 @@ class BluetoothHidSendReportTest {
             val context = instrumentation.targetContext
 
             // Check opt-in flag for physical hardware test
-            val runPhysical = InstrumentationRegistry.getArguments()
-                .getString("runPhysicalHidTests") == "true"
+            val runPhysical =
+                InstrumentationRegistry.getArguments()
+                    .getString("runPhysicalHidTests") == "true"
             if (!runPhysical) {
                 notReadyReason = "Physical HID tests require runPhysicalHidTests=true and host-side bluetoothctl connect"
                 return
             }
 
             // Require expected host address
-            expectedHostAddress = InstrumentationRegistry.getArguments()
-                .getString("hidHostAddress")
-                ?.uppercase(Locale.US)
+            expectedHostAddress =
+                InstrumentationRegistry.getArguments()
+                    .getString("hidHostAddress")
+                    ?.uppercase(Locale.US)
             if (expectedHostAddress.isNullOrBlank()) {
                 notReadyReason = "Physical HID test requires hidHostAddress=<laptop/controller Bluetooth MAC>. Find it with bluetoothctl show."
                 return
             }
 
             // Require expected phone address
-            expectedPhoneAddress = InstrumentationRegistry.getArguments()
-                .getString("hidPhoneAddress")
-                ?.uppercase(Locale.US)
+            expectedPhoneAddress =
+                InstrumentationRegistry.getArguments()
+                    .getString("hidPhoneAddress")
+                    ?.uppercase(Locale.US)
             if (expectedPhoneAddress.isNullOrBlank()) {
                 notReadyReason = "Physical HID test requires hidPhoneAddress=<Android phone Bluetooth MAC>. Find it from the laptop with bluetoothctl devices."
                 return
@@ -117,20 +119,34 @@ class BluetoothHidSendReportTest {
 
             val mgr = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
             val adapter = mgr?.adapter
-            if (adapter == null) { notReadyReason = "No Bluetooth adapter on this device"; return }
-            if (!adapter.isEnabled) { notReadyReason = "Bluetooth is not enabled"; return }
+            if (adapter == null) {
+                notReadyReason = "No Bluetooth adapter on this device"
+                return
+            }
+            if (!adapter.isEnabled) {
+                notReadyReason = "Bluetooth is not enabled"
+                return
+            }
             btAdapter = adapter
 
             // ── Pre-cleanup: unregister any stale HID app from a previous test run ──
             val cleanupLatch = CountDownLatch(1)
             var cleanupProxy: BluetoothHidDevice? = null
-            adapter.getProfileProxy(context, object : BluetoothProfile.ServiceListener {
-                override fun onServiceConnected(profile: Int, p: BluetoothProfile) {
-                    cleanupProxy = p as BluetoothHidDevice
-                    cleanupLatch.countDown()
-                }
-                override fun onServiceDisconnected(profile: Int) {}
-            }, BluetoothProfile.HID_DEVICE)
+            adapter.getProfileProxy(
+                context,
+                object : BluetoothProfile.ServiceListener {
+                    override fun onServiceConnected(
+                        profile: Int,
+                        p: BluetoothProfile,
+                    ) {
+                        cleanupProxy = p as BluetoothHidDevice
+                        cleanupLatch.countDown()
+                    }
+
+                    override fun onServiceDisconnected(profile: Int) {}
+                },
+                BluetoothProfile.HID_DEVICE,
+            )
             if (cleanupLatch.await(3, TimeUnit.SECONDS) && cleanupProxy != null) {
                 runCatching { cleanupProxy!!.unregisterApp() }
                 Thread.sleep(1500)
@@ -141,13 +157,21 @@ class BluetoothHidSendReportTest {
             // ── Step 1: obtain the HID device profile proxy ──────────────────
             val proxyLatch = CountDownLatch(1)
             var proxy: BluetoothHidDevice? = null
-            adapter.getProfileProxy(context, object : BluetoothProfile.ServiceListener {
-                override fun onServiceConnected(profile: Int, p: BluetoothProfile) {
-                    proxy = p as BluetoothHidDevice
-                    proxyLatch.countDown()
-                }
-                override fun onServiceDisconnected(profile: Int) {}
-            }, BluetoothProfile.HID_DEVICE)
+            adapter.getProfileProxy(
+                context,
+                object : BluetoothProfile.ServiceListener {
+                    override fun onServiceConnected(
+                        profile: Int,
+                        p: BluetoothProfile,
+                    ) {
+                        proxy = p as BluetoothHidDevice
+                        proxyLatch.countDown()
+                    }
+
+                    override fun onServiceDisconnected(profile: Int) {}
+                },
+                BluetoothProfile.HID_DEVICE,
+            )
 
             if (!proxyLatch.await(5, TimeUnit.SECONDS) || proxy == null) {
                 notReadyReason = "HID_DEVICE profile proxy not obtained within 5 s"
@@ -162,26 +186,35 @@ class BluetoothHidSendReportTest {
             var registered = false
 
             val module = BluetoothHidModule(adapter)
-            module.listener = object : BluetoothHidModule.HidEventListenerExt {
-                override fun onAppStatus(r: Boolean) {
-                    registered = r
-                    regLatch.countDown()
-                }
-                override fun onConnectionStateChanged(device: BluetoothDevice, state: Int) {
-                    val address = device.address.uppercase(Locale.US)
-                    android.util.Log.w("BtHidTest", "onConnectionStateChanged state=$state dev=$address")
-                    if (state == BluetoothProfile.STATE_CONNECTED) {
-                        if (address == expectedHostAddress) {
-                            connectedDevice = device
-                            connectionLatch.countDown()
-                        } else {
-                            DebugLog.log("BluetoothHidSendReportTest", "Ignoring HID connection from unexpected host $address")
+            module.listener =
+                object : BluetoothHidModule.HidEventListenerExt {
+                    override fun onAppStatus(r: Boolean) {
+                        registered = r
+                        regLatch.countDown()
+                    }
+
+                    override fun onConnectionStateChanged(
+                        device: BluetoothDevice,
+                        state: Int,
+                    ) {
+                        val address = device.address.uppercase(Locale.US)
+                        android.util.Log.w("BtHidTest", "onConnectionStateChanged state=$state dev=$address")
+                        if (state == BluetoothProfile.STATE_CONNECTED) {
+                            if (address == expectedHostAddress) {
+                                connectedDevice = device
+                                connectionLatch.countDown()
+                            } else {
+                                DebugLog.log("BluetoothHidSendReportTest", "Ignoring HID connection from unexpected host $address")
+                            }
                         }
                     }
+
+                    override fun onLeds(leds: Int) {}
+
+                    override fun onError(msg: String) {
+                        regLatch.countDown()
+                    }
                 }
-                override fun onLeds(leds: Int) {}
-                override fun onError(msg: String) { regLatch.countDown() }
-            }
             module.registerApp(hid, simplified = true)
 
             if (!regLatch.await(5, TimeUnit.SECONDS) || !registered) {
@@ -197,9 +230,10 @@ class BluetoothHidSendReportTest {
                 notReadyReason = "No paired devices found — pair the phone with the laptop first"
                 return
             }
-            val target = bonded.firstOrNull { device ->
-                device.address.uppercase(Locale.US) == expectedHostAddress
-            }
+            val target =
+                bonded.firstOrNull { device ->
+                    device.address.uppercase(Locale.US) == expectedHostAddress
+                }
             if (target == null) {
                 notReadyReason = "Expected HID host $expectedHostAddress is not bonded. Pair the phone and laptop first"
                 return
@@ -258,10 +292,14 @@ class BluetoothHidSendReportTest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun sendKey(reportId: Byte, data: ByteArray): Boolean =
+    private fun sendKey(
+        reportId: Byte,
+        data: ByteArray,
+    ): Boolean =
         hidProxy!!.sendReport(connectedDevice!!, reportId.toInt(), data)
 
     private fun key(report: ByteArray) = sendKey(HidDescriptorVariants.REPORT_ID_KEYBOARD, report)
+
     private fun mouse(report: ByteArray) = sendKey(HidDescriptorVariants.REPORT_ID_MOUSE, report)
 
     // ── Keyboard tests ────────────────────────────────────────────────────────

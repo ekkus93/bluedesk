@@ -13,23 +13,24 @@ import org.reduxkotlin.createStore
 @OptIn(ExperimentalCoroutinesApi::class)
 class ModifierMiddlewareTest {
     @Test
-    fun sendKeyCombinesLockedModifiersAndReleases() = runTest {
-        val middleware = KeySenderMiddleware(this)
-        val store = createStore(appReducer, AppState(), applyMiddleware(middleware.create()))
-        val sender = RecordingSender()
-        middleware.sender = sender
+    fun sendKeyCombinesLockedModifiersAndReleases() =
+        runTest {
+            val middleware = KeySenderMiddleware(this)
+            val store = createStore(appReducer, AppState(), applyMiddleware(middleware.create()))
+            val sender = RecordingSender()
+            middleware.sender = sender
 
-        store.dispatch(Action.ToggleShift)
-        assertTrue(store.state.keyboard.shift)
-        assertEquals(0x02, sender.lastSetModifiers)
+            store.dispatch(Action.ToggleShift)
+            assertTrue(store.state.keyboard.shift)
+            assertEquals(0x02, sender.lastSetModifiers)
 
-        store.dispatch(Action.SendKey(0x04.toByte()))
-        advanceUntilIdle()
+            store.dispatch(Action.SendKey(0x04.toByte()))
+            advanceUntilIdle()
 
-        assertEquals(0x02, sender.lastSendKeyDownMods)
-        assertFalse(store.state.keyboard.shift)
-        assertEquals(0x00, sender.lastSetModifiers)
-    }
+            assertEquals(0x02, sender.lastSendKeyDownMods)
+            assertFalse(store.state.keyboard.shift)
+            assertEquals(0x00, sender.lastSetModifiers)
+        }
 
     private class RecordingSender : KeySender {
         var lastSetModifiers: Int = -1
@@ -39,7 +40,10 @@ class ModifierMiddlewareTest {
             lastSetModifiers = mods
         }
 
-        override fun sendKeyDown(code: Byte, mods: Int) {
+        override fun sendKeyDown(
+            code: Byte,
+            mods: Int,
+        ) {
             lastSendKeyDownMods = mods
         }
     }

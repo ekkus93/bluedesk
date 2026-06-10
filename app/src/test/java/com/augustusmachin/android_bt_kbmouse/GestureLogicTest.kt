@@ -4,7 +4,6 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class GestureLogicTest {
-
     @Test
     fun oneFinger_move_to_dxdy() {
         // simple scale and clamp
@@ -18,7 +17,8 @@ class GestureLogicTest {
 
     @Test
     fun twoFinger_vertical_scroll_thresholds_and_accumulation() {
-        var accV = 0f; var accH = 0f
+        var accV = 0f
+        var accH = 0f
         val r1 = GestureLogic.accumulateTwoFingerScroll(accV, accH, dySum = 30f, dxSum = 0f, scrollSpeed = 1.0f, invertV = false, enableH = false, invertH = false)
         assertEquals(listOf(1), r1.verticalSteps) // 30 >= 24 => one step
         assertTrue(r1.horizontalSteps.isEmpty())

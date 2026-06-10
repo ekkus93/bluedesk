@@ -4,7 +4,6 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HidReportBuilderTest {
-
     @Test
     fun keyboardReport_basic_keys_and_modifiers() {
         val report = HidReportBuilder.keyboardReport(0x05, listOf(0x04, 0x05).map { it.toByte() })
@@ -19,11 +18,11 @@ class HidReportBuilderTest {
 
     @Test
     fun keyboardReport_sixKeyRollover_noOverflow() {
-        val keys = listOf(0x04,0x05,0x06,0x07,0x08,0x09,0x0A).map { it.toByte() }
+        val keys = listOf(0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A).map { it.toByte() }
         val report = HidReportBuilder.keyboardReport(0x00, keys)
         assertEquals(8, report.size)
         // only first 6 keys fit
-        val expected = byteArrayOf(0,0,0x04,0x05,0x06,0x07,0x08,0x09).map { it.toByte() }
+        val expected = byteArrayOf(0, 0, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09).map { it.toByte() }
         for (i in 0..7) assertEquals(expected[i], report[i])
     }
 

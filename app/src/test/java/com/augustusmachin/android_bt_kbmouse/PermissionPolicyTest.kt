@@ -1,13 +1,11 @@
 package com.augustusmachin.android_bt_kbmouse
 
 import android.Manifest
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PermissionPolicyTest {
-
     // --- requiredForClassic ---
 
     @Test
@@ -55,48 +53,53 @@ class PermissionPolicyTest {
 
     @Test
     fun isClassicStartupBlocked_connectDenied_returnsTrue() {
-        val result = mapOf(
-            Manifest.permission.BLUETOOTH_CONNECT to false,
-            Manifest.permission.BLUETOOTH_SCAN to true
-        )
+        val result =
+            mapOf(
+                Manifest.permission.BLUETOOTH_CONNECT to false,
+                Manifest.permission.BLUETOOTH_SCAN to true,
+            )
         assertTrue(PermissionPolicy.isClassicStartupBlocked(result, 31))
     }
 
     @Test
     fun isClassicStartupBlocked_scanDenied_returnsTrue() {
-        val result = mapOf(
-            Manifest.permission.BLUETOOTH_CONNECT to true,
-            Manifest.permission.BLUETOOTH_SCAN to false
-        )
+        val result =
+            mapOf(
+                Manifest.permission.BLUETOOTH_CONNECT to true,
+                Manifest.permission.BLUETOOTH_SCAN to false,
+            )
         assertTrue(PermissionPolicy.isClassicStartupBlocked(result, 31))
     }
 
     @Test
     fun isClassicStartupBlocked_onlyAdvertiseDenied_returnsFalse() {
-        val result = mapOf(
-            Manifest.permission.BLUETOOTH_CONNECT to true,
-            Manifest.permission.BLUETOOTH_SCAN to true,
-            Manifest.permission.BLUETOOTH_ADVERTISE to false
-        )
+        val result =
+            mapOf(
+                Manifest.permission.BLUETOOTH_CONNECT to true,
+                Manifest.permission.BLUETOOTH_SCAN to true,
+                Manifest.permission.BLUETOOTH_ADVERTISE to false,
+            )
         assertFalse(PermissionPolicy.isClassicStartupBlocked(result, 31))
     }
 
     @Test
     fun isClassicStartupBlocked_onlyNotificationsDenied_returnsFalse() {
-        val result = mapOf(
-            Manifest.permission.BLUETOOTH_CONNECT to true,
-            Manifest.permission.BLUETOOTH_SCAN to true,
-            Manifest.permission.POST_NOTIFICATIONS to false
-        )
+        val result =
+            mapOf(
+                Manifest.permission.BLUETOOTH_CONNECT to true,
+                Manifest.permission.BLUETOOTH_SCAN to true,
+                Manifest.permission.POST_NOTIFICATIONS to false,
+            )
         assertFalse(PermissionPolicy.isClassicStartupBlocked(result, 33))
     }
 
     @Test
     fun isClassicStartupBlocked_allRequiredGranted_returnsFalse() {
-        val result = mapOf(
-            Manifest.permission.BLUETOOTH_CONNECT to true,
-            Manifest.permission.BLUETOOTH_SCAN to true
-        )
+        val result =
+            mapOf(
+                Manifest.permission.BLUETOOTH_CONNECT to true,
+                Manifest.permission.BLUETOOTH_SCAN to true,
+            )
         assertFalse(PermissionPolicy.isClassicStartupBlocked(result, 31))
     }
 }

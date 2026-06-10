@@ -16,5 +16,11 @@ object ServiceAliasHelper {
     }
 
     fun getAlias(device: BluetoothDevice): String? = svc?.getAlias(device)
-    fun setAlias(device: BluetoothDevice, alias: String) { svc?.setAlias(device, alias) }
+
+    fun setAlias(
+        device: BluetoothDevice,
+        alias: String,
+    ) {
+        svc?.setAlias(device, alias)
+    }
 }

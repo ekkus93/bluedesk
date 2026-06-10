@@ -29,9 +29,10 @@ class ModifierReducerTest {
 
     @Test
     fun releaseClearsNonPersistentLocks() {
-        val initial = AppState(
-            keyboard = KeyboardState(shift = true, alt = true, gui = true)
-        )
+        val initial =
+            AppState(
+                keyboard = KeyboardState(shift = true, alt = true, gui = true),
+            )
         val updated = appReducer(initial, Action.ReleaseLockedModifiers)
         assertFalse(updated.keyboard.shift)
         assertFalse(updated.keyboard.alt)
@@ -40,9 +41,10 @@ class ModifierReducerTest {
 
     @Test
     fun releaseRespectsPersistFlags() {
-        val initial = AppState(
-            keyboard = KeyboardState(shift = true, alt = true, gui = true, shiftPersist = true, altPersist = true)
-        )
+        val initial =
+            AppState(
+                keyboard = KeyboardState(shift = true, alt = true, gui = true, shiftPersist = true, altPersist = true),
+            )
         val updated = appReducer(initial, Action.ReleaseLockedModifiers)
         assertTrue(updated.keyboard.shift)
         assertTrue(updated.keyboard.alt)

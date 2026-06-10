@@ -6,7 +6,6 @@ import org.junit.Test
 import org.mockito.Mockito
 
 class BluetoothKeySenderTest {
-
     @Test
     fun `sendKeyDown forwards to pressKey`() {
         val svc = Mockito.mock(IBluetoothService::class.java)
@@ -38,9 +37,12 @@ class BluetoothKeySenderTest {
     fun `clicks forward to respective service calls`() {
         val svc = Mockito.mock(IBluetoothService::class.java)
         val s = BluetoothKeySender(svc)
-        s.leftClick(); Mockito.verify(svc).sendLeftClick()
-        s.rightClick(); Mockito.verify(svc).sendRightClick()
-        s.middleClick(); Mockito.verify(svc).sendMiddleClick()
+        s.leftClick()
+        Mockito.verify(svc).sendLeftClick()
+        s.rightClick()
+        Mockito.verify(svc).sendRightClick()
+        s.middleClick()
+        Mockito.verify(svc).sendMiddleClick()
         Mockito.verifyNoMoreInteractions(svc)
     }
 
@@ -48,8 +50,10 @@ class BluetoothKeySenderTest {
     fun `scroll forwards to sendScroll and sendScrollH`() {
         val svc = Mockito.mock(IBluetoothService::class.java)
         val s = BluetoothKeySender(svc)
-        s.scrollVertical(7); Mockito.verify(svc).sendScroll(7)
-        s.scrollHorizontal(9); Mockito.verify(svc).sendScrollH(9)
+        s.scrollVertical(7)
+        Mockito.verify(svc).sendScroll(7)
+        s.scrollHorizontal(9)
+        Mockito.verify(svc).sendScrollH(9)
         Mockito.verifyNoMoreInteractions(svc)
     }
 
@@ -57,8 +61,10 @@ class BluetoothKeySenderTest {
     fun `toggle locks sendKeyPress with correct codes`() {
         val svc = Mockito.mock(IBluetoothService::class.java)
         val s = BluetoothKeySender(svc)
-    s.toggleCapsLock(); Mockito.verify(svc).sendKeyPress(0x39.toByte(), 0)
-    s.toggleScrollLock(); Mockito.verify(svc).sendKeyPress(0x47.toByte(), 0)
+        s.toggleCapsLock()
+        Mockito.verify(svc).sendKeyPress(0x39.toByte(), 0)
+        s.toggleScrollLock()
+        Mockito.verify(svc).sendKeyPress(0x47.toByte(), 0)
         Mockito.verifyNoMoreInteractions(svc)
     }
 
@@ -68,14 +74,22 @@ class BluetoothKeySenderTest {
         val s = BluetoothKeySender(svc)
         val d = Mockito.mock(BluetoothDevice::class.java)
 
-        s.startDiscovery(); Mockito.verify(svc).startDiscovery()
-        s.stopDiscovery(); Mockito.verify(svc).stopDiscovery()
-        s.pairDevice(d); Mockito.verify(svc).pairDevice(d)
-        s.connectDevice(d); Mockito.verify(svc).connectDevice(d)
-        s.disconnectDevice(); Mockito.verify(svc).disconnectDevice()
-        s.forgetDevice(d, true); Mockito.verify(svc).forgetDevice(d, true)
-        s.setDefaultDevice(d); Mockito.verify(svc).setDefaultDevice(d)
-        s.renameDevice(d, "alias"); Mockito.verify(svc).setAlias(d, "alias")
+        s.startDiscovery()
+        Mockito.verify(svc).startDiscovery()
+        s.stopDiscovery()
+        Mockito.verify(svc).stopDiscovery()
+        s.pairDevice(d)
+        Mockito.verify(svc).pairDevice(d)
+        s.connectDevice(d)
+        Mockito.verify(svc).connectDevice(d)
+        s.disconnectDevice()
+        Mockito.verify(svc).disconnectDevice()
+        s.forgetDevice(d, true)
+        Mockito.verify(svc).forgetDevice(d, true)
+        s.setDefaultDevice(d)
+        Mockito.verify(svc).setDefaultDevice(d)
+        s.renameDevice(d, "alias")
+        Mockito.verify(svc).setAlias(d, "alias")
         Mockito.verifyNoMoreInteractions(svc)
     }
 

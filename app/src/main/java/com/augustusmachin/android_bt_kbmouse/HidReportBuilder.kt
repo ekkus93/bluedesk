@@ -14,11 +14,13 @@ package com.augustusmachin.android_bt_kbmouse
  * Mouse button byte bit layout: bit 0 = Left (0x01), bit 1 = Right (0x02), bit 2 = Middle (0x04)
  */
 object HidReportBuilder {
-
     // ── Keyboard ─────────────────────────────────────────────────────────────
 
     /** 8-byte keyboard input report: [mods, reserved=0, key1..key6] */
-    fun keyboardReport(modifiers: Int, keys: Collection<Byte>): ByteArray {
+    fun keyboardReport(
+        modifiers: Int,
+        keys: Collection<Byte>,
+    ): ByteArray {
         val report = ByteArray(8)
         report[0] = (modifiers and 0xFF).toByte()
         val arr = keys.take(6).toList()
@@ -34,20 +36,41 @@ object HidReportBuilder {
      * 3-byte mouse report for the SIMPLE descriptor (no scroll wheels):
      * [buttons, dx, dy]
      */
-    fun mouseReportSimple(buttons: Int, dx: Int, dy: Int): ByteArray = byteArrayOf(
-        (buttons and 0xFF).toByte(), clamp127(dx), clamp127(dy)
-    )
+    fun mouseReportSimple(
+        buttons: Int,
+        dx: Int,
+        dy: Int,
+    ): ByteArray =
+        byteArrayOf(
+            (buttons and 0xFF).toByte(),
+            clamp127(dx),
+            clamp127(dy),
+        )
 
     /**
      * 5-byte mouse report for the FULL descriptor (with vertical + horizontal scroll):
      * [buttons, dx, dy, wheelV, wheelH]
      */
-    fun mouseReport(buttons: Int, dx: Int, dy: Int, wheel: Int = 0, hWheel: Int = 0): ByteArray = byteArrayOf(
-        (buttons and 0xFF).toByte(), clamp127(dx), clamp127(dy), clamp127(wheel), clamp127(hWheel)
-    )
+    fun mouseReport(
+        buttons: Int,
+        dx: Int,
+        dy: Int,
+        wheel: Int = 0,
+        hWheel: Int = 0,
+    ): ByteArray =
+        byteArrayOf(
+            (buttons and 0xFF).toByte(),
+            clamp127(dx),
+            clamp127(dy),
+            clamp127(wheel),
+            clamp127(hWheel),
+        )
 
     /** Apply scroll inversion. */
-    fun wheelValue(delta: Int, invert: Boolean): Byte = clamp127(if (invert) -delta else delta)
+    fun wheelValue(
+        delta: Int,
+        invert: Boolean,
+    ): Byte = clamp127(if (invert) -delta else delta)
 
     /** Consumer Control 2-byte report (little-endian usage ID). */
     fun consumerControlReport(vararg usages: Int): ByteArray {

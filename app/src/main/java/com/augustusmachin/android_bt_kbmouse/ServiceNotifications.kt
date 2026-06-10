@@ -52,7 +52,10 @@ object ServiceNotifications {
     }
 
     /** High-priority notification prompting the user to grant BLUETOOTH_CONNECT. */
-    fun postMissingPermission(context: Context, message: String) {
+    fun postMissingPermission(
+        context: Context,
+        message: String,
+    ) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(ERROR_CHANNEL_ID) == null) {
             val ch = NotificationChannel(ERROR_CHANNEL_ID, "Bluetooth HID errors", NotificationManager.IMPORTANCE_HIGH)
@@ -63,13 +66,14 @@ object ServiceNotifications {
         val settingsIntent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", context.packageName, null))
         settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val pi = PendingIntent.getActivity(context, 0, settingsIntent, pendingFlags())
-        val notif = NotificationCompat.Builder(context, ERROR_CHANNEL_ID)
-            .setContentTitle("Bluetooth permission required")
-            .setContentText(message)
-            .setSmallIcon(R.drawable.ic_bluetooth)
-            .setContentIntent(pi)
-            .setAutoCancel(true)
-            .build()
+        val notif =
+            NotificationCompat.Builder(context, ERROR_CHANNEL_ID)
+                .setContentTitle("Bluetooth permission required")
+                .setContentText(message)
+                .setSmallIcon(R.drawable.ic_bluetooth)
+                .setContentIntent(pi)
+                .setAutoCancel(true)
+                .build()
         nm.notify(2, notif)
     }
 

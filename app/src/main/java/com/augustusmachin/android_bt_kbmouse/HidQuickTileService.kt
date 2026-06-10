@@ -1,13 +1,12 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import android.content.ComponentName
+import android.annotation.SuppressLint
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.app.PendingIntent
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import android.annotation.SuppressLint
 
 class HidQuickTileService : TileService() {
     override fun onStartListening() {

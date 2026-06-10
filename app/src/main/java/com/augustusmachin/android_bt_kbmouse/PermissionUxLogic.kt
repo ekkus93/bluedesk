@@ -12,5 +12,8 @@ object PermissionUxLogic {
         if (rationaleFlags.values.any { it == false }) DeniedFlow.ShowSettings else DeniedFlow.ShowRationale
 
     /** Gate actions (e.g., scan button enable) based on permission state and connection. */
-    fun canInitiateScan(allGranted: Boolean, connected: Boolean): Boolean = allGranted || !connected
+    fun canInitiateScan(
+        allGranted: Boolean,
+        connected: Boolean,
+    ): Boolean = allGranted || !connected
 }

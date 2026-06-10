@@ -10,7 +10,6 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SettingsManagerTest {
-
     @Test
     fun defaults_loaded_correctly() {
         val defaults = SettingsManager.fromPreferences(emptyPreferences())
@@ -30,19 +29,20 @@ class SettingsManagerTest {
 
     @Test
     fun persist_and_restore_all_settings() {
-        val prefs: Preferences = preferencesOf(
-            floatPreferencesKey("touchpad_sensitivity") to 2.2f,
-            floatPreferencesKey("scroll_speed") to 0.75f,
-            booleanPreferencesKey("invert_scroll") to true,
-            booleanPreferencesKey("enable_hscroll") to false,
-            booleanPreferencesKey("invert_hscroll") to true,
-            booleanPreferencesKey("enable_middle_click") to false,
-            intPreferencesKey("key_repeat_delay_ms") to 500,
-            booleanPreferencesKey("click_sound") to false,
-            booleanPreferencesKey("debug_logging") to true,
-            intPreferencesKey("log_level") to 2,
-            booleanPreferencesKey("start_on_boot") to true,
-        )
+        val prefs: Preferences =
+            preferencesOf(
+                floatPreferencesKey("touchpad_sensitivity") to 2.2f,
+                floatPreferencesKey("scroll_speed") to 0.75f,
+                booleanPreferencesKey("invert_scroll") to true,
+                booleanPreferencesKey("enable_hscroll") to false,
+                booleanPreferencesKey("invert_hscroll") to true,
+                booleanPreferencesKey("enable_middle_click") to false,
+                intPreferencesKey("key_repeat_delay_ms") to 500,
+                booleanPreferencesKey("click_sound") to false,
+                booleanPreferencesKey("debug_logging") to true,
+                intPreferencesKey("log_level") to 2,
+                booleanPreferencesKey("start_on_boot") to true,
+            )
         val restored = SettingsManager.fromPreferences(prefs)
         assertEquals(2.2f, restored.touchpadSensitivity, 0.0001f)
         assertEquals(0.75f, restored.scrollSpeed, 0.0001f)
@@ -59,10 +59,11 @@ class SettingsManagerTest {
 
     @Test
     fun migration_safe_when_missing_or_old_keys() {
-        val prefs: Preferences = preferencesOf(
-            floatPreferencesKey("touchpad_sensitivity") to 1.8f,
-            booleanPreferencesKey("invert_scroll") to true,
-        )
+        val prefs: Preferences =
+            preferencesOf(
+                floatPreferencesKey("touchpad_sensitivity") to 1.8f,
+                booleanPreferencesKey("invert_scroll") to true,
+            )
         val mapped = SettingsManager.fromPreferences(prefs)
         assertEquals(1.8f, mapped.touchpadSensitivity, 0.0001f)
         assertTrue(mapped.invertScroll)

@@ -12,8 +12,8 @@ android {
 
     defaultConfig {
         applicationId = "com.augustusmachin.android_bt_kbmouse"
-    minSdk = 26
-    targetSdk = 34
+        minSdk = 26
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -25,7 +25,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -46,9 +46,11 @@ android {
 // Run javac on JDK 21 (current LTS) even if the default JRE lacks javac.
 // App bytecode still targets Java 17 (see compileOptions) for Android support.
 tasks.withType<JavaCompile>().configureEach {
-    javaCompiler.set(javaToolchains.compilerFor {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    })
+    javaCompiler.set(
+        javaToolchains.compilerFor {
+            languageVersion.set(JavaLanguageVersion.of(21))
+        },
+    )
 }
 
 dependencies {
@@ -81,16 +83,16 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 }
 
-// Static analysis / style. Existing findings are grandfathered via baselines;
-// new findings fail the build. Regenerate baselines with detektBaseline /
-// ktlintGenerateBaseline; auto-fix style with ktlintFormat.
+// Static analysis / style. ktlint is fully clean (auto-fixed via ktlintFormat).
+// detekt grandfathers remaining structural findings via a baseline + a tuned
+// config; new findings fail the build. Regenerate with detektBaseline.
 detekt {
     buildUponDefaultConfig = true
+    config.setFrom(files("$projectDir/detekt.yml"))
     baseline = file("$projectDir/detekt-baseline.xml")
 }
 
 ktlint {
     android.set(true)
     ignoreFailures.set(false)
-    baseline.set(file("$projectDir/ktlint-baseline.xml"))
 }

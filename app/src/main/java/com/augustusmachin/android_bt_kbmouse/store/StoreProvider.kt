@@ -3,17 +3,18 @@ package com.augustusmachin.android_bt_kbmouse.store
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.reduxkotlin.Store
-import org.reduxkotlin.createStore
 import org.reduxkotlin.applyMiddleware
+import org.reduxkotlin.createStore
 
 object StoreProvider {
     private val keySenderMiddleware = KeySenderMiddleware()
     private val previewMiddleware = PreviewMiddleware()
-    private val store: Store<AppState> = createStore(
-        appReducer,
-        AppState(),
-        applyMiddleware(previewMiddleware.create(), keySenderMiddleware.create())
-    )
+    private val store: Store<AppState> =
+        createStore(
+            appReducer,
+            AppState(),
+            applyMiddleware(previewMiddleware.create(), keySenderMiddleware.create()),
+        )
     private val _stateFlow = MutableStateFlow(store.state)
 
     init {

@@ -24,7 +24,7 @@ fun ResponsiveText(
     minSize: TextUnit = 10.sp,
     maxSize: TextUnit = 16.sp,
     fontWeight: FontWeight? = null,
-    letterSpacing: TextUnit = TextUnit.Unspecified
+    letterSpacing: TextUnit = TextUnit.Unspecified,
 ) {
     BoxWithConstraints {
         val density = LocalDensity.current
@@ -57,7 +57,7 @@ fun ResponsiveText(
             fontWeight = fontWeight,
             letterSpacing = letterSpacing,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

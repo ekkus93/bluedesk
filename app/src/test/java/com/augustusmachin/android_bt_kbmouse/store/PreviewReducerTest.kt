@@ -22,10 +22,10 @@ class PreviewReducerTest {
     @Test
     fun `remove preview key deletes matching entry`() {
         var state = AppState()
-    state = appReducer(state, Action.AddPreviewKey(1L, "First", decorate = true))
-    state = appReducer(state, Action.AddPreviewKey(2L, "Second", decorate = false))
+        state = appReducer(state, Action.AddPreviewKey(1L, "First", decorate = true))
+        state = appReducer(state, Action.AddPreviewKey(2L, "Second", decorate = false))
         assertEquals(listOf(1L, 2L), state.ui.previewKeys.map { it.id })
-    assertEquals(listOf(true, false), state.ui.previewKeys.map { it.decorate })
+        assertEquals(listOf(true, false), state.ui.previewKeys.map { it.decorate })
 
         val updated = appReducer(state, Action.RemovePreviewKey(1L))
         assertEquals(listOf(2L), updated.ui.previewKeys.map { it.id })
@@ -33,7 +33,7 @@ class PreviewReducerTest {
 
     @Test
     fun `remove preview key no-op when id missing`() {
-    val state = appReducer(AppState(), Action.AddPreviewKey(10L, "Only", decorate = true))
+        val state = appReducer(AppState(), Action.AddPreviewKey(10L, "Only", decorate = true))
         val next = appReducer(state, Action.RemovePreviewKey(42L))
         assertSame(state, next)
         assertTrue(next.ui.previewKeys.isNotEmpty())

@@ -13,7 +13,6 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class HidReportInstrumentedTest {
-
     // ── Keyboard report tests ─────────────────────────────────────────────────
 
     @Test
@@ -28,7 +27,7 @@ class HidReportInstrumentedTest {
         val report = HidReportBuilder.keyboardReport(0, listOf(0x04.toByte()))
         assertArrayEquals(
             byteArrayOf(0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00),
-            report
+            report,
         )
     }
 
@@ -38,7 +37,7 @@ class HidReportInstrumentedTest {
         val report = HidReportBuilder.keyboardReport(0x01, listOf(0x06.toByte()))
         assertArrayEquals(
             byteArrayOf(0x01, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00),
-            report
+            report,
         )
     }
 
@@ -48,7 +47,7 @@ class HidReportInstrumentedTest {
         val report = HidReportBuilder.keyboardReport(0x02, listOf(0x04.toByte()))
         assertArrayEquals(
             byteArrayOf(0x02, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00),
-            report
+            report,
         )
     }
 
@@ -58,7 +57,7 @@ class HidReportInstrumentedTest {
         val report = HidReportBuilder.keyboardReport(0x05, listOf(0x4C.toByte()))
         assertArrayEquals(
             byteArrayOf(0x05, 0x00, 0x4C.toByte(), 0x00, 0x00, 0x00, 0x00, 0x00),
-            report
+            report,
         )
     }
 
@@ -213,14 +212,17 @@ class HidReportInstrumentedTest {
         val full = HidDescriptorVariants.FULL
         assertTrue(
             "SIMPLE descriptor (${simple.size}) should be smaller than FULL (${full.size})",
-            simple.size < full.size
+            simple.size < full.size,
         )
     }
 
     @Test
     fun hidDescriptors_both_contain_keyboard_usagePage() {
         // HID usage page 0x01 (Generic Desktop), usage 0x06 (Keyboard)
-        fun ByteArray.hasPair(a: Byte, b: Byte): Boolean =
+        fun ByteArray.hasPair(
+            a: Byte,
+            b: Byte,
+        ): Boolean =
             (0 until this.size - 1).any { i -> this[i] == a && this[i + 1] == b }
         assertTrue(HidDescriptorVariants.SIMPLE.hasPair(0x05, 0x01)) // Generic Desktop page
         assertTrue(HidDescriptorVariants.FULL.hasPair(0x05, 0x01))

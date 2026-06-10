@@ -10,7 +10,9 @@ object DebugLog {
     enum class Level { ALL, INFO, ERROR }
 
     private const val MAX_LINES = 500
+
     @Volatile private var enabled: Boolean = false
+
     @Volatile private var level: Level = Level.ALL
 
     private val _lines = MutableStateFlow<List<String>>(emptyList())
@@ -18,19 +20,32 @@ object DebugLog {
 
     private val ts = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 
-    fun setEnabled(v: Boolean) { enabled = v }
-    fun setLevel(l: Level) { level = l }
+    fun setEnabled(v: Boolean) {
+        enabled = v
+    }
 
-    fun clear() { _lines.value = emptyList() }
+    fun setLevel(l: Level) {
+        level = l
+    }
 
-    fun log(tag: String, msg: String) {
+    fun clear() {
+        _lines.value = emptyList()
+    }
+
+    fun log(
+        tag: String,
+        msg: String,
+    ) {
         if (!enabled) return
         if (level == Level.ERROR) return
         val line = "${ts.format(Date())} [$tag] $msg"
         append(line)
     }
 
-    fun e(tag: String, msg: String) {
+    fun e(
+        tag: String,
+        msg: String,
+    ) {
         if (!enabled) return
         if (level == Level.INFO) return
         val line = "${ts.format(Date())} E [$tag] $msg"

@@ -28,18 +28,25 @@ fun LogsScreen(contentPadding: PaddingValues = PaddingValues()) {
     val context = LocalContext.current
     val lines by DebugLog.lines.collectAsState(initial = emptyList())
     var filter by remember { mutableStateOf(0) } // 0=All,1=Info,2=Error
-    val filtered = remember(lines, filter) {
-        when (filter) {
-            2 -> lines.filter { it.contains(" E [") }
-            1 -> lines.filter { !it.contains(" E [") }
-            else -> lines
+    val filtered =
+        remember(lines, filter) {
+            when (filter) {
+                2 -> lines.filter { it.contains(" E [") }
+                1 -> lines.filter { !it.contains(" E [") }
+                else -> lines
+            }
         }
-    }
     Column(Modifier.fillMaxSize().padding(contentPadding).navigationBarsPadding().padding(16.dp)) {
         Row(Modifier.fillMaxWidth()) {
             Button(onClick = { DebugLog.clear() }, modifier = Modifier.padding(end = 8.dp)) { Text("Clear") }
             Button(onClick = {
-                val meta = "App: ${context.packageName}\nDevice: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (SDK ${android.os.Build.VERSION.SDK_INT})\nTime: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date())}\nFilter: " + when(filter){0->"All";1->"Info";else->"Error"} + "\n\n"
+                val meta =
+                    "App: ${context.packageName}\nDevice: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (SDK ${android.os.Build.VERSION.SDK_INT})\nTime: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date())}\nFilter: " +
+                        when (filter) {
+                            0 -> "All"
+                            1 -> "Info"
+                            else -> "Error"
+                        } + "\n\n"
                 val body = meta + filtered.joinToString("\n")
                 val intent = Intent(Intent.ACTION_SEND)
                 intent.type = "text/plain"

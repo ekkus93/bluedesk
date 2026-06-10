@@ -4,7 +4,6 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PermissionUxLogicTest {
-
     @Test
     fun rationale_vs_permanentlyDenied_branches() {
         // All need rationale => show rationale

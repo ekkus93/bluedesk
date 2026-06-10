@@ -4,7 +4,6 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ForegroundServiceLogicTest {
-
     @Test
     fun startForeground_guard_within_5s_logic() {
         val start = 1000L

@@ -25,6 +25,7 @@ class HidReportSender(
     // Multi-key chord state
     private val pressedKeys = LinkedHashSet<Byte>() // preserve insertion order
     private var currentModifiers: Int = 0
+
     @Volatile private var heldMouseButtons = 0
 
     fun setModifiers(mods: Int) {
@@ -32,16 +33,27 @@ class HidReportSender(
         sendCurrentKeyboardReport()
     }
 
-    fun sendKeyPress(keyCode: Byte, modifiers: Int) {
+    fun sendKeyPress(
+        keyCode: Byte,
+        modifiers: Int,
+    ) {
         pressKey(keyCode, modifiers)
-        try { Thread.sleep(10) } catch (_: InterruptedException) {}
+        try {
+            Thread.sleep(10)
+        } catch (_: InterruptedException) {
+        }
         releaseKey(keyCode)
     }
 
-    fun pressKey(keyCode: Byte, modifiers: Int) {
+    fun pressKey(
+        keyCode: Byte,
+        modifiers: Int,
+    ) {
         synchronized(this) {
             currentModifiers = modifiers and 0xFF
-            if (pressedKeys.size < 6) pressedKeys.add(keyCode) else {
+            if (pressedKeys.size < 6) {
+                pressedKeys.add(keyCode)
+            } else {
                 // replace the oldest to ensure a report still goes out
                 if (pressedKeys.isNotEmpty()) {
                     pressedKeys.remove(pressedKeys.first())
@@ -57,7 +69,10 @@ class HidReportSender(
         sendCurrentKeyboardReport()
     }
 
-    fun sendMouseMove(dx: Int, dy: Int) {
+    fun sendMouseMove(
+        dx: Int,
+        dy: Int,
+    ) {
         sendMouseReport(heldMouseButtons, dx, dy, 0, 0)
     }
 
@@ -72,13 +87,16 @@ class HidReportSender(
     }
 
     fun sendLeftClick() = clickMouse(buttonMask = 0x01)
+
     fun sendRightClick() = clickMouse(buttonMask = 0x02)
+
     fun sendMiddleClick() = clickMouse(buttonMask = 0x04)
 
     // Scroll is only available in the FULL descriptor; no-op when SIMPLE is active.
     fun sendScroll(delta: Int) {
         if (!isSimplified()) sendMouseReport(0, 0, 0, delta, 0)
     }
+
     fun sendScrollH(delta: Int) {
         if (!isSimplified()) sendMouseReport(0, 0, 0, 0, delta)
     }
@@ -98,7 +116,14 @@ class HidReportSender(
                 } else {
                     DebugLog.e(TAG, "HID sendReport not supported on API < 28; skipping keyboard report")
                 }
-            } catch (se: SecurityException) { DebugLog.e(TAG, "sendReport SecurityException: ${se.message}"); onError("HID report failed due to missing permission") } catch (e: Exception) { DebugLog.e(TAG, "kbd report error: ${e.message}"); e.printStackTrace(); onError("HID report failed: ${e.message}") }
+            } catch (se: SecurityException) {
+                DebugLog.e(TAG, "sendReport SecurityException: ${se.message}")
+                onError("HID report failed due to missing permission")
+            } catch (e: Exception) {
+                DebugLog.e(TAG, "kbd report error: ${e.message}")
+                e.printStackTrace()
+                onError("HID report failed: ${e.message}")
+            }
         } else {
             DebugLog.e(TAG, "BLUETOOTH_CONNECT not granted; cannot send keyboard report")
         }
@@ -107,20 +132,30 @@ class HidReportSender(
     private fun clickMouse(buttonMask: Int) {
         DebugLog.log(TAG, "mouse click mask=" + buttonMask)
         sendMouseReport(buttonMask, 0, 0, 0, 0)
-        try { Thread.sleep(10) } catch (_: InterruptedException) {}
+        try {
+            Thread.sleep(10)
+        } catch (_: InterruptedException) {
+        }
         sendMouseReport(0, 0, 0, 0, 0)
     }
 
-    private fun sendMouseReport(buttons: Int, dx: Int, dy: Int, wheel: Int, hWheel: Int) {
+    private fun sendMouseReport(
+        buttons: Int,
+        dx: Int,
+        dy: Int,
+        wheel: Int,
+        hWheel: Int,
+    ) {
         val device = currentDevice() ?: return
         val hid = currentHid() ?: return
         val simplified = isSimplified()
         // SIMPLE: 3 bytes [buttons][dx][dy]; FULL: 5 bytes [buttons][dx][dy][wheelV][wheelH]
-        val report = if (simplified) {
-            HidReportBuilder.mouseReportSimple(buttons, dx, dy)
-        } else {
-            HidReportBuilder.mouseReport(buttons, dx, dy, wheel, hWheel)
-        }
+        val report =
+            if (simplified) {
+                HidReportBuilder.mouseReportSimple(buttons, dx, dy)
+            } else {
+                HidReportBuilder.mouseReport(buttons, dx, dy, wheel, hWheel)
+            }
         DebugLog.log(TAG, "mouse btn=$buttons dx=$dx dy=$dy wheel=$wheel hwheel=$hWheel simplified=$simplified")
         val hasBtConnect = ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
         if (hasBtConnect) {

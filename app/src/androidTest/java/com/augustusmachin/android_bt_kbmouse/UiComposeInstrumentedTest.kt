@@ -14,34 +14,74 @@ import org.junit.Rule
 import org.junit.Test
 
 @org.junit.runner.RunWith(androidx.test.ext.junit.runners.AndroidJUnit4::class)
-class UiComposeTests {
+class UiComposeInstrumentedTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private class FakeService: IBluetoothService {
+    private class FakeService : IBluetoothService {
         var startCalls = 0
+
         override fun getLastDeviceAddress(): String? = null
+
         override fun setEventListener(l: BluetoothService.ServiceEventListener) {}
-        override fun startDiscovery() { startCalls++ }
+
+        override fun startDiscovery() {
+            startCalls++
+        }
+
         override fun stopDiscovery() {}
+
         override fun getDiscoveredDevices(): List<BluetoothDevice> = emptyList()
+
         override fun getPairedDevices(): List<BluetoothDevice> = emptyList()
+
         override fun pairDevice(device: BluetoothDevice) {}
+
         override fun connectDevice(device: BluetoothDevice) {}
+
         override fun disconnectDevice() {}
+
         override fun setDefaultDevice(device: BluetoothDevice) {}
+
         override fun getAlias(device: BluetoothDevice): String? = null
-        override fun setAlias(device: BluetoothDevice, alias: String) {}
-        override fun forgetDevice(device: BluetoothDevice, unpair: Boolean) {}
-        override fun sendKeyPress(keyCode: Byte, modifiers: Int) {}
-        override fun sendMouseMove(dx: Int, dy: Int) {}
+
+        override fun setAlias(
+            device: BluetoothDevice,
+            alias: String,
+        ) {}
+
+        override fun forgetDevice(
+            device: BluetoothDevice,
+            unpair: Boolean,
+        ) {}
+
+        override fun sendKeyPress(
+            keyCode: Byte,
+            modifiers: Int,
+        ) {}
+
+        override fun sendMouseMove(
+            dx: Int,
+            dy: Int,
+        ) {}
+
         override fun sendLeftClick() {}
+
         override fun sendRightClick() {}
+
         override fun sendMiddleClick() {}
+
         override fun sendScroll(delta: Int) {}
+
         override fun sendScrollH(delta: Int) {}
-        override fun pressKey(keyCode: Byte, modifiers: Int) {}
+
+        override fun pressKey(
+            keyCode: Byte,
+            modifiers: Int,
+        ) {}
+
         override fun releaseKey(keyCode: Byte) {}
+
         override fun setModifiers(mods: Int) {}
     }
 
@@ -56,9 +96,13 @@ class UiComposeTests {
     @Test
     fun scanButtonShowsMessage() {
         // install a fake KeySender so StartDiscovery actually calls our fake service
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(object : com.augustusmachin.android_bt_kbmouse.store.KeySender {
-            override fun startDiscovery() { FakeService().startDiscovery() }
-        })
+        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(
+            object : com.augustusmachin.android_bt_kbmouse.store.KeySender {
+                override fun startDiscovery() {
+                    FakeService().startDiscovery()
+                }
+            },
+        )
         composeRule.setContent { TestScan() }
         composeRule.onNodeWithText("Scan for devices").performClick()
         composeRule.onNodeWithText("Scanning for devices...").assertExists()

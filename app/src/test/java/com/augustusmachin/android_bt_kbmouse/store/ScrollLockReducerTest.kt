@@ -5,7 +5,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ScrollLockReducerTest {
-
     @Test
     fun toggleCapsLockIsPassthroughInReducer() {
         // ToggleCapsLock must NOT speculatively flip capsLock in the reducer.

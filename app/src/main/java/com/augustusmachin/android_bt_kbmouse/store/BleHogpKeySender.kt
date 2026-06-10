@@ -1,6 +1,5 @@
 package com.augustusmachin.android_bt_kbmouse.store
 
-import android.bluetooth.BluetoothDevice
 import com.augustusmachin.android_bt_kbmouse.BleHogpService
 import com.augustusmachin.android_bt_kbmouse.HidReportBuilder
 
@@ -16,18 +15,24 @@ import com.augustusmachin.android_bt_kbmouse.HidReportBuilder
  * the host initiates the connection, not us.
  */
 class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
-
     @Volatile private var modifierByte: Int = 0
     private val pressedKeys = mutableListOf<Byte>()
+
     @Volatile private var buttonsMask: Int = 0
 
     private fun buildKeyReport(): ByteArray =
         HidReportBuilder.keyboardReport(modifierByte, synchronized(pressedKeys) { pressedKeys.take(6).toList() })
 
-    private fun buildMouseReport(dx: Int = 0, dy: Int = 0): ByteArray =
+    private fun buildMouseReport(
+        dx: Int = 0,
+        dy: Int = 0,
+    ): ByteArray =
         HidReportBuilder.mouseReportSimple(buttonsMask, dx, dy)
 
-    override fun sendKeyDown(code: Byte, mods: Int) {
+    override fun sendKeyDown(
+        code: Byte,
+        mods: Int,
+    ) {
         modifierByte = mods
         synchronized(pressedKeys) { if (!pressedKeys.contains(code)) pressedKeys.add(code) }
         svc.notifyKeyboard(buildKeyReport())
@@ -38,18 +43,32 @@ class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
         svc.notifyKeyboard(buildKeyReport())
     }
 
-    override fun moveMouse(dx: Int, dy: Int) {
+    override fun moveMouse(
+        dx: Int,
+        dy: Int,
+    ) {
         svc.notifyMouse(buildMouseReport(dx, dy))
     }
 
-    override fun leftClick()   { click(0x01) }
-    override fun rightClick()  { click(0x02) }
-    override fun middleClick() { click(0x04) }
+    override fun leftClick() {
+        click(0x01)
+    }
+
+    override fun rightClick() {
+        click(0x02)
+    }
+
+    override fun middleClick() {
+        click(0x04)
+    }
 
     private fun click(mask: Int) {
         buttonsMask = buttonsMask or mask
         svc.notifyMouse(buildMouseReport())
-        try { Thread.sleep(10) } catch (_: InterruptedException) {}
+        try {
+            Thread.sleep(10)
+        } catch (_: InterruptedException) {
+        }
         buttonsMask = buttonsMask and mask.inv()
         svc.notifyMouse(buildMouseReport())
     }
@@ -66,13 +85,19 @@ class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
 
     override fun toggleCapsLock() {
         sendKeyDown(0x39.toByte(), modifierByte)
-        try { Thread.sleep(40) } catch (_: InterruptedException) {}
+        try {
+            Thread.sleep(40)
+        } catch (_: InterruptedException) {
+        }
         sendKeyUp(0x39.toByte())
     }
 
     override fun toggleScrollLock() {
         sendKeyDown(0x47.toByte(), modifierByte)
-        try { Thread.sleep(40) } catch (_: InterruptedException) {}
+        try {
+            Thread.sleep(40)
+        } catch (_: InterruptedException) {
+        }
         sendKeyUp(0x47.toByte())
     }
 

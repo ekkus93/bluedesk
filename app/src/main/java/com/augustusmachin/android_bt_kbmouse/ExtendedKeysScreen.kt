@@ -1,3 +1,6 @@
+// Grid column data classes document each field with an inline comment; keep them inline.
+@file:Suppress("ktlint:standard:discouraged-comment-location")
+
 package com.augustusmachin.android_bt_kbmouse
 
 import androidx.compose.foundation.horizontalScroll
@@ -23,7 +26,7 @@ private data class GridCol(
     val modActive: Boolean,
     val modAction: Action,
     val key0: String,
-    val key1: String?   // null = empty spacer on row 1
+    val key1: String?, // null = empty spacer on row 1
 )
 
 @Composable
@@ -34,22 +37,26 @@ fun ExtendedKeysScreen() {
     val ks = appState.keyboard
 
     val colsPerPage = 3
-    val maxPage = 1  // 5 cols / 3 per page → 2 pages → maxPage index = 1
+    val maxPage = 1 // 5 cols / 3 per page → 2 pages → maxPage index = 1
 
     // Column-centric layout: each entry is one vertical column of (modifier, key0, key1?)
-    val gridCols = listOf(
-        GridCol("Ctrl",  ks.ctrl,                    Action.ToggleCtrl,        "ESC",   "INS"),
-        GridCol("Shift", ks.shift,                   Action.ToggleShift,       "TAB",   "HOME"),
-        GridCol("CAPS",  appState.connection.capsLock,Action.ToggleCapsLock,   "ENTER", "END"),
-        GridCol("Alt",   ks.alt,                     Action.ToggleAlt,         "PRTSC", "DEL"),
-        GridCol("Meta",  ks.gui,                     Action.ToggleGui,         "PAUSE", null),
-    )
+    val gridCols =
+        listOf(
+            GridCol("Ctrl", ks.ctrl, Action.ToggleCtrl, "ESC", "INS"),
+            GridCol("Shift", ks.shift, Action.ToggleShift, "TAB", "HOME"),
+            GridCol("CAPS", appState.connection.capsLock, Action.ToggleCapsLock, "ENTER", "END"),
+            GridCol("Alt", ks.alt, Action.ToggleAlt, "PRTSC", "DEL"),
+            GridCol("Meta", ks.gui, Action.ToggleGui, "PAUSE", null),
+        )
 
     var page by remember { mutableStateOf(0) }
     val scrollState = rememberScrollState()
     val previewHistory = remember { mutableStateListOf<String>() }
 
-    fun dispatchKey(label: String, code: Byte?) {
+    fun dispatchKey(
+        label: String,
+        code: Byte?,
+    ) {
         if (code == null) return
         StoreProvider.dispatch(Action.TrackPreviewKey(label))
         if (connected) {
@@ -65,17 +72,18 @@ fun ExtendedKeysScreen() {
         }
     }
 
-    val inactiveColors = ButtonDefaults.buttonColors(
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface
-    )
-    val activeColors = ButtonDefaults.buttonColors(
-        containerColor = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary
-    )
+    val inactiveColors =
+        ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        )
+    val activeColors =
+        ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+        )
 
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val arrowWidthDp = 36f
             val gapDp = 6f
@@ -92,7 +100,6 @@ fun ExtendedKeysScreen() {
             }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-
                 // Left arrow — always reserves space, only shown on page > 0
                 Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
                     if (page > 0) {
@@ -104,40 +111,43 @@ fun ExtendedKeysScreen() {
 
                 // Horizontal-scroll panel (touch disabled; programmatic only)
                 Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .horizontalScroll(scrollState, enabled = false),
-                    horizontalArrangement = Arrangement.spacedBy(gapDp.dp)
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .horizontalScroll(scrollState, enabled = false),
+                    horizontalArrangement = Arrangement.spacedBy(gapDp.dp),
                 ) {
                     gridCols.forEach { col ->
                         Column(
                             modifier = Modifier.width(btnWidthDp.dp),
-                            verticalArrangement = Arrangement.spacedBy(gapDp.dp)
+                            verticalArrangement = Arrangement.spacedBy(gapDp.dp),
                         ) {
                             // Modifier toggle button
                             Button(
                                 onClick = {
                                     StoreProvider.dispatch(Action.TrackPreviewKey(col.modLabel))
                                     StoreProvider.dispatch(col.modAction)
-                                    if (!connected) StoreProvider.dispatch(
-                                        Action.UpdateMessage("Preview: ${col.modLabel} toggled")
-                                    )
+                                    if (!connected) {
+                                        StoreProvider.dispatch(
+                                            Action.UpdateMessage("Preview: ${col.modLabel} toggled"),
+                                        )
+                                    }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = if (col.modActive) activeColors else inactiveColors
+                                colors = if (col.modActive) activeColors else inactiveColors,
                             ) {
                                 ResponsiveText(
                                     text = col.modLabel,
                                     minSize = 8.sp,
                                     maxSize = keyFontSize,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
                                 )
                             }
                             // Key row 0 button
                             Button(
                                 onClick = { dispatchKey(col.key0, labelToHid(col.key0)) },
                                 enabled = labelToHid(col.key0) != null,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
                                 ResponsiveText(text = col.key0, minSize = keyFontSize, maxSize = keyFontSize)
                             }
@@ -146,12 +156,12 @@ fun ExtendedKeysScreen() {
                                 Button(
                                     onClick = { dispatchKey(col.key1, labelToHid(col.key1)) },
                                     enabled = labelToHid(col.key1) != null,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     ResponsiveText(text = col.key1, minSize = keyFontSize, maxSize = keyFontSize)
                                 }
                             } else {
-                                Spacer(Modifier.height(48.dp))  // match button height
+                                Spacer(Modifier.height(48.dp)) // match button height
                             }
                         }
                     }
@@ -169,29 +179,32 @@ fun ExtendedKeysScreen() {
         }
 
         // Preview console (offline only)
-        if (!connected) Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 80.dp, max = 220.dp)
-                .padding(top = 8.dp),
-            shape = RoundedCornerShape(8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(Modifier.fillMaxSize().padding(8.dp)) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Preview console", style = MaterialTheme.typography.titleSmall)
-                    Button(onClick = { previewHistory.clear() }, enabled = previewHistory.isNotEmpty()) {
-                        Text("Clear")
+        if (!connected) {
+            Card(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 80.dp, max = 220.dp)
+                        .padding(top = 8.dp),
+                shape = RoundedCornerShape(8.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            ) {
+                Column(Modifier.fillMaxSize().padding(8.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Preview console", style = MaterialTheme.typography.titleSmall)
+                        Button(onClick = { previewHistory.clear() }, enabled = previewHistory.isNotEmpty()) {
+                            Text("Clear")
+                        }
                     }
-                }
-                Spacer(Modifier.height(6.dp))
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(previewHistory) { line ->
-                        Text(line, fontSize = 12.sp, modifier = Modifier.padding(vertical = 2.dp))
+                    Spacer(Modifier.height(6.dp))
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(previewHistory) { line ->
+                            Text(line, fontSize = 12.sp, modifier = Modifier.padding(vertical = 2.dp))
+                        }
                     }
                 }
             }

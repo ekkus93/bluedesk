@@ -1,7 +1,7 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import org.junit.Test
 import org.junit.Assert.*
+import org.junit.Test
 
 class ExtendedKeyMappingsTest {
     @Test

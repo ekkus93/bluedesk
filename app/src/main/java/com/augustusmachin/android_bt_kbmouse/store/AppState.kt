@@ -10,20 +10,20 @@ data class KeyboardState(
     val ctrlPersist: Boolean = false,
     val shiftPersist: Boolean = false,
     val altPersist: Boolean = false,
-    val guiPersist: Boolean = false
+    val guiPersist: Boolean = false,
 )
 
 data class PreviewKeyEntry(
     val id: Long,
     val label: String,
-    val decorate: Boolean
+    val decorate: Boolean,
 )
 
 data class UiState(
     val offlinePreview: Boolean = false,
     val showExtended: Boolean = false,
     val extendedPage: Int = 0,
-    val previewKeys: List<PreviewKeyEntry> = emptyList()
+    val previewKeys: List<PreviewKeyEntry> = emptyList(),
 )
 
 data class ConnectionState(
@@ -34,11 +34,11 @@ data class ConnectionState(
     val defaultDeviceAddress: String? = null,
     val capsLock: Boolean = false,
     val scrollLock: Boolean = false,
-    val isScanning: Boolean = false
+    val isScanning: Boolean = false,
 )
 
 data class AppState(
     val keyboard: KeyboardState = KeyboardState(),
     val ui: UiState = UiState(),
-    val connection: ConnectionState = ConnectionState()
+    val connection: ConnectionState = ConnectionState(),
 )

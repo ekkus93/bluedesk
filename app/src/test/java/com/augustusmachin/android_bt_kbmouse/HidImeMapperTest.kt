@@ -4,7 +4,6 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HidImeMapperTest {
-
     @Test
     fun letters_lower_and_upper() {
         val a = charToHid('a')
@@ -12,10 +11,10 @@ class HidImeMapperTest {
         assertEquals(0x04.toByte(), a!!.first)
         assertEquals(0, a.second.toInt())
 
-        val A = charToHid('A')
-        assertNotNull(A)
-        assertEquals(0x04.toByte(), A!!.first)
-        assertEquals(0x02, A.second)
+        val upperA = charToHid('A')
+        assertNotNull(upperA)
+        assertEquals(0x04.toByte(), upperA!!.first)
+        assertEquals(0x02, upperA.second)
     }
 
     @Test

@@ -6,7 +6,11 @@ import kotlin.math.roundToInt
 /** Pure helpers mirroring MouseScreen gesture math, for unit testing. */
 object GestureLogic {
     /** Translate one-finger movement by sensitivity, clamped to [-20, 20] like MouseScreen. */
-    fun moveDelta(dxPx: Float, dyPx: Float, sensitivity: Float): Pair<Int, Int> {
+    fun moveDelta(
+        dxPx: Float,
+        dyPx: Float,
+        sensitivity: Float,
+    ): Pair<Int, Int> {
         val dx = (dxPx * sensitivity).roundToInt().coerceIn(-20, 20)
         val dy = (dyPx * sensitivity).roundToInt().coerceIn(-20, 20)
         return dx to dy
@@ -16,7 +20,7 @@ object GestureLogic {
         val verticalSteps: List<Int>,
         val horizontalSteps: List<Int>,
         val accumV: Float,
-        val accumH: Float
+        val accumH: Float,
     )
 
     /**
@@ -31,7 +35,7 @@ object GestureLogic {
         scrollSpeed: Float,
         invertV: Boolean,
         enableH: Boolean,
-        invertH: Boolean
+        invertH: Boolean,
     ): ScrollResult {
         val stepPx = (24f / scrollSpeed.coerceAtLeast(0.1f))
         var vAcc = accumV + dySum
@@ -59,7 +63,12 @@ object GestureLogic {
     enum class Tap { None, Left, Right, Middle }
 
     /** Return tap action given gesture summary. Mirrors MouseScreen: duration < 220ms and no move. */
-    fun tapAction(moved: Boolean, durationMs: Long, maxPointers: Int, enableMiddle: Boolean): Tap {
+    fun tapAction(
+        moved: Boolean,
+        durationMs: Long,
+        maxPointers: Int,
+        enableMiddle: Boolean,
+    ): Tap {
         if (moved || durationMs >= 220) return Tap.None
         return when (maxPointers) {
             1 -> Tap.Left

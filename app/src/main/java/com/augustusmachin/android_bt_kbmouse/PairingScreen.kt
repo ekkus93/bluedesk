@@ -76,31 +76,40 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
     var renameText by remember { mutableStateOf("") }
     var toForget by remember { mutableStateOf<BluetoothDevice?>(null) }
     var unpair by remember { mutableStateOf(true) }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
-        if (granted.values.all { it }) {
-            StoreProvider.dispatch(Action.StartDiscovery)
-        } else {
-            val denied = granted.filterValues { !it }.keys.toTypedArray()
-            if (activity != null && denied.any { !ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }) {
-                pendingPermissions = denied
-                showSettings = true
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
+            if (granted.values.all { it }) {
+                StoreProvider.dispatch(Action.StartDiscovery)
             } else {
-                pendingPermissions = denied
-                showRationale = true
+                val denied = granted.filterValues { !it }.keys.toTypedArray()
+                if (activity != null && denied.any { !ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }) {
+                    pendingPermissions = denied
+                    showSettings = true
+                } else {
+                    pendingPermissions = denied
+                    showRationale = true
+                }
             }
         }
-    }
+
     fun requiredPermissions(): Array<String> =
-        if (Build.VERSION.SDK_INT >= 33) arrayOf(
-            Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_CONNECT,
-            Manifest.permission.BLUETOOTH_ADVERTISE,
-            Manifest.permission.POST_NOTIFICATIONS
-        ) else if (Build.VERSION.SDK_INT >= 31) arrayOf(
-            Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_CONNECT,
-            Manifest.permission.BLUETOOTH_ADVERTISE
-        ) else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        if (Build.VERSION.SDK_INT >= 33) {
+            arrayOf(
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.BLUETOOTH_ADVERTISE,
+                Manifest.permission.POST_NOTIFICATIONS,
+            )
+        } else if (Build.VERSION.SDK_INT >= 31) {
+            arrayOf(
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.BLUETOOTH_ADVERTISE,
+            )
+        } else {
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+
     fun openAppSettings() {
         val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", context.packageName, null))
         context.startActivity(intent)
@@ -118,7 +127,7 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                     permissionLauncher.launch(perms)
                 }) { Text("Try again") }
             },
-            dismissButton = { Button(onClick = { showRationale = false }) { Text("Cancel") } }
+            dismissButton = { Button(onClick = { showRationale = false }) { Text("Cancel") } },
         )
     }
     if (showSettings) {
@@ -132,7 +141,7 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                     openAppSettings()
                 }) { Text("Open Settings") }
             },
-            dismissButton = { Button(onClick = { showSettings = false }) { Text("Cancel") } }
+            dismissButton = { Button(onClick = { showSettings = false }) { Text("Cancel") } },
         )
     }
 
@@ -152,7 +161,7 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                         renaming = null
                     }) { Text("Save") }
                 },
-                dismissButton = { Button(onClick = { renaming = null }) { Text("Cancel") } }
+                dismissButton = { Button(onClick = { renaming = null }) { Text("Cancel") } },
             )
         }
     }
@@ -165,7 +174,7 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                 title = { Text("Forget device") },
                 text = {
                     Column {
-                        Text("Remove this device from defaults and aliases." )
+                        Text("Remove this device from defaults and aliases.")
                         Row(Modifier.padding(top = 8.dp)) {
                             Checkbox(checked = unpair, onCheckedChange = { unpair = it })
                             Text("Also unpair from system")
@@ -178,14 +187,14 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                         toForget = null
                     }) { Text("Forget") }
                 },
-                dismissButton = { Button(onClick = { toForget = null }) { Text("Cancel") } }
+                dismissButton = { Button(onClick = { toForget = null }) { Text("Cancel") } },
             )
         }
     }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(contentPadding).navigationBarsPadding(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // Action row: Scan always available; Disconnect shown when connected
         Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -213,35 +222,41 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
         if (discoveredDevices.isNotEmpty()) {
             Text(text = "Discovered Devices", modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.titleMedium)
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 0.dp, max = 200.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 0.dp, max = 200.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
             ) {
                 items(discoveredDevices) { dev: BluetoothDevice ->
                     val name = dev.name ?: "Unknown Device"
                     ListItem(
                         leadingContent = {
                             androidx.compose.foundation.layout.Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
+                                modifier =
+                                    Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_bluetooth),
                                     contentDescription = name,
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
                         },
                         headlineContent = { Text(name) },
                         supportingContent = { Text(dev.address) },
-                        modifier = Modifier
-                            .semantics { this[SemanticsProperties.Role] = Role.Button }
-                            .clickable { view.playSoundEffect(SoundEffectConstants.CLICK); StoreProvider.dispatch(Action.PairDevice(dev)) }
+                        modifier =
+                            Modifier
+                                .semantics { this[SemanticsProperties.Role] = Role.Button }
+                                .clickable {
+                                    view.playSoundEffect(SoundEffectConstants.CLICK)
+                                    StoreProvider.dispatch(Action.PairDevice(dev))
+                                },
                     )
                     HorizontalDivider()
                 }
@@ -253,7 +268,7 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
         val defaultAddr = appState.connection.defaultDeviceAddress
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
         ) {
             items(pairedDevices) { dev: BluetoothDevice ->
                 val display = ServiceAliasHelper.getAlias(dev) ?: (dev.name ?: dev.address)
@@ -262,17 +277,17 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                 val cardDesc = "Paired device: $display. ${if (isConn) "Connected." else "Disconnected."} ${if (isDef) "Default device." else ""}"
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).semantics { this[SemanticsProperties.ContentDescription] = listOf(cardDesc) },
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
                         // Row 1: icon + name + MAC address
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             androidx.compose.foundation.layout.Box(
                                 modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
-                                contentAlignment = Alignment.Center
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             }
@@ -280,46 +295,49 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                             Text(
                                 text = display + if (isDef) " ★" else "",
                                 style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
                             )
                             Text(
                                 text = dev.address,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         // Row 2: action icons
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
+                            horizontalArrangement = Arrangement.End,
                         ) {
                             val iconTint = MaterialTheme.colorScheme.onSurface
                             if (isConn) {
                                 IconButton(
                                     onClick = { StoreProvider.dispatch(Action.DisconnectDevice) },
-                                    modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                    modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
                                 ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Disconnect", tint = iconTint) }
                             } else {
                                 IconButton(
                                     onClick = { StoreProvider.dispatch(Action.ConnectDevice(dev)) },
-                                    modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                    modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
                                 ) { Icon(painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Connect", tint = iconTint) }
                             }
                             IconButton(
                                 onClick = { StoreProvider.dispatch(Action.SetDefaultDevice(dev)) },
                                 enabled = !isDef,
-                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
                             ) {
                                 val starRes = if (isDef) R.drawable.ic_star_filled else R.drawable.ic_star_outline
                                 Icon(painterResource(id = starRes), contentDescription = if (isDef) "Default device" else "Set default device", tint = if (isDef) MaterialTheme.colorScheme.primary else iconTint)
                             }
                             IconButton(
-                                onClick = { renaming = dev; renameText = display },
-                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                onClick = {
+                                    renaming = dev
+                                    renameText = display
+                                },
+                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
                             ) { Icon(painterResource(id = R.drawable.ic_edit), contentDescription = "Rename", tint = iconTint) }
                             IconButton(
                                 onClick = { toForget = dev },
-                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
+                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
                             ) { Icon(painterResource(id = R.drawable.ic_delete), contentDescription = "Forget", tint = MaterialTheme.colorScheme.error) }
                         }
                     }

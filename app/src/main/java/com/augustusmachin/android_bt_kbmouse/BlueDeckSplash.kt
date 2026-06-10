@@ -36,35 +36,36 @@ private val BlueDeckSoftWhite = Color(0xFFF8FAFC)
 @Composable
 fun BlueDeckSplash(modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(BlueDeckNavy, BlueDeckNavyMid, BlueDeckNavyEnd)
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(BlueDeckNavy, BlueDeckNavyMid, BlueDeckNavyEnd),
+                    ),
                 )
-            )
-            .padding(32.dp),
+                .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
     ) {
         Image(
             painter = painterResource(R.drawable.ic_splash_bluedeck),
             contentDescription = null,
-            modifier = Modifier.size(200.dp)
+            modifier = Modifier.size(200.dp),
         )
         Spacer(Modifier.height(24.dp))
         Text(
             text = "BlueDeck",
             color = BlueDeckCyan,
             fontSize = 44.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
         )
         Spacer(Modifier.height(8.dp))
         Text(
             text = "The handy keyboard and mouse",
             color = BlueDeckSoftWhite,
             fontSize = 16.sp,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
     }
 }

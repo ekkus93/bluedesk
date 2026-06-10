@@ -13,6 +13,7 @@ class BtDevicePrefs(context: Context) {
 
     /** Address of the last/default device, or null if none. Null clears it. */
     fun getLastDevice(): String? = prefs.getString(KEY_LAST_DEVICE, null)
+
     fun setLastDevice(address: String?) {
         prefs.edit().apply {
             if (address == null) remove(KEY_LAST_DEVICE) else putString(KEY_LAST_DEVICE, address)
@@ -32,9 +33,14 @@ class BtDevicePrefs(context: Context) {
     }
 
     fun getAlias(address: String): String? = prefs.getString(aliasKey(address), null)
-    fun setAlias(address: String, alias: String) {
+
+    fun setAlias(
+        address: String,
+        alias: String,
+    ) {
         prefs.edit().putString(aliasKey(address), alias).apply()
     }
+
     fun removeAlias(address: String) {
         prefs.edit().remove(aliasKey(address)).apply()
     }

@@ -4,7 +4,6 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AutoReconnectLogicTest {
-
     @Test
     fun persists_lastDevice_and_reads_on_start() {
         val store = mutableMapOf<String, String>()

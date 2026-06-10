@@ -13,12 +13,13 @@ val appReducer: Reducer<AppState> = { state, action ->
         Action.ReleaseLockedModifiers -> {
             val kb = state.keyboard
             state.copy(
-                keyboard = kb.copy(
-                    ctrl = if (kb.ctrlPersist) kb.ctrl else false,
-                    shift = if (kb.shiftPersist) kb.shift else false,
-                    alt = if (kb.altPersist) kb.alt else false,
-                    gui = if (kb.guiPersist) kb.gui else false
-                )
+                keyboard =
+                    kb.copy(
+                        ctrl = if (kb.ctrlPersist) kb.ctrl else false,
+                        shift = if (kb.shiftPersist) kb.shift else false,
+                        alt = if (kb.altPersist) kb.alt else false,
+                        gui = if (kb.guiPersist) kb.gui else false,
+                    ),
             )
         }
         is Action.SetCtrlPersist -> state.copy(keyboard = state.keyboard.copy(ctrlPersist = action.persist))
@@ -51,30 +52,38 @@ val appReducer: Reducer<AppState> = { state, action ->
         // no speculative toggle here.
         Action.ToggleCapsLock -> state
         Action.ToggleScrollLock -> state
-        is Action.UpdateDiscoveredDevices -> state.copy(
-            connection = state.connection.copy(discoveredDevices = action.devices)
-        )
-        is Action.UpdatePairedDevices -> state.copy(
-            connection = state.connection.copy(pairedDevices = action.devices)
-        )
-        is Action.UpdateConnectedDevice -> state.copy(
-            connection = state.connection.copy(connectedDevice = action.device)
-        )
-        is Action.UpdateMessage -> state.copy(
-            connection = state.connection.copy(message = action.message)
-        )
-        is Action.UpdateDefaultDevice -> state.copy(
-            connection = state.connection.copy(defaultDeviceAddress = action.address)
-        )
-        is Action.UpdateLocks -> state.copy(
-            connection = state.connection.copy(
-                capsLock = action.caps,
-                scrollLock = action.scroll
+        is Action.UpdateDiscoveredDevices ->
+            state.copy(
+                connection = state.connection.copy(discoveredDevices = action.devices),
             )
-        )
-        is Action.UpdateIsScanning -> state.copy(
-            connection = state.connection.copy(isScanning = action.scanning)
-        )
+        is Action.UpdatePairedDevices ->
+            state.copy(
+                connection = state.connection.copy(pairedDevices = action.devices),
+            )
+        is Action.UpdateConnectedDevice ->
+            state.copy(
+                connection = state.connection.copy(connectedDevice = action.device),
+            )
+        is Action.UpdateMessage ->
+            state.copy(
+                connection = state.connection.copy(message = action.message),
+            )
+        is Action.UpdateDefaultDevice ->
+            state.copy(
+                connection = state.connection.copy(defaultDeviceAddress = action.address),
+            )
+        is Action.UpdateLocks ->
+            state.copy(
+                connection =
+                    state.connection.copy(
+                        capsLock = action.caps,
+                        scrollLock = action.scroll,
+                    ),
+            )
+        is Action.UpdateIsScanning ->
+            state.copy(
+                connection = state.connection.copy(isScanning = action.scanning),
+            )
         Action.StartDiscovery,
         Action.StopDiscovery,
         is Action.PairDevice,
@@ -82,7 +91,8 @@ val appReducer: Reducer<AppState> = { state, action ->
         Action.DisconnectDevice,
         is Action.ForgetDevice,
         is Action.SetDefaultDevice,
-        is Action.RenameDevice -> state
+        is Action.RenameDevice,
+        -> state
         else -> state
     }
 }

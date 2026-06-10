@@ -4,11 +4,17 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HidDescriptorVariantsTest {
-
-    private fun ByteArray.hasPair(a: Byte, b: Byte) =
+    private fun ByteArray.hasPair(
+        a: Byte,
+        b: Byte,
+    ) =
         toList().windowed(2).any { it[0] == a && it[1] == b }
 
-    private fun ByteArray.hasTriple(a: Byte, b: Byte, c: Byte) =
+    private fun ByteArray.hasTriple(
+        a: Byte,
+        b: Byte,
+        c: Byte,
+    ) =
         toList().windowed(3).any { it[0] == a && it[1] == b && it[2] == c }
 
     @Test

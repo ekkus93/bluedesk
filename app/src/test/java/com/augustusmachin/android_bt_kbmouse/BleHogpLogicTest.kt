@@ -4,7 +4,6 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class BleHogpLogicTest {
-
     @Test
     fun reportMap_selection_and_flags() {
         val (lenSimple, infoSimple) = BleHogpLogic.selectReportMap(true)

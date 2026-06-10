@@ -63,10 +63,11 @@ fun MainScreen() {
     val connected = appState.connection.connectedDevice
     // Proactively request notifications on 33+
     val context = LocalContext.current
-    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        context.getSharedPreferences("perm", Context.MODE_PRIVATE).edit().putBoolean("notif_asked", true).apply()
-        DebugLog.log("Main", "POST_NOTIFICATIONS granted=$granted")
-    }
+    val notifLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            context.getSharedPreferences("perm", Context.MODE_PRIVATE).edit().putBoolean("notif_asked", true).apply()
+            DebugLog.log("Main", "POST_NOTIFICATIONS granted=$granted")
+        }
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= 33) {
             val sp = context.getSharedPreferences("perm", Context.MODE_PRIVATE)
@@ -100,13 +101,18 @@ fun MainScreen() {
                             selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                             // Always enabled so onClick fires; disabled appearance applied via colors.
                             enabled = true,
-                            colors = if (!isEnabled) NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                                selectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                                indicatorColor = Color.Transparent,
-                            ) else NavigationBarItemDefaults.colors(),
+                            colors =
+                                if (!isEnabled) {
+                                    NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                        selectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                        indicatorColor = Color.Transparent,
+                                    )
+                                } else {
+                                    NavigationBarItemDefaults.colors()
+                                },
                             onClick = {
                                 if (!isEnabled) {
                                     scope.launch { snackbarHostState.showSnackbar("Connect a device first") }
@@ -117,72 +123,83 @@ fun MainScreen() {
                                         restoreState = true
                                     }
                                 }
-                            }
+                            },
                         )
                     }
                 }
 
                 // Compact status row — hidden on Keyboard screen to save space.
                 val statusNavEntry by navController.currentBackStackEntryAsState()
-                if (statusNavEntry?.destination?.route != Screen.Keyboard.route) CenterAlignedTopAppBar(
-                    title = {
-                        val chip = if (settings.debugLogging) {
-                            val t = when (settings.logLevel) { 1 -> "Info"; 2 -> "Error"; else -> "All" }
-                            " • Log:" + t
-                        } else ""
-                        // Compact status: indicator + device name; omit the large app title to save space.
-                        val connectedName = connected?.name
-                        val statusText = if (connectedName != null) "Connected to ${connectedName}" else "Disconnected"
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.semantics { this[SemanticsProperties.ContentDescription] = listOf(statusText) }
-                        ) {
-                            val indicatorColor = if (connectedName != null) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f)
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(indicatorColor)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = connectedName ?: "Disconnected", style = MaterialTheme.typography.bodySmall)
-                            if (settings.debugLogging && chip.isNotEmpty()) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(chip, style = MaterialTheme.typography.labelSmall)
+                if (statusNavEntry?.destination?.route != Screen.Keyboard.route) {
+                    CenterAlignedTopAppBar(
+                        title = {
+                            val chip =
+                                if (settings.debugLogging) {
+                                    val t =
+                                        when (settings.logLevel) {
+                                            1 -> "Info"
+                                            2 -> "Error"
+                                            else -> "All"
+                                        }
+                                    " • Log:" + t
+                                } else {
+                                    ""
+                                }
+                            // Compact status: indicator + device name; omit the large app title to save space.
+                            val connectedName = connected?.name
+                            val statusText = if (connectedName != null) "Connected to $connectedName" else "Disconnected"
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.semantics { this[SemanticsProperties.ContentDescription] = listOf(statusText) },
+                            ) {
+                                val indicatorColor = if (connectedName != null) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f)
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(indicatorColor),
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = connectedName ?: "Disconnected", style = MaterialTheme.typography.bodySmall)
+                                if (settings.debugLogging && chip.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(chip, style = MaterialTheme.typography.labelSmall)
+                                }
                             }
-                        }
-                    },
-                    actions = {
-                        // Scan action
-                        IconButton(
-                            onClick = { StoreProvider.dispatch(Action.StartDiscovery) },
-                            modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
-                        ) {
-                            Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Scan", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        // Settings action
-                        IconButton(
-                            onClick = { navController.navigate(Screen.Settings.route) },
-                            modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button }
-                        ) {
-                            Icon(painter = painterResource(id = R.drawable.ic_settings), contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                )
+                        },
+                        actions = {
+                            // Scan action
+                            IconButton(
+                                onClick = { StoreProvider.dispatch(Action.StartDiscovery) },
+                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
+                            ) {
+                                Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Scan", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            // Settings action
+                            IconButton(
+                                onClick = { navController.navigate(Screen.Settings.route) },
+                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
+                            ) {
+                                Icon(painter = painterResource(id = R.drawable.ic_settings), contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        },
+                    )
+                }
             }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     ) { innerPadding ->
-    val message = appState.connection.message
+        val message = appState.connection.message
         val navBack by navController.currentBackStackEntryAsState()
         val route = navBack?.destination?.route
         LaunchedEffect(connected, route, settings.offlinePreview, settings.debugLogging) {
-                val keyboardAccessible = connected != null || settings.debugLogging || settings.offlinePreview
-                if (!keyboardAccessible && (route == Screen.Keyboard.route || route == Screen.Mouse.route)) {
-                    snackbarHostState.showSnackbar("Disconnected")
-                    navController.navigate(Screen.Pairing.route) { launchSingleTop = true }
-                }
+            val keyboardAccessible = connected != null || settings.debugLogging || settings.offlinePreview
+            if (!keyboardAccessible && (route == Screen.Keyboard.route || route == Screen.Mouse.route)) {
+                snackbarHostState.showSnackbar("Disconnected")
+                navController.navigate(Screen.Pairing.route) { launchSingleTop = true }
             }
+        }
         if (message != null) {
             LaunchedEffect(message) {
                 snackbarHostState.showSnackbar(message!!)

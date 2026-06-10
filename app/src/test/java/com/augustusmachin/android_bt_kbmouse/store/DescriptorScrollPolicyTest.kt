@@ -2,7 +2,6 @@ package com.augustusmachin.android_bt_kbmouse.store
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -18,7 +17,6 @@ import org.junit.Test
  * a future refactor cannot accidentally add state changes for scroll actions.
  */
 class DescriptorScrollPolicyTest {
-
     @Test
     fun scrollVertical_doesNotMutateState() {
         val initial = AppState()

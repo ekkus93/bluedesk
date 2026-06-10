@@ -6,3 +6,8 @@ root = true
 ktlint_standard_function-naming = disabled
 # Compose UI builds deeply nested trees; the default max line length fights it.
 max_line_length = off
+# Several Compose files use package wildcard imports by convention; allow them.
+ktlint_standard_no-wildcard-imports = disabled
+# The package intentionally contains an underscore (it matches the applicationId
+# com.augustusmachin.android_bt_kbmouse, which must not be renamed).
+ktlint_standard_package-name = disabled

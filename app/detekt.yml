@@ -1,0 +1,32 @@
+# detekt overrides (merged over the default config via buildUponDefaultConfig).
+# Rules disabled here are noise for an Android/HID codebase; the structural
+# complexity rules are intentionally left ON and their existing findings are
+# grandfathered in detekt-baseline.xml so only new ones fail the build.
+
+style:
+  MagicNumber:
+    # HID report descriptors, bit masks, and byte offsets are inherently numeric.
+    active: false
+  MaxLineLength:
+    # Compose builds deeply nested trees; matches the ktlint max-line decision.
+    active: false
+  WildcardImport:
+    # Several Compose files use package wildcard imports by convention.
+    active: false
+  ReturnCount:
+    active: false
+
+exceptions:
+  TooGenericExceptionCaught:
+    # Android platform calls are guarded with broad catches by design.
+    active: false
+  SwallowedException:
+    active: false
+
+naming:
+  PackageNaming:
+    # The package intentionally contains an underscore (matches the applicationId).
+    active: false
+  FunctionNaming:
+    # @Composable functions are intentionally PascalCase.
+    ignoreAnnotated: ['Composable']
