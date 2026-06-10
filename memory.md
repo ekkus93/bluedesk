@@ -415,7 +415,7 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 ## 2026-06-10T19:06:12Z - Claude Opus 4.8 - BlueDeck Release Hardening Fix 2 complete (Phases 1-8)
 - Ran docs/BLUEDECK_RELEASE_HARDENING_FIX2_TODO.md as a Ralph loop using decisions from docs/replies2.md. All 187 boxes [x]. Commits bea7f83..fcb7f95 (not yet pushed).
 - P1: StartupPermissionPlanner (pure) — startup permission request is now backend-aware (waits for settings, requests Classic connect OR BLE connect+advertise). Interactive BLE denial: persist useBleHogp=false + fall back to Classic + message. startAndBind* made idempotent. Added StartupState.permissionFlowResolved signal.
-- P2: BluetoothService.onCreate calls startInForeground() FIRST and  before adapter/receivers/proxy/dispatch.
+- P2: BluetoothService.onCreate calls startInForeground() FIRST and returns immediately if it fails, before adapter/receivers/proxy/dispatch.
 - P3: BootReceiver backend-aware via pure BootStartPlanner (StartNothing/StartClassic/StartBle/Skip); goAsync()+IO coroutine+withTimeoutOrNull(3s)+finish() in finally; reads startOnBoot+useBleHogp; never silently starts Classic when BLE selected; boot never persists the setting.
 - P4: MainScreen awaits StartupState.permissionFlowResolved before POST_NOTIFICATIONS (removed NOTIF_PROMPT_DELAY_MS timer).
 - P5: reclassified Fix1 validation evidence with honest labels (Unit/Instrumented/Physical-HID/Manual-device/Pending manual UX smoke).
