@@ -52,13 +52,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 private const val SDK_INT_TIRAMISU = 33
-
-// Delay before requesting the optional notification permission, so it doesn't race the
-// startup Bluetooth permission prompt on first launch.
-private const val NOTIF_PROMPT_DELAY_MS = 1200L
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -77,9 +74,10 @@ fun MainScreen() {
         }
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= SDK_INT_TIRAMISU) {
-            // Let the startup Bluetooth permission prompt resolve first so the two prompts do
-            // not race on first launch. Notifications are optional and never block the app.
-            kotlinx.coroutines.delay(NOTIF_PROMPT_DELAY_MS)
+            // Wait until the startup Bluetooth-permission flow has resolved so the notification
+            // prompt can never fire while the startup permission launcher is active (state-based,
+            // not a timer race). Notifications are optional and never block the app.
+            StartupState.permissionFlowResolved.first { it }
             val sp = context.getSharedPreferences("perm", Context.MODE_PRIVATE)
             if (!sp.getBoolean("notif_asked", false)) {
                 val granted =

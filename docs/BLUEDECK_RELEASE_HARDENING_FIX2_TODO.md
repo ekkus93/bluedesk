@@ -235,48 +235,48 @@ Acceptance criteria:
 
 ### Task 4.1 — Remove timer-only sequencing
 
-- [ ] Locate `NOTIF_PROMPT_DELAY_MS`.
-- [ ] Confirm whether notification permission prompt is launched after a fixed delay.
-- [ ] Do not rely solely on `delay(...)` to avoid permission dialog races.
+- [x] Locate `NOTIF_PROMPT_DELAY_MS`.
+- [x] Confirm whether notification permission prompt is launched after a fixed delay.
+- [x] Do not rely solely on `delay(...)` to avoid permission dialog races.
 
 Acceptance criteria:
 
-- [ ] Timer-only permission sequencing is removed or no longer the only guard.
+- [x] Timer-only permission sequencing is removed or no longer the only guard.
 
 ### Task 4.2 — Add startup permission completion state
 
-- [ ] Add state indicating startup permission flow is resolved.
-- [ ] Set it only after:
-  - [ ] startup Bluetooth permissions granted and handled, or
-  - [ ] denied and fallback/no-start decision handled.
-- [ ] Notification permission prompt can only happen after this state.
+- [x] Add state indicating startup permission flow is resolved.
+- [x] Set it only after:
+  - [x] startup Bluetooth permissions granted and handled, or
+  - [x] denied and fallback/no-start decision handled.
+- [x] Notification permission prompt can only happen after this state.
 
 Acceptance criteria:
 
-- [ ] Notification permission launcher cannot fire while startup Bluetooth launcher is active.
+- [x] Notification permission launcher cannot fire while startup Bluetooth launcher is active.
 
 ### Task 4.3 — Keep notification optional
 
-- [ ] Denying `POST_NOTIFICATIONS` does not block app.
-- [ ] Notification permission is not included in fatal startup permission requests.
-- [ ] If user denies, log/show non-blocking message only.
+- [x] Denying `POST_NOTIFICATIONS` does not block app.
+- [x] Notification permission is not included in fatal startup permission requests.
+- [x] If user denies, log/show non-blocking message only.
 
 Acceptance criteria:
 
-- [ ] Notification permission remains optional.
+- [x] Notification permission remains optional.
 
 ### Task 4.4 — Add validation
 
-- [ ] Add pure state test if practical.
-- [ ] Otherwise document manual first-launch test:
-  - [ ] fresh install,
-  - [ ] Bluetooth permission prompt appears,
-  - [ ] notification prompt does not overlap/race,
-  - [ ] denial does not block Classic operation.
+- [x] Add pure state test if practical.
+- [x] Otherwise document manual first-launch test:
+  - [x] fresh install,
+  - [x] Bluetooth permission prompt appears,
+  - [x] notification prompt does not overlap/race,
+  - [x] denial does not block Classic operation.
 
 Acceptance criteria:
 
-- [ ] Sequencing behavior is validated.
+- [x] Sequencing behavior is validated.
 
 ---
 
