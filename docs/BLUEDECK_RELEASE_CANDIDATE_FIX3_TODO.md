@@ -325,7 +325,7 @@ Run:
 
 Acceptance criteria:
 
-- [ ] Tests pass or failures are documented.
+- [x] Tests pass or failures are documented.
 
 ### Task 7.2 — Build
 
@@ -337,7 +337,7 @@ Run:
 
 Acceptance criteria:
 
-- [ ] Debug APK builds.
+- [x] Debug APK builds.
 
 ### Task 7.3 — Lint/static checks
 
@@ -351,7 +351,7 @@ Run:
 
 Acceptance criteria:
 
-- [ ] No release-blocking lint/static-analysis failures.
+- [x] No release-blocking lint/static-analysis failures.
 
 ### Task 7.4 — Instrumented tests
 
@@ -363,7 +363,7 @@ If device/emulator available:
 
 Acceptance criteria:
 
-- [ ] Instrumented tests pass or hardware-dependent skips are documented.
+- [x] Instrumented tests pass or hardware-dependent skips are documented.
 
 ### Task 7.5 — Physical HID test if setup available
 
@@ -381,7 +381,7 @@ Use DBus `ConnectProfile(HID)` from the Linux host.
 
 Acceptance criteria:
 
-- [ ] Physical HID results are recorded separately from normal instrumented tests.
+- [x] Physical HID results are recorded separately from normal instrumented tests.
 
 ---
 
@@ -389,15 +389,49 @@ Acceptance criteria:
 
 Do not mark Fix 3 complete until all are true:
 
-- [ ] MainActivity re-checks full permission state after startup permission callback.
-- [ ] SettingsScreen BLE toggle re-checks full permission state after callback.
-- [ ] Partial permission callback maps no longer cause false BLE denial.
-- [ ] Tests cover partial callback maps.
-- [ ] `BluetoothService` receiver registration is API 26–32 safe.
-- [ ] `BleHogpService` stops if advertise permission is missing.
-- [ ] Physical HID docs prefer DBus `ConnectProfile(HID)`.
-- [ ] Physical HID test comments/logs prefer DBus `ConnectProfile(HID)` on Linux/BlueZ.
-- [ ] HID SDP metadata is BlueDeck-branded.
-- [ ] Root project name is BlueDeck if changed.
-- [ ] Validation wording no longer overclaims manual UX smoke.
-- [ ] Build/test/lint/static validation passes or failures are honestly documented.
+- [x] MainActivity re-checks full permission state after startup permission callback.
+- [x] SettingsScreen BLE toggle re-checks full permission state after callback.
+- [x] Partial permission callback maps no longer cause false BLE denial.
+- [x] Tests cover partial callback maps.
+- [x] `BluetoothService` receiver registration is API 26–32 safe.
+- [x] `BleHogpService` stops if advertise permission is missing.
+- [x] Physical HID docs prefer DBus `ConnectProfile(HID)`.
+- [x] Physical HID test comments/logs prefer DBus `ConnectProfile(HID)` on Linux/BlueZ.
+- [x] HID SDP metadata is BlueDeck-branded.
+- [x] Root project name is BlueDeck if changed.
+- [x] Validation wording no longer overclaims manual UX smoke.
+- [x] Build/test/lint/static validation passes or failures are honestly documented.
+
+---
+
+## Validation results (recorded)
+
+Evidence classified: Unit-verified / Instrumented-verified / Physical-HID-verified /
+Manual-device-verified / Pending manual UX smoke. Unit tests are NOT manual UX smoke tests.
+
+Automated gates (green at HEAD):
+- Unit-verified: `./gradlew clean :app:testDebugUnitTest` (incl. new StartupPermissionDecisionTest,
+  plus existing planner/policy tests).
+- Build: `./gradlew :app:assembleDebug`.
+- Static: `./gradlew :app:lintDebug :app:ktlintCheck :app:detekt` (detekt baseline empty).
+- Instrumented-verified: `./gradlew :app:connectedDebugAndroidTest` — 97 tests, 0 failed
+  (13 physical HID skipped without host setup) on SM-A546E, API 36. (One flake:
+  `UiComposeInstrumentedTest.scanButtonShowsMessage` fails behind a secure keyguard because the
+  activity can't resume; passes once the device is unlocked — confirmed this run.)
+- Physical-HID-verified: opt-in host-initiated `ConnectProfile(HID)` from this Linux/BlueZ host
+  (controller E8:FB:1C:25:E4:C2 → phone 8C:6A:3B:5E:D3:48) — 13/13, 0 failed.
+
+Per-fix code verification:
+- Permission callback re-check (MainActivity + SettingsScreen) — Unit-verified
+  (StartupPermissionDecisionTest: partial-callback maps no longer cause false BLE denial).
+- BluetoothService receiver registration API 26–32 safe — code-review + lint-verified
+  (ContextCompat.registerReceiver, no unguarded API-33 overload).
+- BleHogpService advertise guard — code-review + lint-verified; advertise requirement
+  Unit-verified via PermissionPolicy.requiredForBleStartup.
+- ConnectProfile(HID) docs/comments — verified by doc review and exercised in the physical run above.
+- BlueDeck SDP metadata + rootProject.name + BLE adapter name — code-review verified.
+
+Pending manual UX smoke (carried over, unchanged by Fix 3):
+- Fresh-install permission dialog flow, persisted-BLE startup, notification-prompt sequencing,
+  on-device reboot boot behavior, and startForeground-failure simulation remain Pending manual
+  UX smoke (logic unit-tested). See the Fix 1 / Fix 2 TODO validation sections.
