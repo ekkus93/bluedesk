@@ -158,14 +158,14 @@ Acceptance criteria:
 
 ### Task 3.1 — Add advertise permission guard
 
-- [ ] Open `BleHogpService.kt`.
-- [ ] In `onCreate()`, on Android 12+, check:
-  - [ ] `BLUETOOTH_CONNECT`,
-  - [ ] `BLUETOOTH_ADVERTISE`.
-- [ ] If either is missing:
-  - [ ] log clear message,
-  - [ ] call `stopSelf()`,
-  - [ ] return before BLE setup.
+- [x] Open `BleHogpService.kt`.
+- [x] In `onCreate()`, on Android 12+, check:
+  - [x] `BLUETOOTH_CONNECT`,
+  - [x] `BLUETOOTH_ADVERTISE`.
+- [x] If either is missing:
+  - [x] log clear message,
+  - [x] call `stopSelf()`,
+  - [x] return before BLE setup.
 
 Suggested message:
 
@@ -175,27 +175,27 @@ BLE HOGP requires Bluetooth connect/advertise permissions; stopping BLE service.
 
 Acceptance criteria:
 
-- [ ] BLE service does not remain running when advertise permission is missing.
+- [x] BLE service does not remain running when advertise permission is missing.
 
 ### Task 3.2 — Avoid non-advertising foreground state
 
-- [ ] Ensure service does not proceed into GATT/advertising setup if advertise is missing.
-- [ ] Avoid foreground service remaining active while unable to advertise.
-- [ ] Keep existing MainActivity/BootReceiver prevention logic intact.
+- [x] Ensure service does not proceed into GATT/advertising setup if advertise is missing.
+- [x] Avoid foreground service remaining active while unable to advertise.
+- [x] Keep existing MainActivity/BootReceiver prevention logic intact.
 
 Acceptance criteria:
 
-- [ ] Service-level defense covers stale/external start paths.
+- [x] Service-level defense covers stale/external start paths.
 
 ### Task 3.3 — Add/record validation
 
-- [ ] Add helper test if permission decision is extracted.
-- [ ] Otherwise document code-review/manual validation.
-- [ ] Confirm startup and boot planners still prevent normal bad starts.
+- [x] Add helper test if permission decision is extracted.
+- [x] Otherwise document code-review/manual validation.
+- [x] Confirm startup and boot planners still prevent normal bad starts.
 
 Acceptance criteria:
 
-- [ ] Advertise-missing path is verified or explicitly documented.
+- [x] Advertise-missing path is verified or explicitly documented.
 
 ---
 

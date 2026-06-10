@@ -87,14 +87,21 @@ class BleHogpService : Service(), HogpNotifier {
 
     override fun onCreate() {
         super.onCreate()
+        // Defensive guard: BLE HOGP needs both connect and advertise (API 31+). Even though the
+        // startup/boot planners should prevent a bad start, an external/stale start must not leave
+        // the service foregrounded with GATT up but unable to advertise. The checks are inline (not
+        // via a helper) so lint's MissingPermission data-flow recognizes the connect guard for the
+        // adapter/GATT calls below. Below API 31 these permissions are install-time, so allow.
+        val preS = Build.VERSION.SDK_INT < Build.VERSION_CODES.S
         val hasConnect =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-            } else {
-                true
-            }
-        if (!hasConnect) {
-            DebugLog.e("BleHogpService", "BLUETOOTH_CONNECT not granted; stopping BLE service")
+            preS || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        val hasAdvertise =
+            preS || checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) == PackageManager.PERMISSION_GRANTED
+        if (!hasConnect || !hasAdvertise) {
+            DebugLog.e(
+                "BleHogpService",
+                "BLE HOGP requires Bluetooth connect/advertise permissions; stopping BLE service",
+            )
             stopSelf()
             return
         }
