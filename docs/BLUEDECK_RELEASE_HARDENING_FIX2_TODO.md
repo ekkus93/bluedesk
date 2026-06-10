@@ -329,55 +329,55 @@ Acceptance criteria:
 
 ### Task 6.1 — Fix BLE denial message
 
-- [ ] Open `SettingsScreen.kt`.
-- [ ] Update BLE permission denial copy to mention both connect and advertise.
-- [ ] Suggested text:
+- [x] Open `SettingsScreen.kt`.
+- [x] Update BLE permission denial copy to mention both connect and advertise.
+- [x] Suggested text:
   ```text
   BLE HOGP needs Bluetooth connect/advertise permissions; staying on Classic.
   ```
 
 Acceptance criteria:
 
-- [ ] Message matches actual required BLE permissions.
+- [x] Message matches actual required BLE permissions.
 
 ### Task 6.2 — Fix README scroll wording
 
-- [ ] Open `README.md`.
-- [ ] Find feature list scroll wording.
-- [ ] Update to:
+- [x] Open `README.md`.
+- [x] Find feature list scroll wording.
+- [x] Update to:
   ```text
   two-finger vertical/horizontal scroll in Full descriptor mode
   ```
-- [ ] Ensure SIMPLE mode is not implied to support scroll.
+- [x] Ensure SIMPLE mode is not implied to support scroll.
 
 Acceptance criteria:
 
-- [ ] README feature list matches actual descriptor behavior.
+- [x] README feature list matches actual descriptor behavior.
 
 ### Task 6.3 — Clean XML theme colors if safe
 
-- [ ] Search for old template colors:
-  - [ ] `purple_500`,
-  - [ ] `purple_700`,
-  - [ ] `teal_200`.
-- [ ] Update XML theme colors to BlueDeck palette where safe.
-- [ ] Do not break `Theme.BlueDeck.Starting`.
-- [ ] Do not break `Theme.BluetoothKeyboardMouse`.
+- [x] Search for old template colors:
+  - [x] `purple_500`,
+  - [x] `purple_700`,
+  - [x] `teal_200`.
+- [x] Update XML theme colors to BlueDeck palette where safe.
+- [x] Do not break `Theme.BlueDeck.Starting`.
+- [x] Do not break `Theme.BluetoothKeyboardMouse`.
 
 Acceptance criteria:
 
-- [ ] XML theme resources do not visibly clash with BlueDeck branding.
+- [x] XML theme resources do not visibly clash with BlueDeck branding.
 
 ### Task 6.4 — Polish Quick Settings tile label if low risk
 
-- [ ] If tile connected label uses raw MAC address, prefer bonded device name.
-- [ ] Fall back to address only if no name is available.
-- [ ] Do not mark tile active unless connection is confirmed.
-- [ ] Do not rework tile architecture.
+- [x] If tile connected label uses raw MAC address, prefer bonded device name.
+- [x] Fall back to address only if no name is available.
+- [x] Do not mark tile active unless connection is confirmed.
+- [x] Do not rework tile architecture.
 
 Acceptance criteria:
 
-- [ ] Tile label is less ugly without changing core behavior.
+- [x] Tile label is less ugly without changing core behavior.
 
 ---
 

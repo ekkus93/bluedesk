@@ -353,7 +353,7 @@ private fun BleHogpToggle(
             } else {
                 com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
                     com.augustusmachin.android_bt_kbmouse.store.Action.UpdateMessage(
-                        "BLE HOGP needs the Bluetooth advertise permission; staying on Classic.",
+                        "BLE HOGP needs Bluetooth connect/advertise permissions; staying on Classic.",
                     ),
                 )
             }

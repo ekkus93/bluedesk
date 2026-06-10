@@ -1,14 +1,13 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.BluetoothKeyboardMouse" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/purple_200</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
-        <item name="colorOnPrimary">@color/black</item>
-        <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryVariant">@color/teal_200</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <!-- BlueDeck brand colors (dark shell theme). -->
+        <item name="colorPrimary">@color/bluedeck_cyan</item>
+        <item name="colorPrimaryVariant">@color/bluedeck_navy_dark</item>
+        <item name="colorOnPrimary">@color/bluedeck_navy_dark</item>
+        <item name="colorSecondary">@color/bluedeck_teal</item>
+        <item name="colorSecondaryVariant">@color/bluedeck_teal</item>
+        <item name="colorOnSecondary">@color/bluedeck_navy_dark</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->

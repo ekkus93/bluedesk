@@ -234,9 +234,9 @@ class BluetoothService : Service(), IBluetoothService {
                                                     "BLUETOOTH_SCAN not granted; skipping cancelDiscovery",
                                                 )
                                             }
-                                            // persist connected address for QS tile
-                                            // (avoid device.name which requires BLUETOOTH_CONNECT)
-                                            devicePrefs.setConnectedName(device.address)
+                                            // persist a friendly label for the QS tile: bonded
+                                            // device name when readable, else the address.
+                                            devicePrefs.setConnectedName(connectedLabel(device))
                                             // notify tile to refresh
                                             refreshQsTile()
                                             eventListener?.onConnected(device)
@@ -666,6 +666,26 @@ class BluetoothService : Service(), IBluetoothService {
     private fun refreshQsTile() = foreground.refreshQsTile()
 
     private fun startInForeground(): Boolean = foreground.startInForeground()
+
+    /** A friendly label for the connected device: bonded name when readable, else the address. */
+    private fun connectedLabel(device: BluetoothDevice): String {
+        val hasConnect =
+            android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S ||
+                checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        val name =
+            if (hasConnect) {
+                try {
+                    device.name
+                } catch (e: SecurityException) {
+                    DebugLog.e("BluetoothService", "device.name read failed: ${e.message}")
+                    null
+                }
+            } else {
+                null
+            }
+        return name?.takeIf { it.isNotBlank() } ?: device.address
+    }
 
     private fun reportMissingBluetoothConnect() = foreground.reportMissingBluetoothConnect()
 

@@ -15,8 +15,8 @@ mouse*.
   visual feedback, optional click sound, and Caps/Scroll lock LED sync.
 - **Mouse / touchpad** — single-finger move, tap to left-click, two-finger tap
   for right-click, three-finger tap for middle-click, and two-finger
-  vertical/horizontal scroll. Adjustable sensitivity and scroll tuning with
-  invert options.
+  vertical/horizontal scroll in Full descriptor mode (Simplified mode has no
+  scroll). Adjustable sensitivity and scroll tuning with invert options.
 - **System keyboard input** — an optional "Use system keyboard" mode types
   committed characters from your Android IME; extra keys (F-keys, navigation,
   punctuation) live on dedicated Extended Key pages.
