@@ -252,3 +252,8 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 - Local env already has JDK 21 (default java 21.0.11, /usr/lib/jvm/java-21-openjdk-amd64); no foojay resolver but not needed since 21 is installed. Gradle 8.13 supports JDK 21.
 - Verified locally: ./gradlew clean :app:assembleDebug :app:testDebugUnitTest :app:lintDebug all green.
 - CI scope confirmed with user = lint + build + unit tests, NO instrumentation tests (already what ci.yml does).
+
+## 2026-06-10T02:04:17Z - Claude Opus 4.8 - README cleanup + CI badge
+- Added CI status badge to README (links to ci.yml workflow runs; repo ekkus93/android_bt_kbmouse).
+- Rewrote README.md lean (272→131 lines): About/Features, Tech stack, Usage, Compatibility, Building, Testing, Known issues, Branding, doc links. Removed verbose Session Notes, Current Status, To-Do List, Testing Plan, Planned Unit Tests, Repro/Debugging cheatsheets, Environment matrix.
+- Archived (not deleted) the removed content into new files: docs/DEVELOPMENT_NOTES.md (status/session notes/next steps/repro/debug/env) and docs/ROADMAP.md (to-do + manual test plan + unit-test coverage list). README links to both plus docs/PHYSICAL_HID_TESTING.md and EXTENDED_KEYS.md.
