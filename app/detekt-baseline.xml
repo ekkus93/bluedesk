@@ -17,9 +17,8 @@
     <ID>CyclomaticComplexMethod:PairingViewModelTest.kt$PairingViewModelTest$@Test fun disconnect_updatesState_and_message()</ID>
     <ID>CyclomaticComplexMethod:PairingViewModelTest.kt$PairingViewModelTest$@Test fun surfacesErrorMessages_and_clearsOnNavigate()</ID>
     <ID>CyclomaticComplexMethod:SettingsManager.kt$SettingsManager$fun fromPreferences(p: androidx.datastore.preferences.core.Preferences): Settings</ID>
-    <ID>LongMethod:BleHogpService.kt$BleHogpService$private fun setupGattServices()</ID>
-    <ID>LongMethod:BluetoothService.kt$BluetoothService$private fun scheduleReconnect(delayMs: Long = 0)</ID>
     <ID>LongMethod:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$override fun onAppStatus(registered: Boolean)</ID>
+    <ID>LongMethod:BleHogpService.kt$BleHogpService$private fun setupGattServices()</ID>
     <ID>TooManyFunctions:BleHogpKeySender.kt$BleHogpKeySender : KeySender</ID>
     <ID>TooManyFunctions:BluetoothKeySender.kt$BluetoothKeySender : KeySender</ID>
     <ID>TooManyFunctions:BluetoothService.kt$BluetoothService : ServiceIBluetoothService</ID>
