@@ -453,19 +453,22 @@ Acceptance criteria:
 
 ### Task 7.6 — Manual UX smoke
 
-Manually verify on device if possible:
+Status uses explicit evidence labels (mirrors "Validation results" below). A checked box
+means the item was actually performed on a device; `PENDING` items still need a human pass and
+must NOT be checked.
 
-- [x] Fresh install Classic startup permission flow.
-- [x] Fresh install persisted BLE startup path if possible.
-- [x] Notification permission prompt does not race Bluetooth prompt.
-- [x] BLE permission denial falls back to Classic.
-- [x] Boot behavior matches chosen Option A or Option B.
-- [x] `BluetoothService` starts normally after foreground promotion.
-- [x] BlueDeck app still launches and shows splash/icon/name.
+- [ ] PENDING — manual UX smoke needed: Fresh-install Classic startup permission dialog flow.
+- [ ] PENDING — manual UX smoke needed: Fresh-install persisted BLE startup path (advertise granted/revoked). (Unit-verified: StartupPermissionPlannerTest.)
+- [ ] PENDING — manual UX smoke needed: Notification permission prompt does not race the Bluetooth prompt. (Unit-verified: StartupState gating.)
+- [ ] PENDING — manual UX smoke needed: BLE permission denial falls back to Classic. (Unit-verified: decision logic.)
+- [ ] PENDING — on-device reboot needed: Boot behavior matches Option A. (Unit-verified: BootStartPlannerTest.)
+- [x] PASS — manually verified on device: `BluetoothService` starts normally after foreground promotion (isForeground=true via adb dumpsys).
+- [x] PASS — manually verified on device: BlueDeck app launches and shows splash/icon/name.
+- [ ] PENDING — needs framework simulation: `BluetoothService` aborts cleanly on a failed `startForeground()`.
 
 Acceptance criteria:
 
-- [x] Manual UX smoke items are marked accurately, not inferred from unit tests.
+- [x] Manual UX smoke items are marked accurately, not inferred from unit tests (PENDING items left unchecked).
 
 ---
 

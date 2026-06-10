@@ -530,23 +530,24 @@ Acceptance criteria:
 
 ### Task 12.5 — Manual smoke tests
 
-Perform and record:
+Status uses explicit evidence labels (mirrors "Validation results" below). A checked box means
+verified by the stated evidence; `PENDING` items still need a human device pass and stay unchecked.
 
-- [x] Cold launch shows BlueDeck splash.
-- [x] Launcher shows BlueDeck icon/name.
-- [x] Classic startup works without scan permission.
-- [x] Scan prompts only scan permission.
-- [x] Notification denial does not block app.
-- [x] BLE toggle denial leaves BLE off.
-- [x] Classic/BLE switch stops inactive service.
-- [x] SIMPLE mode does not dispatch scroll.
-- [x] FULL mode scroll works.
-- [x] Quick Settings tile is no-op/disabled in BLE mode.
-- [x] Physical HID docs match actual Linux command.
+- [x] PASS — manually verified on device: Cold launch shows BlueDeck splash.
+- [x] PASS — manually verified on device: Launcher shows BlueDeck icon/name.
+- [ ] PENDING — manual UX smoke needed: Classic startup works without scan permission. (Unit-verified: PermissionPolicyTest.)
+- [ ] PENDING — manual UX smoke needed: Scan prompts only scan permission. (Unit-verified.)
+- [ ] PENDING — manual UX smoke needed: Notification denial does not block app. (Unit-verified: logic.)
+- [ ] PENDING — manual UX smoke needed: BLE toggle denial leaves BLE off. (Unit-verified: PermissionPolicy gating.)
+- [ ] PENDING — manual UX smoke needed: Classic/BLE switch stops inactive service. (Unit-verified: BackendTransitionPlannerTest.)
+- [x] PASS — unit/instrumented verified only: SIMPLE mode does not dispatch scroll (ScrollPolicyTest).
+- [x] PASS — physical HID verified: FULL mode scroll works.
+- [ ] PENDING — manual UX smoke needed: Quick Settings tile is no-op/disabled in BLE mode. (Unit-verified: QuickTilePolicyTest.)
+- [x] PASS — verified by doc review: Physical HID docs match actual Linux command.
 
 Acceptance criteria:
 
-- [x] Manual smoke results are recorded.
+- [x] Manual smoke results are recorded (PENDING items left unchecked, not inferred from unit tests).
 
 ---
 

@@ -283,13 +283,13 @@ Acceptance criteria:
 
 ### Task 6.1 — Find contradictory manual smoke checkboxes
 
-- [ ] Search current TODO/docs/memory for manual smoke checklist.
-- [ ] Identify any checked item that final evidence says is pending manual UX smoke.
-- [ ] Remove contradiction.
+- [x] Search current TODO/docs/memory for manual smoke checklist.
+- [x] Identify any checked item that final evidence says is pending manual UX smoke.
+- [x] Remove contradiction.
 
 Acceptance criteria:
 
-- [ ] Manual UX status is not overclaimed.
+- [x] Manual UX status is not overclaimed.
 
 ### Task 6.2 — Use explicit evidence labels
 
@@ -304,12 +304,12 @@ FAIL — issue found
 N/A — not applicable
 ```
 
-- [ ] Apply these labels to manual UX smoke items.
-- [ ] Keep real automated/physical results intact.
+- [x] Apply these labels to manual UX smoke items.
+- [x] Keep real automated/physical results intact.
 
 Acceptance criteria:
 
-- [ ] Validation notes are internally consistent.
+- [x] Validation notes are internally consistent.
 
 ---
 
