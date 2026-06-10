@@ -2,8 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>ComplexCondition:Middleware.kt$KeySenderMiddleware$action == Action.ToggleCtrl || action == Action.ToggleShift || action == Action.ToggleAlt || action == Action.ToggleGui</ID>
-    <ID>ComplexCondition:Middleware.kt$KeySenderMiddleware$k.ctrl || k.shift || k.alt || k.gui</ID>
     <ID>CyclomaticComplexMethod:BluetoothServiceLogicTest.kt$BluetoothServiceLogicTest$@Test fun maps_onConnectionStateChanged_to_VM_state()</ID>
     <ID>CyclomaticComplexMethod:ExtendedKeyMappings.kt$fun labelToHid(label: String): Byte?</ID>
     <ID>CyclomaticComplexMethod:KeyboardScreen.kt$@Composable fun KeyboardScreen(contentPadding: PaddingValues = PaddingValues())</ID>

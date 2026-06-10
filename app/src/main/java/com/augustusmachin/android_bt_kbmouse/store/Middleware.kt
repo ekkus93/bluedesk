@@ -13,6 +13,9 @@ private const val MODIFIER_ALT = 0x04
 private const val MODIFIER_GUI = 0x08
 private const val KEY_PRESS_HOLD_MS = 40L
 
+private val MODIFIER_TOGGLE_ACTIONS =
+    setOf(Action.ToggleCtrl, Action.ToggleShift, Action.ToggleAlt, Action.ToggleGui)
+
 /**
  * Middleware that forwards HID and connection intent actions to platform services.
  * The [KeySender] abstraction allows the activity/service layer to bridge actual HID calls
@@ -25,9 +28,7 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
     fun create() =
         middleware<AppState> { store: Store<AppState>, next, action ->
             // Modifier toggles need to update store state first, then push modifier mask to device
-            if (action == Action.ToggleCtrl || action == Action.ToggleShift ||
-                action == Action.ToggleAlt || action == Action.ToggleGui
-            ) {
+            if (action in MODIFIER_TOGGLE_ACTIONS) {
                 val res = next(action)
                 val k = store.state.keyboard
                 var mods = 0
@@ -59,7 +60,8 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
                         }
                     }
                     val result = next(action.copy(mods = mods))
-                    if (k.ctrl || k.shift || k.alt || k.gui) {
+                    val anyModifierActive = k.ctrl || k.shift || k.alt || k.gui
+                    if (anyModifierActive) {
                         store.dispatch(Action.ReleaseLockedModifiers)
                     }
                     return@middleware result
