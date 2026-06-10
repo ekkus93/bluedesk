@@ -32,9 +32,29 @@ class ModifierMiddlewareTest {
             assertEquals(0x00, sender.lastSetModifiers)
         }
 
+    @Test
+    fun repeatedSameKeyEmitsKeyUpBetweenPresses() =
+        runTest {
+            val middleware = KeySenderMiddleware(this)
+            val store = createStore(appReducer, AppState(), applyMiddleware(middleware.create()))
+            val sender = RecordingSender()
+            middleware.sender = sender
+
+            // Type the same key twice in a row (e.g. "aa").
+            store.dispatch(Action.SendKey(0x04.toByte()))
+            store.dispatch(Action.SendKey(0x04.toByte()))
+            advanceUntilIdle()
+
+            // Each press must be a full down->up before the next starts. Otherwise the two
+            // identical key-down reports have no key-up between them and the host coalesces
+            // them into a single keystroke (the "aa" -> "a" bug).
+            assertEquals(listOf("down:4", "up:4", "down:4", "up:4"), sender.events)
+        }
+
     private class RecordingSender : KeySender {
         var lastSetModifiers: Int = -1
         var lastSendKeyDownMods: Int = -1
+        val events = mutableListOf<String>()
 
         override fun setModifiers(mods: Int) {
             lastSetModifiers = mods
@@ -45,6 +65,11 @@ class ModifierMiddlewareTest {
             mods: Int,
         ) {
             lastSendKeyDownMods = mods
+            events.add("down:$code")
+        }
+
+        override fun sendKeyUp(code: Byte) {
+            events.add("up:$code")
         }
     }
 }

@@ -4,6 +4,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.reduxkotlin.Store
 import org.reduxkotlin.middleware
 
@@ -24,6 +26,11 @@ private val MODIFIER_TOGGLE_ACTIONS =
 class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)) {
     @Volatile
     var sender: KeySender? = null
+
+    // Serializes key presses so each down->hold->up completes before the next starts.
+    // Without this, two rapid presses of the SAME key interleave to down,down,up,up —
+    // the host never sees a key-up between the two downs and registers only one keystroke.
+    private val keyPressMutex = Mutex()
 
     fun create() =
         middleware<AppState> { store: Store<AppState>, next, action ->
@@ -86,11 +93,13 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
         val s = sender
         if (s != null) {
             scope.launch {
-                try {
-                    s.sendKeyDown(action.code, mods)
-                    delay(KEY_PRESS_HOLD_MS)
-                } finally {
-                    s.sendKeyUp(action.code)
+                keyPressMutex.withLock {
+                    try {
+                        s.sendKeyDown(action.code, mods)
+                        delay(KEY_PRESS_HOLD_MS)
+                    } finally {
+                        s.sendKeyUp(action.code)
+                    }
                 }
             }
         }
