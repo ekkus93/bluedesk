@@ -239,3 +239,9 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 
 ## 2026-06-10T01:26:48Z - Claude Opus 4.8 - Splash tagline changed to "The handy keyboard and mouse"
 - Per user request, BlueDeckSplash.kt subtitle changed from "Bluetooth Keyboard & Mouse" to "The handy keyboard and mouse". (Note: the strings.xml `bluedeck_tagline`/`bluedeck_full_name` resources are unchanged and still hold the original marketing copy; the splash subtitle is its own literal in BlueDeckSplash.kt.)
+
+## 2026-06-10T01:33:29Z - Claude Opus 4.8 - GitHub Actions CI/CD added
+- Added .github/workflows/ci.yml: on push/PR to master, runs :app:assembleDebug + :app:testDebugUnitTest + :app:lintDebug on ubuntu-latest, JDK 17 (temurin, gradle cache). Concurrency cancels superseded runs. NO build artifacts saved here (per user: assets only for tagged releases).
+- Added .github/workflows/release.yml: on push of tags matching 'v*', runs unit tests, builds the debug APK, stages it as bluedeck-<tag>-debug.apk, and publishes a GitHub Release (softprops/action-gh-release@v2, generate_release_notes) with the APK attached. permissions: contents: write.
+- Instrumented tests (connectedDebugAndroidTest) intentionally NOT in CI — they need a real device/emulator + partly real Bluetooth hardware.
+- Releases use the DEBUG apk (no signing config in the project; debug APK is the installable one). NOTE: the existing v0.1 tag predates release.yml so it won't auto-build — push a new tag (or re-point/re-push v0.1) to get a release with an attached APK.

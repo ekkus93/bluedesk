@@ -1,0 +1,39 @@
+name: CI
+
+# Build, unit-test, and lint on every push/PR to master.
+# No build artifacts are saved here — the APK is only published for tagged
+# releases (see release.yml).
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+# Cancel an in-progress run when new commits are pushed to the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, test, lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      - name: Lint
+        run: ./gradlew :app:lintDebug --stacktrace
