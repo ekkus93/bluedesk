@@ -115,14 +115,6 @@ Physical HID tests are opt-in — see
   works better. Investigation ongoing (HID descriptor simplification, more
   connection-state logging).
 
-## Branding
-
-App name: **BlueDeck** · Full name: *BlueDeck: Bluetooth Keyboard & Mouse* ·
-Tagline: *The handy keyboard and mouse*
-
-Brand assets (launcher icon and splash previews) live in
-[`docs/branding/`](docs/branding/).
-
 ## More docs
 
 - [Roadmap & test plan](docs/ROADMAP.md)
