@@ -133,101 +133,101 @@ Acceptance criteria:
 
 ### Task 3.1 — Implement Option A only
 
-- [ ] Implement **Option A — backend-aware boot startup**.
-- [ ] Do not implement the Classic-only v0.1 option.
-- [ ] Do not silently start Classic when `useBleHogp == true`.
-- [ ] Do not silently fall back to Classic when BLE boot permissions are missing.
+- [x] Implement **Option A — backend-aware boot startup**.
+- [x] Do not implement the Classic-only v0.1 option.
+- [x] Do not silently start Classic when `useBleHogp == true`.
+- [x] Do not silently fall back to Classic when BLE boot permissions are missing.
 
 Acceptance criteria:
 
-- [ ] Boot behavior respects the selected backend.
+- [x] Boot behavior respects the selected backend.
 
 ### Task 3.2 — Read both boot settings
 
-- [ ] `BootReceiver` reads `startOnBoot`.
-- [ ] `BootReceiver` reads `useBleHogp`.
-- [ ] If `startOnBoot == false`, start nothing.
-- [ ] If `startOnBoot == true && useBleHogp == false`, evaluate Classic startup.
-- [ ] If `startOnBoot == true && useBleHogp == true`, evaluate BLE startup.
+- [x] `BootReceiver` reads `startOnBoot`.
+- [x] `BootReceiver` reads `useBleHogp`.
+- [x] If `startOnBoot == false`, start nothing.
+- [x] If `startOnBoot == true && useBleHogp == false`, evaluate Classic startup.
+- [x] If `startOnBoot == true && useBleHogp == true`, evaluate BLE startup.
 
 Acceptance criteria:
 
-- [ ] BootReceiver decision is based on both settings.
+- [x] BootReceiver decision is based on both settings.
 
 ### Task 3.3 — Start Classic only when Classic is selected and permitted
 
-- [ ] If `startOnBoot == true && useBleHogp == false`, start `BluetoothService`.
-- [ ] Start Classic only if Classic startup permissions are present.
-- [ ] If Classic permissions are missing, start nothing and log a clear reason.
+- [x] If `startOnBoot == true && useBleHogp == false`, start `BluetoothService`.
+- [x] Start Classic only if Classic startup permissions are present.
+- [x] If Classic permissions are missing, start nothing and log a clear reason.
 
 Acceptance criteria:
 
-- [ ] Classic boot startup is permission-checked.
+- [x] Classic boot startup is permission-checked.
 
 ### Task 3.4 — Start BLE only when BLE is selected and permitted
 
-- [ ] If `startOnBoot == true && useBleHogp == true`, start `BleHogpService`.
-- [ ] Start BLE only if BLE startup permissions are present:
-  - [ ] `BLUETOOTH_CONNECT`,
-  - [ ] `BLUETOOTH_ADVERTISE`.
-- [ ] If BLE permissions are missing, start nothing and log:
+- [x] If `startOnBoot == true && useBleHogp == true`, start `BleHogpService`.
+- [x] Start BLE only if BLE startup permissions are present:
+  - [x] `BLUETOOTH_CONNECT`,
+  - [x] `BLUETOOTH_ADVERTISE`.
+- [x] If BLE permissions are missing, start nothing and log:
   ```text
   Start on boot skipped: BLE HOGP selected but required Bluetooth connect/advertise permissions are missing.
   ```
-- [ ] Do not persist `useBleHogp=false` from the boot receiver.
-- [ ] Do not start Classic as a fallback.
+- [x] Do not persist `useBleHogp=false` from the boot receiver.
+- [x] Do not start Classic as a fallback.
 
 Acceptance criteria:
 
-- [ ] BLE-selected boot never silently starts Classic.
+- [x] BLE-selected boot never silently starts Classic.
 
 ### Task 3.5 — Replace blocking receiver logic
 
-- [ ] Remove `runBlocking` from `BootReceiver`.
-- [ ] Use `goAsync()`.
-- [ ] Launch coroutine work off the receiver callback.
-- [ ] Use timeout, for example `withTimeoutOrNull(3_000)`.
-- [ ] Always call `pendingResult.finish()` in `finally`.
+- [x] Remove `runBlocking` from `BootReceiver`.
+- [x] Use `goAsync()`.
+- [x] Launch coroutine work off the receiver callback.
+- [x] Use timeout, for example `withTimeoutOrNull(3_000)`.
+- [x] Always call `pendingResult.finish()` in `finally`.
 
 Acceptance criteria:
 
-- [ ] BootReceiver does not block indefinitely.
+- [x] BootReceiver does not block indefinitely.
 
 ### Task 3.6 — Add BootStartPlanner
 
-- [ ] Add pure `BootStartPlanner` or equivalent helper.
-- [ ] Planner returns explicit decisions:
-  - [ ] start nothing,
-  - [ ] start Classic,
-  - [ ] start BLE,
-  - [ ] skip with reason.
-- [ ] Planner input includes:
-  - [ ] `startOnBoot`,
-  - [ ] `useBleHogp`,
-  - [ ] Classic permission availability,
-  - [ ] BLE permission availability,
-  - [ ] SDK version if needed.
+- [x] Add pure `BootStartPlanner` or equivalent helper.
+- [x] Planner returns explicit decisions:
+  - [x] start nothing,
+  - [x] start Classic,
+  - [x] start BLE,
+  - [x] skip with reason.
+- [x] Planner input includes:
+  - [x] `startOnBoot`,
+  - [x] `useBleHogp`,
+  - [x] Classic permission availability,
+  - [x] BLE permission availability,
+  - [x] SDK version if needed.
 
 Acceptance criteria:
 
-- [ ] Boot decisions are unit-testable without Android framework mocks.
+- [x] Boot decisions are unit-testable without Android framework mocks.
 
 ### Task 3.7 — Add boot planner tests
 
 Add `BootStartPlannerTest`:
 
-- [ ] `startOnBoot=false` => start nothing.
-- [ ] `startOnBoot=true`, Classic selected, Classic permissions granted => start Classic.
-- [ ] `startOnBoot=true`, BLE selected, BLE permissions granted => start BLE.
-- [ ] Classic selected but Classic permissions missing => start nothing / skip.
-- [ ] BLE selected but `BLUETOOTH_CONNECT` missing => start nothing / skip.
-- [ ] BLE selected but `BLUETOOTH_ADVERTISE` missing => start nothing / skip.
-- [ ] BLE selected with missing permissions never starts Classic.
-- [ ] Boot planner exposes a clear skip reason for missing BLE permissions.
+- [x] `startOnBoot=false` => start nothing.
+- [x] `startOnBoot=true`, Classic selected, Classic permissions granted => start Classic.
+- [x] `startOnBoot=true`, BLE selected, BLE permissions granted => start BLE.
+- [x] Classic selected but Classic permissions missing => start nothing / skip.
+- [x] BLE selected but `BLUETOOTH_CONNECT` missing => start nothing / skip.
+- [x] BLE selected but `BLUETOOTH_ADVERTISE` missing => start nothing / skip.
+- [x] BLE selected with missing permissions never starts Classic.
+- [x] Boot planner exposes a clear skip reason for missing BLE permissions.
 
 Acceptance criteria:
 
-- [ ] Backend-aware boot behavior is protected by tests.
+- [x] Backend-aware boot behavior is protected by tests.
 
 ---
 
