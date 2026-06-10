@@ -67,9 +67,9 @@ class BluetoothHidModule {
         val descriptor = HidDescriptorVariants.select(simplified)
         val sdpSettings =
             BluetoothHidDeviceAppSdpSettings(
-                "Bluetooth Keyboard/Mouse",
-                "Android Bluetooth HID",
-                "Gemini",
+                "BlueDeck Keyboard/Mouse",
+                "BlueDeck Android HID",
+                "BlueDeck",
                 subclass,
                 descriptor,
             )

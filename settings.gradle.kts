@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Bluetooth Keyboard Mouse"
+rootProject.name = "BlueDeck"
 include(":app")

@@ -111,7 +111,7 @@ class BleHogpService : Service(), HogpNotifier {
         advertiser = adapter.bluetoothLeAdvertiser
         try {
             previousName = adapter.name
-            adapter.name = "Bluetooth Keyboard"
+            adapter.name = "BlueDeck"
         } catch (_: Exception) {
         }
         gattServer = mgr.openGattServer(this, gattCb)

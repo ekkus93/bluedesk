@@ -243,25 +243,25 @@ Acceptance criteria:
 
 ### Task 5.1 — Rebrand HID SDP metadata
 
-- [ ] Open the HID registration module, likely `BluetoothHidModule.kt`.
-- [ ] Locate `BluetoothHidDeviceAppSdpSettings`.
-- [ ] Replace stale strings:
-  - [ ] `Bluetooth Keyboard/Mouse`,
-  - [ ] `Android Bluetooth HID`,
-  - [ ] `Gemini`.
-- [ ] Use BlueDeck-branded strings, for example:
-  - [ ] `BlueDeck Keyboard/Mouse`,
-  - [ ] `BlueDeck Android HID`,
-  - [ ] `BlueDeck`.
+- [x] Open the HID registration module, likely `BluetoothHidModule.kt`.
+- [x] Locate `BluetoothHidDeviceAppSdpSettings`.
+- [x] Replace stale strings:
+  - [x] `Bluetooth Keyboard/Mouse`,
+  - [x] `Android Bluetooth HID`,
+  - [x] `Gemini`.
+- [x] Use BlueDeck-branded strings, for example:
+  - [x] `BlueDeck Keyboard/Mouse`,
+  - [x] `BlueDeck Android HID`,
+  - [x] `BlueDeck`.
 
 Acceptance criteria:
 
-- [ ] Host-facing HID metadata no longer uses stale project branding.
+- [x] Host-facing HID metadata no longer uses stale project branding.
 
 ### Task 5.2 — Rename root project if low risk
 
-- [ ] Open `settings.gradle.kts`.
-- [ ] If present, change:
+- [x] Open `settings.gradle.kts`.
+- [x] If present, change:
   ```kotlin
   rootProject.name = "Bluetooth Keyboard Mouse"
   ```
@@ -269,13 +269,13 @@ Acceptance criteria:
   ```kotlin
   rootProject.name = "BlueDeck"
   ```
-- [ ] Do not change `applicationId`.
-- [ ] Do not change namespace.
-- [ ] Do not change Kotlin packages.
+- [x] Do not change `applicationId`.
+- [x] Do not change namespace.
+- [x] Do not change Kotlin packages.
 
 Acceptance criteria:
 
-- [ ] Build/project name is BlueDeck without package migration.
+- [x] Build/project name is BlueDeck without package migration.
 
 ---
 

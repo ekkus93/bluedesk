@@ -121,6 +121,9 @@ profile with `dbus-send … org.bluez.Device1.ConnectProfile string:00001124-…
   discovery can be unreliable; pairing via Android system settings sometimes
   works better. Investigation ongoing (HID descriptor simplification, more
   connection-state logging).
+- **BLE HOGP device name:** while the BLE HOGP backend is active it sets the
+  phone's Bluetooth name to "BlueDeck" (restored on stop). A host that paired
+  under the old name may need to re-pair to pick up the new name.
 
 ## More docs
 
