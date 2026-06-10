@@ -27,9 +27,18 @@ class BtDevicePrefs(context: Context) {
         }.apply()
     }
 
+    fun getConnectedName(): String? = prefs.getString(KEY_CONNECTED_NAME, null)
+
     /** Clear both the last device and the cached connected name in one edit. */
     fun clearLastAndConnected() {
         prefs.edit().remove(KEY_LAST_DEVICE).remove(KEY_CONNECTED_NAME).apply()
+    }
+
+    /** Mirror of the useBleHogp setting so the QS tile (no DataStore access) can read the backend. */
+    fun getUseBle(): Boolean = prefs.getBoolean(KEY_USE_BLE, false)
+
+    fun setUseBle(useBle: Boolean) {
+        prefs.edit().putBoolean(KEY_USE_BLE, useBle).apply()
     }
 
     fun getAlias(address: String): String? = prefs.getString(aliasKey(address), null)
@@ -50,6 +59,7 @@ class BtDevicePrefs(context: Context) {
     private companion object {
         const val KEY_LAST_DEVICE = "last_device"
         const val KEY_CONNECTED_NAME = "connected_name"
+        const val KEY_USE_BLE = "use_ble"
         const val KEY_ALIAS_PREFIX = "alias_"
     }
 }

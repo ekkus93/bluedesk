@@ -299,36 +299,36 @@ Acceptance criteria:
 
 ### Task 8.1 — Guard BLE mode
 
-- [ ] Open `HidQuickTileService`.
-- [ ] Determine selected backend from settings or shared helper.
-- [ ] In Classic mode, existing connect/disconnect broadcasts may remain.
-- [ ] In BLE mode, do not send Classic service broadcasts.
-- [ ] Tile should show disabled/unavailable state or clear label in BLE mode.
+- [x] Open `HidQuickTileService`.
+- [x] Determine selected backend from settings or shared helper.
+- [x] In Classic mode, existing connect/disconnect broadcasts may remain.
+- [x] In BLE mode, do not send Classic service broadcasts.
+- [x] Tile should show disabled/unavailable state or clear label in BLE mode.
 
 Acceptance criteria:
 
-- [ ] Tile does not control Classic service while BLE mode is selected.
+- [x] Tile does not control Classic service while BLE mode is selected.
 
 ### Task 8.2 — Avoid optimistic connected state
 
-- [ ] Do not set tile active/connected merely because a connect broadcast was sent.
-- [ ] Prefer reflecting known service state if available.
-- [ ] If service state is unavailable, show neutral/unavailable state.
+- [x] Do not set tile active/connected merely because a connect broadcast was sent.
+- [x] Prefer reflecting known service state if available.
+- [x] If service state is unavailable, show neutral/unavailable state.
 
 Acceptance criteria:
 
-- [ ] Tile does not misrepresent connection status.
+- [x] Tile does not misrepresent connection status.
 
 ### Task 8.3 — Add tile policy tests
 
-- [ ] Add/update `QuickTilePolicy`.
-- [ ] Test Classic mode emits Classic action.
-- [ ] Test BLE mode emits no-op/disabled.
-- [ ] Test no optimistic connected state if not confirmed.
+- [x] Add/update `QuickTilePolicy`.
+- [x] Test Classic mode emits Classic action.
+- [x] Test BLE mode emits no-op/disabled.
+- [x] Test no optimistic connected state if not confirmed.
 
 Acceptance criteria:
 
-- [ ] Tile behavior is protected by tests.
+- [x] Tile behavior is protected by tests.
 
 ---
 

@@ -306,6 +306,9 @@ class MainActivity : ComponentActivity() {
             var prevUseBle: Boolean? = null
             settingsViewModel.settings.collect { s ->
                 val useBle = s.useBleHogp
+                // Mirror the backend to prefs so the Quick Settings tile (no DataStore access)
+                // knows whether Classic HID is active.
+                BtDevicePrefs(this@MainActivity).setUseBle(useBle)
                 if (prevUseBle != null && useBle != prevUseBle) {
                     switchBackend(useBle)
                 }
