@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity() {
                                 .show()
                         } catch (e: Exception) {
                             // As a fallback, just finish
+                            DebugLog.e("MainActivity", "missing-perm dialog failed: ${e.message}")
                             finish()
                         }
                     }
@@ -405,6 +406,7 @@ class MainActivity : ComponentActivity() {
                     .setCancelable(false)
                     .show()
             } catch (e: Exception) {
+                DebugLog.e("MainActivity", "permission dialog failed: ${e.message}")
                 finish()
             }
         }

@@ -8,14 +8,6 @@ package com.augustusmachin.android_bt_kbmouse
  * Returns null if the character can't be mapped.
  */
 fun charToHid(ch: Char): Pair<Byte, Int>? {
-    // letters
-    if (ch in 'a'..'z' || ch in 'A'..'Z') {
-        val upper = ch.uppercaseChar()
-        val code = (0x04 + (upper - 'A')).toByte()
-        val mods = if (ch.isUpperCase()) 0x02 else 0x00
-        return Pair(code, mods)
-    }
-    // numbers
     val numMap =
         mapOf(
             '1' to 0x1E, '2' to 0x1F, '3' to 0x20, '4' to 0x21, '5' to 0x22,
@@ -26,11 +18,6 @@ fun charToHid(ch: Char): Pair<Byte, Int>? {
             '-' to 0x2D, '=' to 0x2E, '[' to 0x2F, ']' to 0x30, '\\' to 0x31,
             '`' to 0x35, ';' to 0x33, '\'' to 0x34, ',' to 0x36, '.' to 0x37, '/' to 0x38,
         )
-    if (numMap.containsKey(ch)) return Pair(numMap.getValue(ch).toByte(), 0)
-    if (punctBase.containsKey(ch)) return Pair(punctBase.getValue(ch).toByte(), 0)
-    if (ch == ' ') return Pair(0x2C.toByte(), 0)
-    if (ch == '\t') return Pair(0x2B.toByte(), 0)
-    if (ch == '\n' || ch == '\r') return Pair(0x28.toByte(), 0)
     val shifted =
         mapOf(
             '!' to Pair(0x1E, 0x02), '@' to Pair(0x1F, 0x02), '#' to Pair(0x20, 0x02),
@@ -41,9 +28,20 @@ fun charToHid(ch: Char): Pair<Byte, Int>? {
             '~' to Pair(0x35, 0x02), ':' to Pair(0x33, 0x02), '"' to Pair(0x34, 0x02),
             '<' to Pair(0x36, 0x02), '>' to Pair(0x37, 0x02), '?' to Pair(0x38, 0x02),
         )
-    if (shifted.containsKey(ch)) {
-        val p = shifted.getValue(ch)
-        return Pair(p.first.toByte(), p.second)
+    return when {
+        ch in 'a'..'z' || ch in 'A'..'Z' -> {
+            val upper = ch.uppercaseChar()
+            Pair((0x04 + (upper - 'A')).toByte(), if (ch.isUpperCase()) 0x02 else 0x00)
+        }
+        numMap.containsKey(ch) -> Pair(numMap.getValue(ch).toByte(), 0)
+        punctBase.containsKey(ch) -> Pair(punctBase.getValue(ch).toByte(), 0)
+        ch == ' ' -> Pair(0x2C.toByte(), 0)
+        ch == '\t' -> Pair(0x2B.toByte(), 0)
+        ch == '\n' || ch == '\r' -> Pair(0x28.toByte(), 0)
+        shifted.containsKey(ch) -> {
+            val p = shifted.getValue(ch)
+            Pair(p.first.toByte(), p.second)
+        }
+        else -> null
     }
-    return null
 }

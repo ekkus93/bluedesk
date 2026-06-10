@@ -380,6 +380,7 @@ class BluetoothService : Service(), IBluetoothService {
             registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } catch (se: SecurityException) {
             // Some preview builds may reject NOT_EXPORTED; fall back to exported
+            DebugLog.e("BluetoothService", "registerReceiver NOT_EXPORTED rejected: ${se.message}")
             try {
                 registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
             } catch (_: Exception) {

@@ -41,6 +41,14 @@
     <ID>NestedBlockDepth:BluetoothService.kt$BluetoothService$override fun forgetDevice( device: BluetoothDevice, unpair: Boolean, )</ID>
     <ID>NestedBlockDepth:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$override fun onReceive( context: Context, intent: Intent, )</ID>
     <ID>NestedBlockDepth:BootReceiver.kt$BootReceiver$override fun onReceive( context: Context, intent: Intent, )</ID>
+    <ID>TooGenericExceptionCaught:BleHogpService.kt$BleHogpService$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BluetoothService.kt$BluetoothService$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BootReceiver.kt$BootReceiver$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:HidReportSender.kt$HidReportSender$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MainActivity.kt$MainActivity$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MainActivity.kt$MainActivity.&lt;no name provided&gt;$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MainActivity.kt$MainActivity.&lt;no name provided&gt;$t: Throwable</ID>
     <ID>TooManyFunctions:BleHogpKeySender.kt$BleHogpKeySender : KeySender</ID>
     <ID>TooManyFunctions:BluetoothKeySender.kt$BluetoothKeySender : KeySender</ID>
     <ID>TooManyFunctions:BluetoothService.kt$BluetoothService : ServiceIBluetoothService</ID>

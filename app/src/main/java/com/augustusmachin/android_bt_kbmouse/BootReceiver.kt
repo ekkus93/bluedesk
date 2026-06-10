@@ -20,6 +20,7 @@ class BootReceiver : BroadcastReceiver() {
                     try {
                         SettingsManager.flow(context).first().startOnBoot
                     } catch (e: Exception) {
+                        DebugLog.e("BootReceiver", "startOnBoot read failed: ${e.message}")
                         false
                     }
                 }

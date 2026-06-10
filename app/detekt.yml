@@ -19,14 +19,17 @@ style:
   WildcardImport:
     active: true
   ReturnCount:
-    active: false
+    active: true
+    excludeGuardClauses: true
 
 exceptions:
   TooGenericExceptionCaught:
-    # Android platform calls are guarded with broad catches by design.
-    active: false
+    # Enabled. Existing broad catches around platform calls (each logs the
+    # exception) are defensive and grandfathered via baseline; narrowing them
+    # would let other exceptions crash the service.
+    active: true
   SwallowedException:
-    active: false
+    active: true
 
 naming:
   PackageNaming:
