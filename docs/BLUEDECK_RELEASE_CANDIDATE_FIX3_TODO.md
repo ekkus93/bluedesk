@@ -203,39 +203,39 @@ Acceptance criteria:
 
 ### Task 4.1 — Update physical HID docs
 
-- [ ] Open `docs/PHYSICAL_HID_TESTING.md`.
-- [ ] Move DBus `ConnectProfile(HID)` command into the primary Linux/BlueZ procedure.
-- [ ] Reword early docs so `bluetoothctl connect` is not presented as the primary known-good path.
-- [ ] Explain:
+- [x] Open `docs/PHYSICAL_HID_TESTING.md`.
+- [x] Move DBus `ConnectProfile(HID)` command into the primary Linux/BlueZ procedure.
+- [x] Reword early docs so `bluetoothctl connect` is not presented as the primary known-good path.
+- [x] Explain:
   ```text
   bluetoothctl connect may create a generic connection but may not open HID profile.
   ```
 
 Acceptance criteria:
 
-- [ ] Linux/BlueZ users are directed to `ConnectProfile(HID)` first.
+- [x] Linux/BlueZ users are directed to `ConnectProfile(HID)` first.
 
 ### Task 4.2 — Update README physical test references
 
-- [ ] Open `README.md`.
-- [ ] Ensure physical testing section prefers DBus `ConnectProfile(HID)`.
-- [ ] Mention `bluetoothctl connect` only as fallback/diagnostic if mentioned at all.
+- [x] Open `README.md`.
+- [x] Ensure physical testing section prefers DBus `ConnectProfile(HID)`.
+- [x] Mention `bluetoothctl connect` only as fallback/diagnostic if mentioned at all.
 
 Acceptance criteria:
 
-- [ ] README matches detailed physical HID docs.
+- [x] README matches detailed physical HID docs.
 
 ### Task 4.3 — Update test comments/logs
 
-- [ ] Open `BluetoothHidSendReportTest.kt`.
-- [ ] Search for `bluetoothctl connect`.
-- [ ] Reword comments/logs to prefer `ConnectProfile(HID)` on Linux/BlueZ.
-- [ ] Keep phone/host address guidance intact.
-- [ ] Do not remove the two-address model.
+- [x] Open `BluetoothHidSendReportTest.kt`.
+- [x] Search for `bluetoothctl connect`.
+- [x] Reword comments/logs to prefer `ConnectProfile(HID)` on Linux/BlueZ.
+- [x] Keep phone/host address guidance intact.
+- [x] Do not remove the two-address model.
 
 Acceptance criteria:
 
-- [ ] Test output/comments do not mislead users toward generic connect as the known-good Linux flow.
+- [x] Test output/comments do not mislead users toward generic connect as the known-good Linux flow.
 
 ---
 

@@ -7,13 +7,13 @@ The `BluetoothHidSendReportTest` class validates that the Android app can succes
 ### How it works
 
 1. **Android phone** registers as a Bluetooth HID device peripheral.
-2. **Laptop/host** (you, manually) initiates the HID connection using `bluetoothctl`.
+2. **Laptop/host** (you, manually) initiates the HID profile connection. On Linux/BlueZ, prefer the D-Bus `ConnectProfile(HID)` call; `bluetoothctl connect` is only a fallback/diagnostic.
 3. **Android test** waits for and validates the connection from the expected host.
 4. **Test cases** send keyboard/mouse HID reports and verify the Android stack accepted them.
 
 ### Critical constraint
 
-**The connection must be host-initiated.** Device-initiated `BluetoothHidDevice.connect(host)` from Android does not reliably page the host — on at least one tested controller it fails with `HCI_ERR_PAGE_TIMEOUT` (the host's controller never answers the phone's BR/EDR page, so nothing even reaches BlueZ). The test therefore does **not** call `hid.connect()`; the phone exposes the HID app and waits for the host to open the HID L2CAP channels via `bluetoothctl connect <hidPhoneAddress>`.
+**The connection must be host-initiated.** Device-initiated `BluetoothHidDevice.connect(host)` from Android does not reliably page the host — on at least one tested controller it fails with `HCI_ERR_PAGE_TIMEOUT` (the host's controller never answers the phone's BR/EDR page, so nothing even reaches BlueZ). The test therefore does **not** call `hid.connect()`; the phone exposes the HID app and waits for the host to open the HID L2CAP channels. On Linux/BlueZ the known-good command is D-Bus `ConnectProfile(HID)` for UUID `00001124-0000-1000-8000-00805f9b34fb` (see Step 4); `bluetoothctl connect <hidPhoneAddress>` is only a fallback because it may open a generic connection without the HID profile.
 
 ### Verified working end-to-end (2026-06-09)
 
@@ -57,7 +57,7 @@ Before running the physical HID test, ensure you have:
 | Name | Meaning | Used for | How to find |
 |---|---|---|---|
 | `hidHostAddress` | Laptop/local controller address | Android validates incoming `STATE_CONNECTED` device | `bluetoothctl show` |
-| `hidPhoneAddress` | Android phone/remote paired device address | Laptop runs `bluetoothctl connect` against this address | `bluetoothctl devices` |
+| `hidPhoneAddress` | Android phone/remote paired device address | Laptop opens the HID profile against this address (`ConnectProfile(HID)`; `bluetoothctl connect` as fallback) | `bluetoothctl devices` |
 
 ---
 
@@ -140,31 +140,12 @@ adb logcat -d BtHidTest:W '*:S'
 ```
 (The human-readable "HID profile registered…" message goes to the app's in-app `DebugLog` buffer only — it is **not** in logcat. Use the `READY_FOR_HOST_CONNECT` marker as the logcat signal.)
 
-### Step 4: Run bluetoothctl connect from the laptop
+### Step 4: Open the HID profile from the laptop (`ConnectProfile(HID)`)
 
-As soon as you see `READY_FOR_HOST_CONNECT`, open a terminal on your laptop and run:
-```bash
-bluetoothctl
-[bluetooth]# connect 8C:6A:3B:5E:D3:48
-```
-
-Use the **phone's Bluetooth address** (the `hidPhoneAddress` you passed to the test).
-
-You have **90 seconds** from registration to run this command.
-
-> **Tip — automate the host connect.** Because the readiness marker is in logcat, you can have the laptop connect automatically instead of racing the 90s window:
-> ```bash
-> # On the laptop, with the phone on ADB:
-> until adb logcat -d BtHidTest:W '*:S' | grep -q READY_FOR_HOST_CONNECT; do sleep 1; done
-> bluetoothctl connect 8C:6A:3B:5E:D3:48
-> ```
-
-#### Preferred: open the HID profile directly with `ConnectProfile(HID)`
-
-`bluetoothctl connect <phone>` opens a *generic* ACL connection and brings up whichever
-profiles BlueZ chooses — which may **not** include the HID control/interrupt channels. The
-known-good, deterministic command asks BlueZ to open the HID profile
-(UUID `00001124-0000-1000-8000-00805f9b34fb`) explicitly via D-Bus:
+As soon as you see `READY_FOR_HOST_CONNECT`, open a terminal on your laptop and ask BlueZ to
+open the **HID profile** (UUID `00001124-0000-1000-8000-00805f9b34fb`) on the phone directly.
+On Linux/BlueZ this D-Bus call is the known-good, deterministic command — it is what reaches
+`STATE_CONNECTED` in the passing runs:
 
 ```bash
 dbus-send --system --print-reply \
@@ -184,9 +165,34 @@ dbus-send --system --print-reply \
   string:00001124-0000-1000-8000-00805f9b34fb
 ```
 
-- `bluetoothctl connect <phone>` may be enough on some controllers but is **not guaranteed**
-  to open the HID profile — keep it as a fallback/diagnostic, not the primary step.
-- `ConnectProfile(HID)` is the command verified to reach `STATE_CONNECTED` in the passing runs.
+Use the **phone's Bluetooth address** (the `hidPhoneAddress` you passed to the test) in the
+object path. You have **90 seconds** from registration to run this command.
+
+> **Tip — automate the host connect.** Because the readiness marker is in logcat, you can have
+> the laptop fire `ConnectProfile(HID)` automatically instead of racing the 90s window:
+> ```bash
+> # On the laptop, with the phone on ADB:
+> until adb logcat -d BtHidTest:W '*:S' | grep -q READY_FOR_HOST_CONNECT; do sleep 1; done
+> dbus-send --system --print-reply --dest=org.bluez \
+>   /org/bluez/hci0/dev_8C_6A_3B_5E_D3_48 \
+>   org.bluez.Device1.ConnectProfile \
+>   string:00001124-0000-1000-8000-00805f9b34fb
+> ```
+
+#### Fallback/diagnostic: `bluetoothctl connect`
+
+`bluetoothctl connect <phone>` opens a *generic* ACL connection and brings up whichever
+profiles BlueZ chooses — which may **not** include the HID control/interrupt channels. It can
+be enough on some controllers but is **not guaranteed** to open the HID profile, so use it only
+as a fallback or quick diagnostic, not the primary step:
+
+```bash
+bluetoothctl
+[bluetooth]# connect 8C:6A:3B:5E:D3:48
+```
+
+If `bluetoothctl connect` succeeds but Android never reports `state=2`, fall back to the
+`ConnectProfile(HID)` command above.
 
 #### If it still fails: clean re-pair
 
@@ -206,11 +212,11 @@ Then re-run the test and issue `ConnectProfile(HID)` again. If it still fails, c
 
 ### Step 5: Observe the connection
 
-After you run `bluetoothctl connect`, you should see in the Android logcat (tag `BtHidTest`):
+After you run the host connect (`ConnectProfile(HID)`, or the `bluetoothctl connect` fallback), you should see in the Android logcat (tag `BtHidTest`):
 ```
 W/BtHidTest: onConnectionStateChanged state=2 dev=<LAPTOP_BT_ADDRESS>
 ```
-`state=2` is `STATE_CONNECTED`. (`bluetoothctl connect` also brings up audio/RFCOMM profiles — that is harmless; only the HID channels matter here.)
+`state=2` is `STATE_CONNECTED`. (A generic `bluetoothctl connect` also brings up audio/RFCOMM profiles — that is harmless; only the HID channels matter here.)
 
 If successful, the test cases proceed:
 - Keyboard key presses
@@ -434,18 +440,20 @@ If the test fails and you believe it is a host-side Bluetooth issue, use this te
 # Expected host/laptop address:
 # E8:FB:1C:25:E4:C2
 # 
-# From the laptop, connect to this Android phone:
-# bluetoothctl connect 8C:6A:3B:5E:D3:48
+# From the laptop, open the HID profile on this Android phone (Linux/BlueZ):
+# dbus-send --system --print-reply --dest=org.bluez /org/bluez/hci0/dev_8C_6A_3B_5E_D3_48 org.bluez.Device1.ConnectProfile string:00001124-0000-1000-8000-00805f9b34fb
+# 
+# Fallback/diagnostic only: bluetoothctl connect 8C:6A:3B:5E:D3:48
 # [waiting for connection... timeout in 90s]
 ```
 
 ```bash
-# Terminal 2: (on the laptop) Connect via Bluetooth
-bluetoothctl
-[bluetooth]# connect 8C:6A:3B:5E:D3:48
-Attempting to connect to 8C:6A:3B:5E:D3:48
-[CHG] Device 8C:6A:3B:5E:D3:48 Connected: yes
-Connection successful
+# Terminal 2: (on the laptop) Open the HID profile directly (known-good on Linux/BlueZ)
+dbus-send --system --print-reply --dest=org.bluez \
+  /org/bluez/hci0/dev_8C_6A_3B_5E_D3_48 \
+  org.bluez.Device1.ConnectProfile \
+  string:00001124-0000-1000-8000-00805f9b34fb
+# method return ... (no error) → Android reports STATE_CONNECTED
 ```
 
 ```bash

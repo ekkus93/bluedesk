@@ -34,9 +34,16 @@ import java.util.concurrent.TimeUnit
  *     -Pandroid.testInstrumentationRunnerArguments.runPhysicalHidTests=true \
  *     -Pandroid.testInstrumentationRunnerArguments.hidHostAddress=<LAPTOP_BT_ADDRESS>
  *
- * Then, during the test wait window (after HID registration logs), from the laptop run:
+ * Then, during the test wait window (after HID registration logs), open the HID profile from
+ * the laptop. On Linux/BlueZ the known-good command is D-Bus ConnectProfile(HID):
  *
- *   bluetoothctl connect <PHONE_BT_ADDRESS>
+ *   dbus-send --system --print-reply --dest=org.bluez \
+ *     /org/bluez/hci0/dev_<PHONE_BT_ADDRESS_UNDERSCORE> \
+ *     org.bluez.Device1.ConnectProfile \
+ *     string:00001124-0000-1000-8000-00805f9b34fb
+ *
+ *   (bluetoothctl connect <PHONE_BT_ADDRESS> is only a fallback/diagnostic — it may open a
+ *    generic connection without the HID profile. See docs/PHYSICAL_HID_TESTING.md.)
  *
  * Prerequisites (one-time manual setup):
  *  1. Enable Bluetooth on the Android device and laptop.
@@ -81,7 +88,8 @@ class BluetoothHidSendReportTest {
                     .getString("runPhysicalHidTests") == "true"
             if (!runPhysical) {
                 notReadyReason =
-                    "Physical HID tests require runPhysicalHidTests=true and host-side bluetoothctl connect"
+                    "Physical HID tests require runPhysicalHidTests=true and a host-side HID profile " +
+                    "connect (ConnectProfile(HID) on Linux/BlueZ; bluetoothctl connect as fallback)"
                 return
             }
 
@@ -247,24 +255,29 @@ class BluetoothHidSendReportTest {
                 return
             }
 
-            // Log instructions for host-initiated connection
+            // Log instructions for host-initiated connection. On Linux/BlueZ the known-good command
+            // is D-Bus ConnectProfile(HID); bluetoothctl connect is only a fallback/diagnostic.
+            val phonePath = expectedPhoneAddress?.replace(":", "_")
             DebugLog.log(
                 "BluetoothHidSendReportTest",
                 "HID profile registered.\n\nExpected host/laptop address:\n$expectedHostAddress\n\n" +
-                    "From the laptop, connect to this Android phone:\n" +
-                    "bluetoothctl connect $expectedPhoneAddress",
+                    "From the laptop, open the HID profile on this Android phone (Linux/BlueZ):\n" +
+                    "dbus-send --system --print-reply --dest=org.bluez " +
+                    "/org/bluez/hci0/dev_$phonePath " +
+                    "org.bluez.Device1.ConnectProfile string:00001124-0000-1000-8000-00805f9b34fb\n\n" +
+                    "Fallback/diagnostic only: bluetoothctl connect $expectedPhoneAddress",
             )
             android.util.Log.w("BtHidTest", "READY_FOR_HOST_CONNECT")
 
-            // Host-initiated only: the phone exposes the HID app and waits for the
-            // laptop/host to open the HID L2CAP channels (bluetoothctl connect
-            // $expectedPhoneAddress). The phone does NOT page the host itself — on
+            // Host-initiated only: the phone exposes the HID app and waits for the laptop/host to
+            // open the HID L2CAP channels via ConnectProfile(HID) (bluetoothctl connect
+            // $expectedPhoneAddress is a fallback). The phone does NOT page the host itself — on
             // this hardware device-initiated paging fails with HCI_ERR_PAGE_TIMEOUT.
             if (!connectionLatch.await(HOST_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                 notReadyReason =
                     "Host did not initiate HID connection within $HOST_CONNECT_TIMEOUT_SECONDS seconds. " +
-                    "After Android logs READY_FOR_HOST_CONNECT, " +
-                    "run bluetoothctl connect $expectedPhoneAddress from the laptop."
+                    "After Android logs READY_FOR_HOST_CONNECT, open the HID profile from the laptop " +
+                    "with ConnectProfile(HID) (bluetoothctl connect $expectedPhoneAddress as fallback)."
                 return
             }
 
