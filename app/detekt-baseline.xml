@@ -4,6 +4,5 @@
   <CurrentIssues>
     <ID>CyclomaticComplexMethod:SettingsManager.kt$SettingsManager$fun fromPreferences(p: androidx.datastore.preferences.core.Preferences): Settings</ID>
     <ID>LongMethod:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$override fun onAppStatus(registered: Boolean)</ID>
-    <ID>LongMethod:BleHogpService.kt$BleHogpService$private fun setupGattServices()</ID>
   </CurrentIssues>
 </SmellBaseline>

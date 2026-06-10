@@ -147,9 +147,16 @@ class BleHogpService : Service(), HogpNotifier {
             DebugLog.e("BleHogpService", "BLUETOOTH_CONNECT not granted; skipping GATT setup")
             return
         }
-
         val hidService = BluetoothGattService(UUID_HID_SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY)
+        addHidMetadata(hidService)
+        addKeyboardCharacteristics(hidService)
+        addMouseCharacteristics(hidService)
+        gattServer?.addService(hidService)
+        gattServer?.addService(buildBatteryService())
+        gattServer?.addService(BluetoothGattService(UUID_DEVINFO_SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY))
+    }
 
+    private fun addHidMetadata(hidService: BluetoothGattService) {
         val proto =
             BluetoothGattCharacteristic(
                 UUID_PROTOCOL_MODE,
@@ -181,7 +188,9 @@ class BleHogpService : Service(), HogpNotifier {
                 BluetoothGattCharacteristic.PERMISSION_READ,
             ).also { it.setValueCompat(HidDescriptorVariants.SIMPLE) }
         hidService.addCharacteristic(reportMap)
+    }
 
+    private fun addKeyboardCharacteristics(hidService: BluetoothGattService) {
         // Boot keyboard input (notify) — report ID 1 in boot protocol
         kbInputChar =
             BluetoothGattCharacteristic(
@@ -232,7 +241,9 @@ class BleHogpService : Service(), HogpNotifier {
                 BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
             ),
         )
+    }
 
+    private fun addMouseCharacteristics(hidService: BluetoothGattService) {
         // Boot mouse input (notify) — report ID 2 in boot protocol
         mouseInputChar =
             BluetoothGattCharacteristic(
@@ -272,8 +283,9 @@ class BleHogpService : Service(), HogpNotifier {
                 )
             }
         hidService.addCharacteristic(mouseInputReportChar)
+    }
 
-        // Battery service
+    private fun buildBatteryService(): BluetoothGattService {
         val battService = BluetoothGattService(UUID_BATTERY_SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY)
         batteryLevelChar =
             BluetoothGattCharacteristic(
@@ -291,10 +303,7 @@ class BleHogpService : Service(), HogpNotifier {
                 )
             }
         battService.addCharacteristic(batteryLevelChar)
-
-        gattServer?.addService(hidService)
-        gattServer?.addService(battService)
-        gattServer?.addService(BluetoothGattService(UUID_DEVINFO_SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY))
+        return battService
     }
 
     private fun startAdvertising() {
