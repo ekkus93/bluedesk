@@ -77,20 +77,20 @@ Create `app/src/test/java/com/augustusmachin/android_bt_kbmouse/store/BleHogpKey
 with a `FakeHogpNotifier` recording the last keyboard/mouse report bytes (and a
 list of all reports, for sequence assertions).
 
-- [ ] `sendKeyDown` sets the modifier byte and adds the key → asserts the exact
+- [x] `sendKeyDown` sets the modifier byte and adds the key → asserts the exact
       8-byte report `[mods, 0, code, 0,0,0,0,0]`.
-- [ ] `sendKeyDown` is idempotent on the same code (no duplicate in the key
+- [x] `sendKeyDown` is idempotent on the same code (no duplicate in the key
       array — dedupe path).
-- [ ] Multiple distinct `sendKeyDown` calls accumulate keys in order, up to the
+- [x] Multiple distinct `sendKeyDown` calls accumulate keys in order, up to the
       6-key rollover cap (`MAX_ROLLOVER_KEYS`); a 7th key does not appear.
-- [ ] `sendKeyUp` removes the key and re-emits the report without it.
-- [ ] `setModifiers` updates the modifier byte and emits a keyboard report with
+- [x] `sendKeyUp` removes the key and re-emits the report without it.
+- [x] `setModifiers` updates the modifier byte and emits a keyboard report with
       the current pressed keys.
 
 Acceptance criteria:
-- [ ] Every assertion checks the produced `ByteArray` (content equality), not
+- [x] Every assertion checks the produced `ByteArray` (content equality), not
       just that a method was called.
-- [ ] Verification suite passes.
+- [x] Verification suite passes.
 
 ### UT-03 — `BleHogpKeySenderTest`: mouse report logic
 
