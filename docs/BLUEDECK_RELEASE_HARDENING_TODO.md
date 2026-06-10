@@ -225,47 +225,47 @@ Acceptance criteria:
 
 ### Task 6.1 — Add/use `ScrollPolicy`
 
-- [ ] Add or update `ScrollPolicy`.
-- [ ] `verticalAvailable(settings)` returns `!settings.hidSimplified`.
-- [ ] `horizontalAvailable(settings)` returns `!settings.hidSimplified && settings.enableHorizontalScroll`.
+- [x] Add or update `ScrollPolicy`.
+- [x] `verticalAvailable(settings)` returns `!settings.hidSimplified`.
+- [x] `horizontalAvailable(settings)` returns `!settings.hidSimplified && settings.enableHorizontalScroll`.
 
 Acceptance criteria:
 
-- [ ] Scroll availability is centralized.
+- [x] Scroll availability is centralized.
 
 ### Task 6.2 — Fix Mouse screen text
 
-- [ ] In SIMPLE mode, do not say `2-finger scroll`.
-- [ ] Show text like:
+- [x] In SIMPLE mode, do not say `2-finger scroll`.
+- [x] Show text like:
   ```text
   2-finger tap=right click. Scroll requires Full HID descriptor mode.
   ```
-- [ ] In FULL mode, show scroll instructions.
+- [x] In FULL mode, show scroll instructions.
 
 Acceptance criteria:
 
-- [ ] UI does not advertise unavailable scroll.
+- [x] UI does not advertise unavailable scroll.
 
 ### Task 6.3 — Suppress SIMPLE-mode scroll dispatch
 
-- [ ] Check `ScrollPolicy.verticalAvailable(settings)` before dispatching vertical scroll.
-- [ ] Check `ScrollPolicy.horizontalAvailable(settings)` before dispatching horizontal scroll.
-- [ ] Do not spam Snackbar/Toast during ignored SIMPLE-mode scroll gestures.
+- [x] Check `ScrollPolicy.verticalAvailable(settings)` before dispatching vertical scroll.
+- [x] Check `ScrollPolicy.horizontalAvailable(settings)` before dispatching horizontal scroll.
+- [x] Do not spam Snackbar/Toast during ignored SIMPLE-mode scroll gestures.
 
 Acceptance criteria:
 
-- [ ] SIMPLE mode emits no scroll actions.
+- [x] SIMPLE mode emits no scroll actions.
 
 ### Task 6.4 — Add tests
 
-- [ ] Test SIMPLE vertical unavailable.
-- [ ] Test SIMPLE horizontal unavailable.
-- [ ] Test FULL vertical available.
-- [ ] Test FULL horizontal depends on setting.
+- [x] Test SIMPLE vertical unavailable.
+- [x] Test SIMPLE horizontal unavailable.
+- [x] Test FULL vertical available.
+- [x] Test FULL horizontal depends on setting.
 
 Acceptance criteria:
 
-- [ ] Tests catch scroll regression.
+- [x] Tests catch scroll regression.
 
 ---
 

@@ -129,8 +129,14 @@ private fun TouchpadArea(
     ) {
         Text(
             text =
-                "Use this area as a touchpad\n• 1-finger move/tap\n" +
-                    "• 2-finger scroll/tap=right\n• 3-finger tap=middle",
+                if (ScrollPolicy.verticalAvailable(settings)) {
+                    "Use this area as a touchpad\n• 1-finger move/tap\n" +
+                        "• 2-finger scroll/tap=right\n• 3-finger tap=middle"
+                } else {
+                    "Use this area as a touchpad\n• 1-finger move/tap\n" +
+                        "• 2-finger tap=right\n• 3-finger tap=middle\n" +
+                        "Scroll requires Full HID descriptor mode."
+                },
             modifier = Modifier.align(Alignment.Center),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -169,13 +175,15 @@ private fun handleScroll(
     }
     state.moved = state.moved || (abs(dySum) > SCROLL_MOVE_THRESHOLD_PX || abs(dxSum) > SCROLL_MOVE_THRESHOLD_PX)
     val stepPx = (SCROLL_STEP_BASE_PX / settings.scrollSpeed.coerceAtLeast(MIN_SCROLL_SPEED))
-    state.scrollAccumV += dySum
-    while (abs(state.scrollAccumV) >= stepPx) {
-        val step = if (state.scrollAccumV > 0) 1 else -1
-        StoreProvider.dispatch(Action.ScrollVertical(if (settings.invertScroll) -step else step))
-        state.scrollAccumV -= stepPx * step
+    if (ScrollPolicy.verticalAvailable(settings)) {
+        state.scrollAccumV += dySum
+        while (abs(state.scrollAccumV) >= stepPx) {
+            val step = if (state.scrollAccumV > 0) 1 else -1
+            StoreProvider.dispatch(Action.ScrollVertical(if (settings.invertScroll) -step else step))
+            state.scrollAccumV -= stepPx * step
+        }
     }
-    if (settings.enableHorizontalScroll) {
+    if (ScrollPolicy.horizontalAvailable(settings)) {
         state.scrollAccumH += dxSum
         while (abs(state.scrollAccumH) >= stepPx) {
             val step = if (state.scrollAccumH > 0) 1 else -1
