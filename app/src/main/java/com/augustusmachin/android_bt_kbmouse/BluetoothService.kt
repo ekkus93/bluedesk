@@ -913,11 +913,14 @@ class BluetoothService : Service(), IBluetoothService {
     // It reads the current device/proxy/descriptor mode live via these lambdas.
     private val reportSender by lazy {
         HidReportSender(
-            context = this,
-            currentDevice = { connectedDevice },
-            currentHid = { hidDevice() },
             isSimplified = { hidSimplified },
-            onError = { msg -> eventListener?.onError(msg) },
+            transport =
+                BluetoothHidTransport(
+                    context = this,
+                    currentDevice = { connectedDevice },
+                    currentHid = { hidDevice() },
+                    onError = { msg -> eventListener?.onError(msg) },
+                ),
         )
     }
 

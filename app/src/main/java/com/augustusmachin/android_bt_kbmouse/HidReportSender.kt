@@ -1,30 +1,30 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import android.Manifest
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothHidDevice
-import android.content.Context
-import androidx.core.content.ContextCompat
-
 private const val MODIFIER_BYTE_MASK = 0xFF
 private const val MAX_ROLLOVER_KEYS = 6
 private const val KEY_PRESS_HOLD_MS = 10L
 
+/** Delivers a built HID input report (with its report ID) to the connected device. */
+fun interface HidReportTransport {
+    fun send(
+        reportId: Int,
+        report: ByteArray,
+    )
+}
+
 /**
  * Owns the HID output state — the 6-key rollover chord set, current modifiers,
- * and held mouse buttons — and writes keyboard/mouse reports to the connected
- * device. Extracted from [BluetoothService] so that class stays focused on
- * connection and lifecycle.
+ * and held mouse buttons — and builds keyboard/mouse reports, handing each to a
+ * [HidReportTransport] for delivery. Extracted from [BluetoothService] so that
+ * class stays focused on connection/lifecycle, and so the report-building state
+ * machine can be unit-tested without Android types.
  *
- * Device/proxy/descriptor state is read live through the provider lambdas so the
- * sender always targets the service's current connection.
+ * The descriptor variant is read live via [isSimplified] so the sender always
+ * matches the service's current descriptor.
  */
 class HidReportSender(
-    private val context: Context,
-    private val currentDevice: () -> BluetoothDevice?,
-    private val currentHid: () -> BluetoothHidDevice?,
     private val isSimplified: () -> Boolean,
-    private val onError: (String) -> Unit,
+    private val transport: HidReportTransport,
 ) {
     // Multi-key chord state
     private val pressedKeys = LinkedHashSet<Byte>() // preserve insertion order
@@ -106,35 +106,10 @@ class HidReportSender(
     }
 
     private fun sendCurrentKeyboardReport() {
-        val device = currentDevice() ?: return
-        val hid = currentHid() ?: return
         val keys = synchronized(this) { pressedKeys.toList().take(MAX_ROLLOVER_KEYS) }
         val report = HidReportBuilder.keyboardReport(currentModifiers, keys)
         DebugLog.log(TAG, "kbd mods=" + currentModifiers + " keys=" + keys)
-        // Ensure BLUETOOTH_CONNECT before sending HID report
-        val hasBtConnectReport =
-            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-        if (hasBtConnectReport) {
-            try {
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                    hid.sendReport(device, HidDescriptorVariants.REPORT_ID_KEYBOARD.toInt(), report)
-                } else {
-                    DebugLog.e(TAG, "HID sendReport not supported on API < 28; skipping keyboard report")
-                }
-            } catch (se: SecurityException) {
-                DebugLog.e(TAG, "sendReport SecurityException: ${se.message}")
-                onError("HID report failed due to missing permission")
-            } catch (
-                @Suppress("TooGenericExceptionCaught") e: Exception,
-            ) {
-                // defensive: multi-catch; also notifies onError
-                DebugLog.e(TAG, "kbd report error: ${e.message}")
-                onError("HID report failed: ${e.message}")
-            }
-        } else {
-            DebugLog.e(TAG, "BLUETOOTH_CONNECT not granted; cannot send keyboard report")
-        }
+        transport.send(HidDescriptorVariants.REPORT_ID_KEYBOARD.toInt(), report)
     }
 
     private fun clickMouse(buttonMask: Int) {
@@ -154,8 +129,6 @@ class HidReportSender(
         wheel: Int,
         hWheel: Int,
     ) {
-        val device = currentDevice() ?: return
-        val hid = currentHid() ?: return
         val simplified = isSimplified()
         // SIMPLE: 3 bytes [buttons][dx][dy]; FULL: 5 bytes [buttons][dx][dy][wheelV][wheelH]
         val report =
@@ -165,28 +138,7 @@ class HidReportSender(
                 HidReportBuilder.mouseReport(buttons, dx, dy, wheel, hWheel)
             }
         DebugLog.log(TAG, "mouse btn=$buttons dx=$dx dy=$dy wheel=$wheel hwheel=$hWheel simplified=$simplified")
-        val hasBtConnect =
-            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-        if (hasBtConnect) {
-            try {
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                    hid.sendReport(device, HidDescriptorVariants.REPORT_ID_MOUSE.toInt(), report)
-                } else {
-                    DebugLog.e(TAG, "HID sendReport not supported on API < 28; skipping mouse report")
-                }
-            } catch (se: SecurityException) {
-                DebugLog.e(TAG, "mouse sendReport SecurityException: ${se.message}")
-                onError("Mouse click failed due to missing permission")
-            } catch (
-                @Suppress("TooGenericExceptionCaught") e: Exception,
-            ) {
-                // defensive: multi-catch alongside SecurityException
-                DebugLog.e(TAG, "mouse report error: ${e.message}")
-            }
-        } else {
-            DebugLog.e(TAG, "BLUETOOTH_CONNECT not granted; cannot send mouse report")
-        }
+        transport.send(HidDescriptorVariants.REPORT_ID_MOUSE.toInt(), report)
     }
 
     private companion object {

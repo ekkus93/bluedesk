@@ -141,20 +141,20 @@ seam.
 
 ### UT-06 — Introduce a HID output sink seam
 
-- [ ] Identify the exact platform calls `HidReportSender` makes to send a report
+- [x] Identify the exact platform calls `HidReportSender` makes to send a report
       (the `hid.sendReport(...)` / device interaction). Define a minimal
       interface capturing just those (e.g. `HidOutput` with the send method(s)
       actually used).
-- [ ] Refactor `HidReportSender` to depend on that interface (inject it), with
+- [x] Refactor `HidReportSender` to depend on that interface (inject it), with
       the production path wiring the real HID device exactly as today.
-- [ ] Verify no behavior change on the instrumented path (the existing
+- [x] Verify no behavior change on the instrumented path (the existing
       `HidReportInstrumentedTest` / physical HID tests still pass — note these
       require hardware; at minimum compile the androidTest variant).
 
 Acceptance criteria:
-- [ ] Production report bytes, report IDs, and timing are unchanged.
-- [ ] `:app:compileDebugAndroidTestKotlin` (or equivalent) still compiles.
-- [ ] Verification suite passes.
+- [x] Production report bytes, report IDs, and timing are unchanged.
+- [x] `:app:compileDebugAndroidTestKotlin` (or equivalent) still compiles.
+- [x] Verification suite passes.
 
 ### UT-07 — `HidReportSenderTest`: keyboard + modifier state
 
