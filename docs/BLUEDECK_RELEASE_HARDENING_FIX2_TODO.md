@@ -284,18 +284,18 @@ Acceptance criteria:
 
 ### Task 5.1 — Update hardening validation notes
 
-- [ ] Find validation notes in TODO/docs/memory.
-- [ ] Replace overbroad manual-smoke completion claims.
-- [ ] Use separate labels:
-  - [ ] Unit-verified,
-  - [ ] Instrumented-verified,
-  - [ ] Physical-HID-verified,
-  - [ ] Manual-device-verified,
-  - [ ] Pending manual UX smoke test.
+- [x] Find validation notes in TODO/docs/memory.
+- [x] Replace overbroad manual-smoke completion claims.
+- [x] Use separate labels:
+  - [x] Unit-verified,
+  - [x] Instrumented-verified,
+  - [x] Physical-HID-verified,
+  - [x] Manual-device-verified,
+  - [x] Pending manual UX smoke test.
 
 Acceptance criteria:
 
-- [ ] Unit tests are not presented as manual UX smoke tests.
+- [x] Unit tests are not presented as manual UX smoke tests.
 
 ### Task 5.2 — Update manual smoke checklist status
 
@@ -311,17 +311,17 @@ N/A — not applicable
 
 Acceptance criteria:
 
-- [ ] Validation record is honest and useful.
+- [x] Validation record is honest and useful.
 
 ### Task 5.3 — Preserve real green results
 
-- [ ] Do not remove true test results.
-- [ ] Keep unit/build/lint/instrumented/physical HID results if they were actually run.
-- [ ] Just classify them accurately.
+- [x] Do not remove true test results.
+- [x] Keep unit/build/lint/instrumented/physical HID results if they were actually run.
+- [x] Just classify them accurately.
 
 Acceptance criteria:
 
-- [ ] Validation history remains useful without overclaiming.
+- [x] Validation history remains useful without overclaiming.
 
 ---
 

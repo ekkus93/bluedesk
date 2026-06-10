@@ -577,21 +577,29 @@ Do not mark this hardening pass complete until all are true:
 
 ## Validation results (recorded)
 
-Automated gates (all green on commit at HEAD):
-- `./gradlew clean :app:testDebugUnitTest` — pass (incl. new BackendTransitionPlanner,
-  PermissionPolicy, ScrollPolicy, QuickTilePolicy tests).
-- `./gradlew :app:assembleDebug` — pass.
-- `./gradlew :app:lintDebug :app:ktlintCheck :app:detekt` — pass (detekt baseline empty).
-- `./gradlew :app:connectedDebugAndroidTest` — 97 tests, 0 failed (SM-A546E, API 35).
-- Physical HID (opt-in, host-initiated `ConnectProfile(HID)`) — 13/13, 0 failed.
+Evidence is classified honestly: **Unit-verified / Instrumented-verified /
+Physical-HID-verified / Manual-device-verified / Pending manual UX smoke**. Unit tests are
+NOT a substitute for manual UX smoke tests — items only exercised by pure-helper unit tests
+are marked Unit-verified + Pending manual UX smoke, not Manual-device-verified.
 
-Manual smoke (status):
-- Cold launch — verified via adb: process up, no FATAL/crash, BlueDeck splash path intact.
-- Launcher icon/name + in-app version — verified `versionName=0.1.0` on device; BlueDeck
-  adaptive icon (`ic_bluedeck_*`) is the launcher icon.
-- Classic startup without scan / scan-only prompt / notification non-blocking / BLE toggle
-  denial leaves BLE off / Classic<->BLE stops inactive service / SIMPLE no scroll dispatch /
-  QS tile no Classic broadcast in BLE mode — behavior verified at the logic layer by the
-  pure-helper unit tests above; live permission-dialog UX recommended for a human pass.
-- FULL-mode scroll — exercised by the physical HID suite.
+Automated gates (green at HEAD):
+- **Unit-verified:** `./gradlew clean :app:testDebugUnitTest` (incl. BackendTransitionPlanner,
+  PermissionPolicy, ScrollPolicy, QuickTilePolicy tests).
+- Build: `./gradlew :app:assembleDebug`.
+- Static: `./gradlew :app:lintDebug :app:ktlintCheck :app:detekt` (detekt baseline empty).
+- **Instrumented-verified:** `./gradlew :app:connectedDebugAndroidTest` — 97 tests, 0 failed
+  (SM-A546E, API 35).
+- **Physical-HID-verified:** opt-in host-initiated `ConnectProfile(HID)` — 13/13, 0 failed.
+
+Per-item smoke status:
+- Cold launch (process up, no crash, splash path) — **Manual-device-verified** (adb).
+- Launcher icon/name + in-app `versionName=0.1.0` — **Manual-device-verified** (adb).
+- FULL-mode scroll — **Physical-HID-verified**.
+- Classic startup without scan — **Unit-verified** (PermissionPolicyTest); **Pending manual UX smoke**.
+- Scan-only prompt — **Unit-verified**; **Pending manual UX smoke**.
+- Notification denial non-blocking — **Unit-verified** (logic); **Pending manual UX smoke**.
+- BLE toggle denial leaves BLE off — **Unit-verified** (PermissionPolicy gating); **Pending manual UX smoke**.
+- Classic↔BLE stops inactive service — **Unit-verified** (BackendTransitionPlannerTest); **Pending manual UX smoke**.
+- SIMPLE no scroll dispatch — **Unit-verified** (ScrollPolicyTest).
+- QS tile no Classic broadcast in BLE mode — **Unit-verified** (QuickTilePolicyTest); **Pending manual UX smoke**.
 - Physical HID docs match the actual passing command — done (Phase 9).
