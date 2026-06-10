@@ -361,3 +361,9 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 - The function had 8 params (>detekt threshold 6). Grouped the 4 scroll-tuning params (scrollSpeed, invertV, enableH, invertH) into a new GestureLogic.ScrollConfig data class → function now takes (accumV, accumH, dySum, dxSum, config) = 5 params, under the limit.
 - Updated the 3 GestureLogicTest call sites to pass ScrollConfig. Removed the LongParameterList entry from detekt-baseline.xml (surgically, to avoid re-baseline drift) → baseline 55 → 54. Genuinely fixed, not suppressed/baselined.
 - Verified: detekt, ktlintCheck, compileDebugKotlin, testDebugUnitTest, lintDebug all green.
+
+## 2026-06-10T09:33:19Z - Claude Opus 4.8 - Fix ComplexCondition (2) + 1 of 6 NestedBlockDepth
+- ComplexCondition (2, Middleware.kt): replaced 4-way modifier-toggle == OR with MODIFIER_TOGGLE_ACTIONS set-membership check; extracted "any modifier active" OR into a named local. Baseline -2. Commit f1cd15e.
+- NestedBlockDepth: fixed the 1 SAFE one (BootReceiver.onReceive) via guard-clause early-returns + extracted startBluetoothService() helper → depth under 4. Baseline entry removed (52→51). Behavior identical.
+- Remaining 5 NestedBlockDepth are in delicate BT callbacks (BleHogpService notifyKeyboard/notifyMouse ×2, BluetoothService ×3) — flattening needs helper extraction from connection logic = structural-refactor risk; and extracting the BleHogp notify inner body re-triggers lint MissingPermission (call leaves the inline permission guard). Left baselined for the broader device-verified service refactor.
+- Verified: detekt, ktlint, compile, unit, lint all green. detekt baseline now 51.

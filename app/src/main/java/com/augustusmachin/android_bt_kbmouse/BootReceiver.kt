@@ -14,29 +14,28 @@ class BootReceiver : BroadcastReceiver() {
         context: Context,
         intent: Intent,
     ) {
-        if (Intent.ACTION_BOOT_COMPLETED == intent.action) {
-            val start =
-                runBlocking {
-                    try {
-                        SettingsManager.flow(context).first().startOnBoot
-                    } catch (e: Exception) {
-                        DebugLog.e("BootReceiver", "startOnBoot read failed: ${e.message}")
-                        false
-                    }
-                }
-            if (start) {
-                val svc = Intent(context, BluetoothService::class.java)
+        if (Intent.ACTION_BOOT_COMPLETED != intent.action) return
+        val start =
+            runBlocking {
                 try {
-                    if (Build.VERSION.SDK_INT >= SDK_INT_OREO) {
-                        context.startForegroundService(
-                            svc,
-                        )
-                    } else {
-                        context.startService(svc)
-                    }
-                } catch (_: Exception) {
+                    SettingsManager.flow(context).first().startOnBoot
+                } catch (e: Exception) {
+                    DebugLog.e("BootReceiver", "startOnBoot read failed: ${e.message}")
+                    false
                 }
             }
+        if (start) startBluetoothService(context)
+    }
+
+    private fun startBluetoothService(context: Context) {
+        val svc = Intent(context, BluetoothService::class.java)
+        try {
+            if (Build.VERSION.SDK_INT >= SDK_INT_OREO) {
+                context.startForegroundService(svc)
+            } else {
+                context.startService(svc)
+            }
+        } catch (_: Exception) {
         }
     }
 }
