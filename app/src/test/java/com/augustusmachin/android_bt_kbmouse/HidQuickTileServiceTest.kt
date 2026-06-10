@@ -1,6 +1,7 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import org.junit.Assert.*
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HidQuickTileServiceTest {

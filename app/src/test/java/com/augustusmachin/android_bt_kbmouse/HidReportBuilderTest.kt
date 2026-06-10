@@ -1,6 +1,7 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import org.junit.Assert.*
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class HidReportBuilderTest {

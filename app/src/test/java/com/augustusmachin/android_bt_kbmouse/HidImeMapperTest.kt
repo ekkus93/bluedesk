@@ -1,6 +1,8 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class HidImeMapperTest {

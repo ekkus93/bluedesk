@@ -15,8 +15,7 @@ style:
     # command line, etc.); match that so the two tools agree.
     excludeCommentStatements: true
   WildcardImport:
-    # Several Compose files use package wildcard imports by convention.
-    active: false
+    active: true
   ReturnCount:
     active: false
 

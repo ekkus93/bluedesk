@@ -10,8 +10,3 @@ max_line_length = 120
 # The package intentionally contains an underscore (it matches the applicationId
 # com.augustusmachin.android_bt_kbmouse, which must not be renamed).
 ktlint_standard_package-name = disabled
-
-# Test sources conventionally use `import org.junit.Assert.*`; allow wildcards
-# there. Main source keeps no-wildcard-imports enabled (default).
-[app/src/{test,androidTest}/**/*.{kt,kts}]
-ktlint_standard_no-wildcard-imports = disabled

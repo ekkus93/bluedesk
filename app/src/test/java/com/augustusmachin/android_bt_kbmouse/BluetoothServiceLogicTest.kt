@@ -3,7 +3,10 @@ package com.augustusmachin.android_bt_kbmouse
 import android.bluetooth.BluetoothDevice
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito
 
