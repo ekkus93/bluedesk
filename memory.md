@@ -245,3 +245,10 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 - Added .github/workflows/release.yml: on push of tags matching 'v*', runs unit tests, builds the debug APK, stages it as bluedeck-<tag>-debug.apk, and publishes a GitHub Release (softprops/action-gh-release@v2, generate_release_notes) with the APK attached. permissions: contents: write.
 - Instrumented tests (connectedDebugAndroidTest) intentionally NOT in CI — they need a real device/emulator + partly real Bluetooth hardware.
 - Releases use the DEBUG apk (no signing config in the project; debug APK is the installable one). NOTE: the existing v0.1 tag predates release.yml so it won't auto-build — push a new tag (or re-point/re-push v0.1) to get a release with an attached APK.
+
+## 2026-06-10T01:38:30Z - Claude Opus 4.8 - Java upgrade: build on JDK 21, app target 11→17
+- app/build.gradle.kts: compileOptions source/targetCompatibility 11→17; kotlinOptions.jvmTarget 11→17; JavaCompile toolchain JavaLanguageVersion 17→21. (App bytecode capped at Java 17 — highest Android/AGP 8.13 + desugaring supports; build/javac runs on JDK 21 LTS.)
+- CI: ci.yml + release.yml setup-java 17→21 (temurin).
+- Local env already has JDK 21 (default java 21.0.11, /usr/lib/jvm/java-21-openjdk-amd64); no foojay resolver but not needed since 21 is installed. Gradle 8.13 supports JDK 21.
+- Verified locally: ./gradlew clean :app:assembleDebug :app:testDebugUnitTest :app:lintDebug all green.
+- CI scope confirmed with user = lint + build + unit tests, NO instrumentation tests (already what ci.yml does).

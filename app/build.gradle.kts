@@ -28,21 +28,24 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        // Java 17 is the highest language level Android (AGP 8.x + desugaring)
+        // supports for app bytecode.
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
     }
 }
 
-// Ensure JavaCompile uses a real JDK (17) even if default JRE lacks javac
+// Run javac on JDK 21 (current LTS) even if the default JRE lacks javac.
+// App bytecode still targets Java 17 (see compileOptions) for Android support.
 tasks.withType<JavaCompile>().configureEach {
     javaCompiler.set(javaToolchains.compilerFor {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(21))
     })
 }
 
