@@ -216,12 +216,12 @@ Acceptance criteria:
 
 ## Final validation
 
-- [ ] All five verification gradle tasks pass on a clean run.
-- [ ] No new `detekt-baseline.xml` entries were added (new code is clean, not
+- [x] All five verification gradle tasks pass on a clean run.
+- [x] No new `detekt-baseline.xml` entries were added (new code is clean, not
       grandfathered).
-- [ ] `git log` shows one focused commit per task, no `Co-Authored-By:` trailer.
-- [ ] Run the full instrumented suite once (`:app:connectedDebugAndroidTest`)
+- [x] `git log` shows one focused commit per task, no `Co-Authored-By:` trailer.
+- [x] Run the full instrumented suite once (`:app:connectedDebugAndroidTest`)
       to confirm the Phase 1/2 seams did not regress on-device.
-- [ ] Update `memory.md` with a dated entry summarizing the coverage added.
+- [x] Update `memory.md` with a dated entry summarizing the coverage added.
 
 When every checkbox above is `[x]`, output `<promise>COMPLETE</promise>`.
