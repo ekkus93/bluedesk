@@ -13,73 +13,8 @@ import org.mockito.Mockito
 class BluetoothServiceLogicTest {
     @Test
     fun maps_onConnectionStateChanged_to_VM_state() {
-        // Fake service that exposes listener
-        class EventService : IBluetoothService {
-            var listener: BluetoothService.ServiceEventListener? = null
-
-            override fun getLastDeviceAddress(): String? = null
-
-            override fun setEventListener(l: BluetoothService.ServiceEventListener) {
-                listener = l
-            }
-
-            override fun startDiscovery() {}
-
-            override fun stopDiscovery() {}
-
-            override fun getDiscoveredDevices(): List<BluetoothDevice> = emptyList()
-
-            override fun getPairedDevices(): List<BluetoothDevice> = emptyList()
-
-            override fun pairDevice(device: BluetoothDevice) {}
-
-            override fun connectDevice(device: BluetoothDevice) {}
-
-            override fun disconnectDevice() {}
-
-            override fun setDefaultDevice(device: BluetoothDevice) {}
-
-            override fun getAlias(device: BluetoothDevice): String? = null
-
-            override fun setAlias(
-                device: BluetoothDevice,
-                alias: String,
-            ) {}
-
-            override fun forgetDevice(
-                device: BluetoothDevice,
-                unpair: Boolean,
-            ) {}
-
-            override fun sendKeyPress(
-                keyCode: Byte,
-                modifiers: Int,
-            ) {}
-
-            override fun sendMouseMove(
-                dx: Int,
-                dy: Int,
-            ) {}
-
-            override fun sendLeftClick() {}
-
-            override fun sendRightClick() {}
-
-            override fun sendMiddleClick() {}
-
-            override fun sendScroll(delta: Int) {}
-
-            override fun sendScrollH(delta: Int) {}
-
-            override fun pressKey(
-                keyCode: Byte,
-                modifiers: Int,
-            ) {}
-
-            override fun releaseKey(keyCode: Byte) {}
-
-            override fun setModifiers(mods: Int) {}
-        }
+        // This test drives the store directly (as MainActivity does in production);
+        // a shared FakeBluetoothService is available if a service stand-in is needed.
         val device = Mockito.mock(BluetoothDevice::class.java)
         Mockito.`when`(device.address).thenReturn("FE:ED:FA:CE:00:01")
         // Simulate service callbacks by dispatching canonical store actions (MainActivity does this in production)
