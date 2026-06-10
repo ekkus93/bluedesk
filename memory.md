@@ -411,3 +411,14 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 - P6 ScrollPolicy: SIMPLE no longer dispatches/advertises scroll (HID layer already no-op'd). P7 removed forced DebugLog.setEnabled(true); delayed notification prompt. P8 QuickTilePolicy: QS tile UNAVAILABLE in BLE mode + non-optimistic state (useBleHogp mirrored to bt_hid prefs).
 - P9 PHYSICAL_HID_TESTING.md documents ConnectProfile(HID). P10 BlueDeck palette in Theme (system bars use background for contrast), splash uses string res, removed stale ic_launcher_*. P11 versionName=0.1.0 (authorized via replies1), README ConnectProfile note, historical docs to docs/history/ (kept UIUX_FIXES1_TODO - referenced by CLAUDE.md).
 - Validation: clean unit + assemble + lint + ktlint + detekt green; instrumented 97/0; physical HID 13/13; cold-launch clean, versionName=0.1.0 on device.
+
+## 2026-06-10T19:06:12Z - Claude Opus 4.8 - BlueDeck Release Hardening Fix 2 complete (Phases 1-8)
+- Ran docs/BLUEDECK_RELEASE_HARDENING_FIX2_TODO.md as a Ralph loop using decisions from docs/replies2.md. All 187 boxes [x]. Commits bea7f83..fcb7f95 (not yet pushed).
+- P1: StartupPermissionPlanner (pure) — startup permission request is now backend-aware (waits for settings, requests Classic connect OR BLE connect+advertise). Interactive BLE denial: persist useBleHogp=false + fall back to Classic + message. startAndBind* made idempotent. Added StartupState.permissionFlowResolved signal.
+- P2: BluetoothService.onCreate calls startInForeground() FIRST and  before adapter/receivers/proxy/dispatch.
+- P3: BootReceiver backend-aware via pure BootStartPlanner (StartNothing/StartClassic/StartBle/Skip); goAsync()+IO coroutine+withTimeoutOrNull(3s)+finish() in finally; reads startOnBoot+useBleHogp; never silently starts Classic when BLE selected; boot never persists the setting.
+- P4: MainScreen awaits StartupState.permissionFlowResolved before POST_NOTIFICATIONS (removed NOTIF_PROMPT_DELAY_MS timer).
+- P5: reclassified Fix1 validation evidence with honest labels (Unit/Instrumented/Physical-HID/Manual-device/Pending manual UX smoke).
+- P6: BLE denial copy = connect/advertise; README scroll = Full descriptor mode only; XML shell theme (values + values-night) mapped to bluedeck_* colors (removed purple/teal template colors); QS tile label = device.name ?: device.address (guarded).
+- Validation: clean unit + assemble + lint + ktlint + detekt green; instrumented 97/0; physical HID 13/13. Cold launch + Classic foreground start verified on device. BLE-denial/boot/notification-dialog UX are Pending manual UX smoke (logic unit-tested).
+- New tests: StartupPermissionPlannerTest, BootStartPlannerTest.
