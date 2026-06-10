@@ -663,7 +663,7 @@ class BluetoothService : Service(), IBluetoothService {
 
     private fun refreshQsTile() = foreground.refreshQsTile()
 
-    private fun startInForeground() = foreground.startInForeground()
+    private fun startInForeground(): Boolean = foreground.startInForeground()
 
     private fun reportMissingBluetoothConnect() = foreground.reportMissingBluetoothConnect()
 

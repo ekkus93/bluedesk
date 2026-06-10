@@ -94,10 +94,11 @@ class BleHogpService : Service(), HogpNotifier {
                 true
             }
         if (!hasConnect) {
-            DebugLog.e("BleHogpService", "BLUETOOTH_CONNECT not granted; deferring BLE init")
+            DebugLog.e("BleHogpService", "BLUETOOTH_CONNECT not granted; stopping BLE service")
+            stopSelf()
             return
         }
-        startInForeground()
+        if (!startInForeground()) return
         val mgr = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val adapter = mgr.adapter
         advertiser = adapter.bluetoothLeAdvertiser
@@ -507,7 +508,7 @@ class BleHogpService : Service(), HogpNotifier {
         }
     }
 
-    private fun startInForeground() {
+    private fun startInForeground(): Boolean {
         val channelId = "ble_hogp_service"
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= SDK_INT_OREO && nm.getNotificationChannel(channelId) == null) {
@@ -531,14 +532,16 @@ class BleHogpService : Service(), HogpNotifier {
                 .setContentIntent(pi)
                 .setOngoing(true)
                 .build()
-        try {
+        return try {
             startForeground(2, notif)
+            true
         } catch (
             @Suppress("TooGenericExceptionCaught") e: Exception,
         ) {
-            // defensive: falls back to plain notify
+            // A plain notification is not a foreground service; stop rather than pretend.
             DebugLog.e("BleHogpService", "startForeground failed: ${e.message}")
-            nm.notify(2, notif)
+            stopSelf()
+            false
         }
     }
 }

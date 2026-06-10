@@ -1,9 +1,7 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import android.app.NotificationManager
 import android.app.Service
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.service.quicksettings.TileService
@@ -20,21 +18,22 @@ class ServiceForegroundController(
     private val disconnectAction: String,
     private val forgetAction: String,
 ) {
-    fun startInForeground() {
-        val mgr = service.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    /**
+     * Promote the service to the foreground. Returns true on success. On failure we do NOT
+     * fall back to a plain notification (that is not a foreground service and can be killed
+     * unpredictably) — we log, stop the service, and return false so the caller aborts.
+     */
+    fun startInForeground(): Boolean {
         val notif = ServiceNotifications.buildForeground(service, connectAction, disconnectAction, forgetAction)
-        // Use the two-argument startForeground where possible. On some platform builds the
-        // system may still enforce foreground-service types; guard against that so the
-        // service doesn't crash the app.
-        try {
+        return try {
             service.startForeground(1, notif)
+            true
         } catch (
             @Suppress("TooGenericExceptionCaught") e: Exception,
         ) {
-            // defensive: fall back to a plain notification so the process isn't killed during
-            // startup on restrictive platform builds (accepting it may not be a true FGS).
             DebugLog.e(TAG, "startForeground failed: ${e.message}")
-            mgr.notify(1, notif)
+            service.stopSelf()
+            false
         }
     }
 

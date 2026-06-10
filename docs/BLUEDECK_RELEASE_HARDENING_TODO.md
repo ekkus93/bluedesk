@@ -188,36 +188,36 @@ Acceptance criteria:
 
 ### Task 5.1 — Fix `BleHogpService.onCreate()` missing permission path
 
-- [ ] Open `BleHogpService.kt`.
-- [ ] If `BLUETOOTH_CONNECT` is missing after service start, call `stopSelf()` before returning.
-- [ ] Check advertise permission path and stop/skip safely as appropriate.
-- [ ] Log clear reason.
+- [x] Open `BleHogpService.kt`.
+- [x] If `BLUETOOTH_CONNECT` is missing after service start, call `stopSelf()` before returning.
+- [x] Check advertise permission path and stop/skip safely as appropriate.
+- [x] Log clear reason.
 
 Acceptance criteria:
 
-- [ ] BLE service does not return from started foreground-service path without foregrounding or stopping.
+- [x] BLE service does not return from started foreground-service path without foregrounding or stopping.
 
 ### Task 5.2 — Fix `startForeground()` failure handling
 
-- [ ] Open `ServiceForegroundController` or equivalent.
-- [ ] On `startForeground(...)` failure, do not only call `notify(...)`.
-- [ ] Log exception.
-- [ ] Stop service or return failure so caller stops.
-- [ ] Update callers to stop/return on failure.
+- [x] Open `ServiceForegroundController` or equivalent.
+- [x] On `startForeground(...)` failure, do not only call `notify(...)`.
+- [x] Log exception.
+- [x] Stop service or return failure so caller stops.
+- [x] Update callers to stop/return on failure.
 
 Acceptance criteria:
 
-- [ ] Services do not continue as fake foreground services.
+- [x] Services do not continue as fake foreground services.
 
 ### Task 5.3 — Add foreground failure tests if practical
 
-- [ ] Extract pure decision helper if useful.
-- [ ] Test failure result causes stop/abort behavior.
-- [ ] If not practical, document manual validation.
+- [x] Extract pure decision helper if useful.
+- [x] Test failure result causes stop/abort behavior.
+- [x] If not practical, document manual validation.
 
 Acceptance criteria:
 
-- [ ] Foreground failure behavior is verified or explicitly documented.
+- [x] Foreground failure behavior is verified or explicitly documented.
 
 ---
 
