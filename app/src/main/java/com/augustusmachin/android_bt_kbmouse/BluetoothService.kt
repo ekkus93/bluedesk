@@ -43,7 +43,7 @@ class BluetoothService : Service(), IBluetoothService {
 
     private val binder = LocalBinder()
     private var bluetoothAdapter: BluetoothAdapter? = null
-    private val discoveredDevices = java.util.concurrent.CopyOnWriteArrayList<BluetoothDevice>()
+    private val discovery by lazy { DiscoveryController(this) { bluetoothAdapter } }
     private var bluetoothHidProfile: BluetoothProfile? = null
     private var bluetoothHidModule: BluetoothHidModule? = null
     private var hid: BluetoothHidDevice? = null
@@ -61,11 +61,8 @@ class BluetoothService : Service(), IBluetoothService {
                 intent: Intent,
             ) {
                 when (intent.action) {
-                    BluetoothDevice.ACTION_FOUND -> handleDeviceFound(intent)
-                    BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                        DebugLog.log("BluetoothService", "discovery finished")
-                        StoreProvider.dispatch(Action.UpdateIsScanning(false))
-                    }
+                    BluetoothDevice.ACTION_FOUND -> discovery.onDeviceFound(deviceFromIntent(intent))
+                    BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> discovery.onDiscoveryFinished()
                     BluetoothDevice.ACTION_BOND_STATE_CHANGED -> handleBondStateChanged(intent)
                     BluetoothAdapter.ACTION_STATE_CHANGED -> handleAdapterStateChanged(intent)
                 }
@@ -79,15 +76,6 @@ class BluetoothService : Service(), IBluetoothService {
             @Suppress("DEPRECATION")
             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE) as? BluetoothDevice
         }
-
-    private fun handleDeviceFound(intent: Intent) {
-        val device = deviceFromIntent(intent) ?: return
-        if (!discoveredDevices.contains(device)) {
-            discoveredDevices.add(device)
-            DebugLog.log("BluetoothService", "FOUND ${device.address}")
-        }
-        StoreProvider.dispatch(Action.UpdateDiscoveredDevices(discoveredDevices.toList()))
-    }
 
     private fun handleBondStateChanged(intent: Intent) {
         val state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, -1)
@@ -393,101 +381,13 @@ class BluetoothService : Service(), IBluetoothService {
         refreshQsTile()
     }
 
-    override fun startDiscovery() {
-        if (bluetoothAdapter?.isDiscovering == true) {
-            DebugLog.log("BluetoothService", "cancelDiscovery (was discovering)")
-            // Cancel discovery only if BLUETOOTH_SCAN is granted to avoid SecurityException
-            val hasBtScan =
-                ContextCompat.checkSelfPermission(
-                    this@BluetoothService,
-                    Manifest.permission.BLUETOOTH_SCAN,
-                ) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-            if (hasBtScan) {
-                try {
-                    bluetoothAdapter?.cancelDiscovery()
-                } catch (se: SecurityException) {
-                    DebugLog.e("BluetoothService", "cancelDiscovery SecurityException: ${se.message}")
-                }
-            } else {
-                DebugLog.e("BluetoothService", "BLUETOOTH_SCAN not granted; skipping cancelDiscovery")
-            }
-        }
-        // Clear previous results so UI refreshes immediately
-        discoveredDevices.clear()
-        StoreProvider.dispatch(Action.UpdateDiscoveredDevices(emptyList()))
-        DebugLog.log("BluetoothService", "startDiscovery")
-        val hasBtScanStart =
-            ContextCompat.checkSelfPermission(
-                this@BluetoothService,
-                Manifest.permission.BLUETOOTH_SCAN,
-            ) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-        if (!hasBtScanStart) {
-            DebugLog.e("BluetoothService", "BLUETOOTH_SCAN not granted; cannot start discovery")
-            StoreProvider.dispatch(Action.UpdateMessage("Scan permission not granted"))
-            return
-        }
-        val started =
-            try {
-                bluetoothAdapter?.startDiscovery() ?: false
-            } catch (se: SecurityException) {
-                DebugLog.e("BluetoothService", "startDiscovery SecurityException: ${se.message}")
-                false
-            }
-        if (started) {
-            StoreProvider.dispatch(Action.UpdateIsScanning(true))
-        } else {
-            DebugLog.e("BluetoothService", "startDiscovery returned false")
-            StoreProvider.dispatch(Action.UpdateMessage("Failed to start scan"))
-        }
-    }
+    override fun startDiscovery() = discovery.startDiscovery()
 
-    override fun stopDiscovery() {
-        DebugLog.log("BluetoothService", "stopDiscovery")
-        val hasBtScan2 =
-            ContextCompat.checkSelfPermission(
-                this@BluetoothService,
-                Manifest.permission.BLUETOOTH_SCAN,
-            ) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-        if (hasBtScan2) {
-            try {
-                bluetoothAdapter?.cancelDiscovery()
-            } catch (se: SecurityException) {
-                DebugLog.e("BluetoothService", "cancelDiscovery SecurityException: ${se.message}")
-            }
-        } else {
-            DebugLog.e("BluetoothService", "BLUETOOTH_SCAN not granted; skipping cancelDiscovery")
-        }
-        StoreProvider.dispatch(Action.UpdateIsScanning(false))
-    }
+    override fun stopDiscovery() = discovery.stopDiscovery()
 
-    override fun getDiscoveredDevices(): List<BluetoothDevice> {
-        // Return a snapshot to trigger StateFlow emissions in UI
-        return discoveredDevices.toList()
-    }
+    override fun getDiscoveredDevices(): List<BluetoothDevice> = discovery.getDiscoveredDevices()
 
-    override fun getPairedDevices(): List<BluetoothDevice> {
-        // Access to bondedDevices requires BLUETOOTH_CONNECT on newer Android; check permission
-        val hasBtConnect =
-            ContextCompat.checkSelfPermission(
-                this@BluetoothService,
-                Manifest.permission.BLUETOOTH_CONNECT,
-            ) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-        return if (hasBtConnect) {
-            try {
-                bluetoothAdapter?.bondedDevices?.toList() ?: emptyList()
-            } catch (se: SecurityException) {
-                DebugLog.e("BluetoothService", "getPairedDevices SecurityException: ${se.message}")
-                emptyList()
-            }
-        } else {
-            DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; returning empty paired list")
-            emptyList()
-        }
-    }
+    override fun getPairedDevices(): List<BluetoothDevice> = discovery.getPairedDevices()
 
     override fun pairDevice(device: BluetoothDevice) {
         // Creating a bond may require BLUETOOTH_CONNECT on newer Android; guard the call
