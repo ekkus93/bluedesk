@@ -347,8 +347,9 @@ private fun BleHogpToggle(
 ) {
     val sdk = android.os.Build.VERSION.SDK_INT
     val launcher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
-            if (PermissionPolicy.missingRequired(granted, PermissionPolicy.requiredForBleStartup(sdk)).isEmpty()) {
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            // Callback maps are partial; re-read actual OS state before persisting.
+            if (PermissionGrantChecker.hasAll(context, PermissionPolicy.requiredForBleStartup(sdk))) {
                 scope.launch { SettingsManager.setUseBleHogp(context, true) }
             } else {
                 com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
@@ -375,11 +376,7 @@ private fun BleHogpToggle(
                 if (!enabled) {
                     scope.launch { SettingsManager.setUseBleHogp(context, false) }
                 } else {
-                    val missing =
-                        PermissionPolicy.requiredForBleStartup(sdk).filter {
-                            androidx.core.content.ContextCompat.checkSelfPermission(context, it) !=
-                                android.content.pm.PackageManager.PERMISSION_GRANTED
-                        }
+                    val missing = PermissionGrantChecker.missing(context, PermissionPolicy.requiredForBleStartup(sdk))
                     if (missing.isEmpty()) {
                         scope.launch { SettingsManager.setUseBleHogp(context, true) }
                     } else {

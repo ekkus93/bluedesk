@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
@@ -28,7 +27,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.augustusmachin.android_bt_kbmouse.store.Action
@@ -259,18 +257,15 @@ class MainActivity : ComponentActivity() {
         // permissions are resolved. Settings load first so the request is backend-aware
         // (Classic needs connect; BLE needs connect+advertise).
         val permissionLauncher: ActivityResultLauncher<Array<String>> =
-            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-                onStartupPermissionResult(result)
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+                onStartupPermissionResult()
             }
         lifecycleScope.launch {
             settingsViewModel.isLoaded.first { it }
             val plan =
                 StartupPermissionPlanner.plan(settingsViewModel.settings.value, android.os.Build.VERSION.SDK_INT)
             startupPlan = plan
-            val missing =
-                plan.requiredPermissions.filter {
-                    ContextCompat.checkSelfPermission(this@MainActivity, it) != PackageManager.PERMISSION_GRANTED
-                }
+            val missing = PermissionGrantChecker.missing(this@MainActivity, plan.requiredPermissions)
             if (missing.isEmpty()) {
                 startPlannedBackend(plan)
                 StartupState.markPermissionFlowResolved()
@@ -349,20 +344,24 @@ class MainActivity : ComponentActivity() {
         if (plan.backend == BackendMode.BLE_HOGP) startAndBindBleBackend() else startAndBindClassicBackend()
     }
 
-    /** Result of the startup permission request for the planned backend. */
-    private fun onStartupPermissionResult(result: Map<String, Boolean>) {
+    /**
+     * Result of the startup permission request for the planned backend. The callback map is
+     * partial, so re-read actual OS state and let the pure [StartupPermissionDecision] decide.
+     */
+    private fun onStartupPermissionResult() {
         val plan = startupPlan
         if (plan == null) {
             StartupState.markPermissionFlowResolved()
             return
         }
-        when {
-            PermissionPolicy.missingRequired(result, plan.requiredPermissions).isEmpty() -> {
+        val granted = PermissionGrantChecker.grantedSet(this, plan.requiredPermissions)
+        when (StartupPermissionDecision.decide(plan, granted)) {
+            StartupDecision.StartPlannedBackend -> {
                 startPlannedBackend(plan)
                 StartupState.markPermissionFlowResolved()
             }
-            plan.backend == BackendMode.BLE_HOGP -> handleBleStartupDenied()
-            else -> {
+            StartupDecision.FallbackBleToClassic -> handleBleStartupDenied()
+            StartupDecision.ShowClassicPermissionDenied -> {
                 showPermissionNeededDialog()
                 StartupState.markPermissionFlowResolved()
             }
@@ -380,11 +379,12 @@ class MainActivity : ComponentActivity() {
         )
         lifecycleScope.launch {
             SettingsManager.setUseBleHogp(this@MainActivity, false)
-            val classicMissing =
-                PermissionPolicy.requiredForClassicStartup(android.os.Build.VERSION.SDK_INT).filter {
-                    ContextCompat.checkSelfPermission(this@MainActivity, it) != PackageManager.PERMISSION_GRANTED
-                }
-            if (classicMissing.isEmpty()) startAndBindClassicBackend() else showPermissionNeededDialog()
+            val classicPerms = PermissionPolicy.requiredForClassicStartup(android.os.Build.VERSION.SDK_INT)
+            if (PermissionGrantChecker.hasAll(this@MainActivity, classicPerms)) {
+                startAndBindClassicBackend()
+            } else {
+                showPermissionNeededDialog()
+            }
             StartupState.markPermissionFlowResolved()
         }
     }
