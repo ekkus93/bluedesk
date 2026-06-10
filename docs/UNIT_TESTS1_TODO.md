@@ -189,25 +189,28 @@ on dependency changes).
 
 ### UT-09 — `ServiceNotifications` (optional)
 
-- [ ] Assess whether notification *content* construction can be separated from
-      `NotificationManager`/`Context` into a pure helper that can be host-tested
-      (similar to how `ForegroundServiceLogic.buildNotificationText` is already a
-      pure, tested helper). If a clean seam exists, extract + test the pure part;
-      otherwise leave as instrumented-only and note why.
+- [x] Assessed → **skipped (instrumented-only).** `ServiceNotifications` is
+      irreducibly `Context`/`NotificationManager`/`PendingIntent`/`NotificationCompat`
+      -bound. Its only dynamic content (the notification text) is **already** the
+      host-tested pure helper `ForegroundServiceLogic.buildNotificationText`; the
+      rest is channel creation, PendingIntent wiring, and builder calls with
+      hardcoded title/icon literals. A pure seam here would be forced/awkward.
 
 Acceptance criteria:
-- [ ] Either pure content logic is host-tested, or a one-line note records that
-      it remains instrumented-only (no forced/awkward seam).
-- [ ] Verification suite passes.
+- [x] Note recorded: remains instrumented-only; dynamic text already host-tested.
+      No forced seam, no code change.
+- [x] Verification suite passes (unchanged — no production edit).
 
 ### UT-10 — `SettingsViewModel` / `BootReceiver` (optional, likely skip)
 
-- [ ] Evaluate testability; both are thin and Android-bound. If a pure decision
-      function can be extracted cheaply, do so and test it; otherwise mark
-      skipped with a one-line rationale. Do not add dependencies.
+- [x] Evaluated → **skipped.** `SettingsViewModel` is a thin `AndroidViewModel`
+      over the already-tested `SettingsManager`; its only pure logic is a trivial
+      3-way `logLevel`→`DebugLog.Level` mapping, not worth a dedicated seam.
+      `BootReceiver` is `Context`/`runBlocking`-bound with a trivial decision.
+      No cheap, non-trivial pure function to extract; no dependencies added.
 
 Acceptance criteria:
-- [ ] Verification suite passes (or task explicitly marked skipped w/ reason).
+- [x] Skipped with rationale (above). Verification suite unchanged.
 
 ---
 
