@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,9 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 
@@ -56,7 +52,6 @@ private data class FnGridCol(
 fun FunctionKeysScreen() {
     val appState by StoreProvider.asStateFlow().collectAsState()
     val connected = appState.connection.connectedDevice != null
-    val keyFontSize = LocalKeyFontSize.current
     val ks = appState.keyboard
 
     val colsPerPage = COLS_PER_PAGE
@@ -75,6 +70,7 @@ fun FunctionKeysScreen() {
 
     var page by remember { mutableStateOf(0) }
     val scrollState = rememberScrollState()
+    val style = rememberKeyGridStyle()
 
     fun dispatchKey(label: String) {
         val code = labelToHid(label) ?: return
@@ -89,17 +85,6 @@ fun FunctionKeysScreen() {
             StoreProvider.dispatch(Action.ReleaseLockedModifiers)
         }
     }
-
-    val inactiveColors =
-        ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        )
-    val activeColors =
-        ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-        )
 
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -117,13 +102,7 @@ fun FunctionKeysScreen() {
             }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
-                    if (page > 0) {
-                        IconButton(onClick = { page-- }) {
-                            Text("❮", style = MaterialTheme.typography.titleLarge)
-                        }
-                    }
-                }
+                FnPageArrow(visible = page > 0, glyph = "❮", arrowWidthDp = arrowWidthDp) { page-- }
 
                 Row(
                     modifier =
@@ -137,59 +116,48 @@ fun FunctionKeysScreen() {
                             modifier = Modifier.width(btnWidthDp.dp),
                             verticalArrangement = Arrangement.spacedBy(gapDp.dp),
                         ) {
-                            // Modifier toggle (or spacer for col 5)
-                            if (col.modLabel != null && col.modAction != null) {
-                                Button(
-                                    onClick = {
-                                        StoreProvider.dispatch(Action.TrackPreviewKey(col.modLabel))
-                                        StoreProvider.dispatch(col.modAction)
-                                        if (!connected) {
-                                            StoreProvider.dispatch(
-                                                Action.UpdateMessage("Preview: ${col.modLabel} toggled"),
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = if (col.modActive) activeColors else inactiveColors,
-                                ) {
-                                    ResponsiveText(
-                                        text = col.modLabel,
-                                        minSize = 8.sp,
-                                        maxSize = keyFontSize,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                }
-                            } else {
-                                Spacer(Modifier.height(48.dp))
-                            }
-                            // F1–F6
-                            Button(
-                                onClick = { dispatchKey(col.fnKey0) },
-                                enabled = labelToHid(col.fnKey0) != null,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                ResponsiveText(text = col.fnKey0, minSize = keyFontSize, maxSize = keyFontSize)
-                            }
-                            // F7–F12
-                            Button(
-                                onClick = { dispatchKey(col.fnKey1) },
-                                enabled = labelToHid(col.fnKey1) != null,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                ResponsiveText(text = col.fnKey1, minSize = keyFontSize, maxSize = keyFontSize)
-                            }
+                            FnGridColumn(col, connected, style, ::dispatchKey)
                         }
                     }
                 }
 
-                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
-                    if (page < maxPage) {
-                        IconButton(onClick = { page++ }) {
-                            Text("❯", style = MaterialTheme.typography.titleLarge)
-                        }
-                    }
-                }
+                FnPageArrow(visible = page < maxPage, glyph = "❯", arrowWidthDp = arrowWidthDp) { page++ }
             }
         }
     }
+}
+
+@Composable
+private fun FnPageArrow(
+    visible: Boolean,
+    glyph: String,
+    arrowWidthDp: Float,
+    onClick: () -> Unit,
+) {
+    Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
+        if (visible) {
+            IconButton(onClick = onClick) {
+                Text(glyph, style = MaterialTheme.typography.titleLarge)
+            }
+        }
+    }
+}
+
+@Composable
+private fun FnGridColumn(
+    col: FnGridCol,
+    connected: Boolean,
+    style: KeyGridStyle,
+    dispatchKey: (String) -> Unit,
+) {
+    // Modifier toggle (or spacer for col 5)
+    if (col.modLabel != null && col.modAction != null) {
+        KeyModifierButton(col.modLabel, col.modActive, col.modAction, connected, style)
+    } else {
+        Spacer(Modifier.height(48.dp))
+    }
+    // F1–F6
+    KeyCellButton(col.fnKey0, style) { dispatchKey(col.fnKey0) }
+    // F7–F12
+    KeyCellButton(col.fnKey1, style) { dispatchKey(col.fnKey1) }
 }

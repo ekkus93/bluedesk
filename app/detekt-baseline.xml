@@ -21,15 +21,7 @@
     <ID>LongMethod:BluetoothService.kt$BluetoothService$private fun scheduleReconnect(delayMs: Long = 0)</ID>
     <ID>LongMethod:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$override fun onReceive( context: Context, intent: Intent, )</ID>
     <ID>LongMethod:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$override fun onAppStatus(registered: Boolean)</ID>
-    <ID>LongMethod:ExtendedKeysScreen.kt$@Composable fun ExtendedKeysScreen()</ID>
-    <ID>LongMethod:FunctionKeysScreen.kt$@Composable fun FunctionKeysScreen()</ID>
-    <ID>LongMethod:KeyboardScreen.kt$@Composable fun KeyboardScreen(contentPadding: PaddingValues = PaddingValues())</ID>
-    <ID>LongMethod:MainScreen.kt$@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class) @Composable fun MainScreen()</ID>
     <ID>LongMethod:Middleware.kt$KeySenderMiddleware$fun create()</ID>
-    <ID>LongMethod:MouseScreen.kt$@Composable fun MouseScreen(contentPadding: PaddingValues = PaddingValues())</ID>
-    <ID>LongMethod:NavigationKeysScreen.kt$@Composable fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues())</ID>
-    <ID>LongMethod:PairingScreen.kt$@Composable fun PairingScreen(contentPadding: PaddingValues = PaddingValues())</ID>
-    <ID>LongMethod:SettingsScreen.kt$@Composable fun SettingsScreen( contentPadding: PaddingValues = PaddingValues(), onOpenLogs: (() -&gt; Unit)? = null, )</ID>
     <ID>TooManyFunctions:BleHogpKeySender.kt$BleHogpKeySender : KeySender</ID>
     <ID>TooManyFunctions:BluetoothKeySender.kt$BluetoothKeySender : KeySender</ID>
     <ID>TooManyFunctions:BluetoothService.kt$BluetoothService : ServiceIBluetoothService</ID>

@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.IconButton
@@ -39,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.augustusmachin.android_bt_kbmouse.store.Action
@@ -65,7 +63,6 @@ private data class GridCol(
 fun ExtendedKeysScreen() {
     val appState by StoreProvider.asStateFlow().collectAsState()
     val connected = appState.connection.connectedDevice != null
-    val keyFontSize = LocalKeyFontSize.current
     val ks = appState.keyboard
 
     val colsPerPage = COLS_PER_PAGE
@@ -84,6 +81,7 @@ fun ExtendedKeysScreen() {
     var page by remember { mutableStateOf(0) }
     val scrollState = rememberScrollState()
     val previewHistory = remember { mutableStateListOf<String>() }
+    val style = rememberKeyGridStyle()
 
     fun dispatchKey(
         label: String,
@@ -107,17 +105,6 @@ fun ExtendedKeysScreen() {
         }
     }
 
-    val inactiveColors =
-        ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        )
-    val activeColors =
-        ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-        )
-
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val arrowWidthDp = ARROW_WIDTH_DP
@@ -135,14 +122,7 @@ fun ExtendedKeysScreen() {
             }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                // Left arrow — always reserves space, only shown on page > 0
-                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
-                    if (page > 0) {
-                        IconButton(onClick = { page-- }) {
-                            Text("❮", style = MaterialTheme.typography.titleLarge)
-                        }
-                    }
-                }
+                ExtPageArrow(visible = page > 0, glyph = "❮", arrowWidthDp = arrowWidthDp) { page-- }
 
                 // Horizontal-scroll panel (touch disabled; programmatic only)
                 Row(
@@ -157,90 +137,87 @@ fun ExtendedKeysScreen() {
                             modifier = Modifier.width(btnWidthDp.dp),
                             verticalArrangement = Arrangement.spacedBy(gapDp.dp),
                         ) {
-                            // Modifier toggle button
-                            Button(
-                                onClick = {
-                                    StoreProvider.dispatch(Action.TrackPreviewKey(col.modLabel))
-                                    StoreProvider.dispatch(col.modAction)
-                                    if (!connected) {
-                                        StoreProvider.dispatch(
-                                            Action.UpdateMessage("Preview: ${col.modLabel} toggled"),
-                                        )
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = if (col.modActive) activeColors else inactiveColors,
-                            ) {
-                                ResponsiveText(
-                                    text = col.modLabel,
-                                    minSize = 8.sp,
-                                    maxSize = keyFontSize,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
-                            // Key row 0 button
-                            Button(
-                                onClick = { dispatchKey(col.key0, labelToHid(col.key0)) },
-                                enabled = labelToHid(col.key0) != null,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                ResponsiveText(text = col.key0, minSize = keyFontSize, maxSize = keyFontSize)
-                            }
-                            // Key row 1: button or invisible spacer
-                            if (col.key1 != null) {
-                                Button(
-                                    onClick = { dispatchKey(col.key1, labelToHid(col.key1)) },
-                                    enabled = labelToHid(col.key1) != null,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    ResponsiveText(text = col.key1, minSize = keyFontSize, maxSize = keyFontSize)
-                                }
-                            } else {
-                                Spacer(Modifier.height(48.dp)) // match button height
-                            }
+                            ExtGridColumn(col, connected, style, ::dispatchKey)
                         }
                     }
                 }
 
-                // Right arrow
-                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
-                    if (page < maxPage) {
-                        IconButton(onClick = { page++ }) {
-                            Text("❯", style = MaterialTheme.typography.titleLarge)
-                        }
-                    }
-                }
+                ExtPageArrow(visible = page < maxPage, glyph = "❯", arrowWidthDp = arrowWidthDp) { page++ }
             }
         }
 
         // Preview console (offline only)
         if (!connected) {
-            Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 80.dp, max = 220.dp)
-                        .padding(top = 8.dp),
-                shape = RoundedCornerShape(8.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            ExtPreviewConsole(previewHistory, onClear = { previewHistory.clear() })
+        }
+    }
+}
+
+@Composable
+private fun ExtPageArrow(
+    visible: Boolean,
+    glyph: String,
+    arrowWidthDp: Float,
+    onClick: () -> Unit,
+) {
+    // always reserves space, only shown when visible
+    Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
+        if (visible) {
+            IconButton(onClick = onClick) {
+                Text(glyph, style = MaterialTheme.typography.titleLarge)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExtGridColumn(
+    col: GridCol,
+    connected: Boolean,
+    style: KeyGridStyle,
+    dispatchKey: (String, Byte?) -> Unit,
+) {
+    // Modifier toggle button
+    KeyModifierButton(col.modLabel, col.modActive, col.modAction, connected, style)
+    // Key row 0 button
+    KeyCellButton(col.key0, style) { dispatchKey(col.key0, labelToHid(col.key0)) }
+    // Key row 1: button or invisible spacer
+    if (col.key1 != null) {
+        KeyCellButton(col.key1, style) { dispatchKey(col.key1, labelToHid(col.key1)) }
+    } else {
+        Spacer(Modifier.height(48.dp)) // match button height
+    }
+}
+
+@Composable
+private fun ExtPreviewConsole(
+    previewHistory: List<String>,
+    onClear: () -> Unit,
+) {
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 80.dp, max = 220.dp)
+                .padding(top = 8.dp),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(Modifier.fillMaxSize().padding(8.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.fillMaxSize().padding(8.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("Preview console", style = MaterialTheme.typography.titleSmall)
-                        Button(onClick = { previewHistory.clear() }, enabled = previewHistory.isNotEmpty()) {
-                            Text("Clear")
-                        }
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(previewHistory) { line ->
-                            Text(line, fontSize = 12.sp, modifier = Modifier.padding(vertical = 2.dp))
-                        }
-                    }
+                Text("Preview console", style = MaterialTheme.typography.titleSmall)
+                Button(onClick = onClear, enabled = previewHistory.isNotEmpty()) {
+                    Text("Clear")
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(previewHistory) { line ->
+                    Text(line, fontSize = 12.sp, modifier = Modifier.padding(vertical = 2.dp))
                 }
             }
         }

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -50,6 +49,15 @@ private sealed interface NavCell {
     object ScrollLock : NavCell // special toggle (Scroll Lock)
 }
 
+// Bundles the navigation grid's interaction state + callbacks so the per-column and
+// per-cell composables stay within the parameter-count limit.
+private data class NavGridHandlers(
+    val connected: Boolean,
+    val scrollLockActive: Boolean,
+    val dispatchKey: (String) -> Unit,
+    val dispatchScrollLock: () -> Unit,
+)
+
 // Per-column data: modifier button on top (null = spacer), then three key rows below.
 // Three rows let the arrow keys form a D-pad cross across the first columns:
 //   col1 .  ←  .      col2 ↑  .  ↓      col3 .  →  .
@@ -62,43 +70,40 @@ private data class NavGridCol(
     val key2: NavCell,
 )
 
+// Column-centric layout: each column is (modifier, key0, key1, key2), matching the
+// Extended and Function tabs. Arrows form a D-pad cross over cols 1-3:
+//          ↑              (Shift col, row0)
+//      ←       →          (Ctrl col / CAPS col, row1)
+//          ↓              (Shift col, row2)
+// A 6th empty column pads the grid to a clean 2 pages of 3 so page 2 shows only the
+// Alt/Meta columns (PGUP/PGDN/Scrl Lk), never the cross's → key.
+private fun navGridColumns(
+    ks: com.augustusmachin.android_bt_kbmouse.store.KeyboardState,
+    capsLock: Boolean,
+): List<NavGridCol> =
+    listOf(
+        NavGridCol("Ctrl", ks.ctrl, Action.ToggleCtrl, NavCell.Empty, NavCell.Key("←"), NavCell.Empty),
+        NavGridCol("Shift", ks.shift, Action.ToggleShift, NavCell.Key("↑"), NavCell.Empty, NavCell.Key("↓")),
+        NavGridCol("CAPS", capsLock, Action.ToggleCapsLock, NavCell.Empty, NavCell.Key("→"), NavCell.Empty),
+        NavGridCol("Alt", ks.alt, Action.ToggleAlt, NavCell.Key("PGUP"), NavCell.Key("PGDN"), NavCell.Empty),
+        NavGridCol("Meta", ks.gui, Action.ToggleGui, NavCell.ScrollLock, NavCell.Empty, NavCell.Empty),
+        NavGridCol(null, false, null, NavCell.Empty, NavCell.Empty, NavCell.Empty),
+    )
+
 @Composable
 fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
     val appState by StoreProvider.asStateFlow().collectAsState()
     val connected = appState.connection.connectedDevice != null
-    val keyFontSize = LocalKeyFontSize.current
     val ks = appState.keyboard
     val scrollLockActive = appState.connection.scrollLock
 
     val colsPerPage = COLS_PER_PAGE
     val maxPage = MAX_PAGE_INDEX // 6 cols / 3 per page → 2 pages → maxPage index = 1
-
-    // Column-centric layout: each column is (modifier, key0, key1, key2), matching
-    // the Extended and Function tabs. Arrows form a D-pad cross over cols 1-3:
-    //          ↑              (Shift col, row0)
-    //      ←       →          (Ctrl col / CAPS col, row1)
-    //          ↓              (Shift col, row2)
-    // A 6th empty column pads the grid to a clean 2 pages of 3 so page 2 shows
-    // only the Alt/Meta columns (PGUP/PGDN/Scrl Lk), never the cross's → key.
-    val gridCols =
-        listOf(
-            NavGridCol("Ctrl", ks.ctrl, Action.ToggleCtrl, NavCell.Empty, NavCell.Key("←"), NavCell.Empty),
-            NavGridCol("Shift", ks.shift, Action.ToggleShift, NavCell.Key("↑"), NavCell.Empty, NavCell.Key("↓")),
-            NavGridCol(
-                "CAPS",
-                appState.connection.capsLock,
-                Action.ToggleCapsLock,
-                NavCell.Empty,
-                NavCell.Key("→"),
-                NavCell.Empty,
-            ),
-            NavGridCol("Alt", ks.alt, Action.ToggleAlt, NavCell.Key("PGUP"), NavCell.Key("PGDN"), NavCell.Empty),
-            NavGridCol("Meta", ks.gui, Action.ToggleGui, NavCell.ScrollLock, NavCell.Empty, NavCell.Empty),
-            NavGridCol(null, false, null, NavCell.Empty, NavCell.Empty, NavCell.Empty),
-        )
+    val gridCols = navGridColumns(ks, appState.connection.capsLock)
 
     var page by remember { mutableStateOf(0) }
     val scrollState = rememberScrollState()
+    val style = rememberKeyGridStyle()
 
     fun dispatchKey(label: String) {
         val code = labelToHid(label) ?: return
@@ -118,44 +123,7 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
         StoreProvider.dispatch(Action.ToggleScrollLock)
     }
 
-    val inactiveColors =
-        ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        )
-    val activeColors =
-        ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-        )
-
-    @Composable
-    fun KeyCell(cell: NavCell) {
-        when (cell) {
-            is NavCell.Empty -> Spacer(Modifier.height(48.dp)) // match button height
-            is NavCell.Key ->
-                Button(
-                    onClick = { dispatchKey(cell.label) },
-                    enabled = labelToHid(cell.label) != null,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    ResponsiveText(text = cell.label, minSize = keyFontSize, maxSize = keyFontSize)
-                }
-            is NavCell.ScrollLock ->
-                Button(
-                    onClick = ::dispatchScrollLock,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = if (scrollLockActive) activeColors else inactiveColors,
-                ) {
-                    ResponsiveText(
-                        text = "Scrl Lk",
-                        minSize = 8.sp,
-                        maxSize = keyFontSize,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-        }
-    }
+    val handlers = NavGridHandlers(connected, scrollLockActive, ::dispatchKey, ::dispatchScrollLock)
 
     Column(
         modifier = Modifier.fillMaxSize().padding(contentPadding).padding(12.dp),
@@ -177,14 +145,7 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
             }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                // Left arrow — always reserves space, only shown on page > 0
-                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
-                    if (page > 0) {
-                        IconButton(onClick = { page-- }) {
-                            Text("❮", style = MaterialTheme.typography.titleLarge)
-                        }
-                    }
-                }
+                NavPageArrow(visible = page > 0, glyph = "❮", arrowWidthDp = arrowWidthDp) { page-- }
 
                 // Horizontal-scroll panel (touch disabled; programmatic only)
                 Row(
@@ -199,48 +160,72 @@ fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
                             modifier = Modifier.width(btnWidthDp.dp),
                             verticalArrangement = Arrangement.spacedBy(gapDp.dp),
                         ) {
-                            // Modifier toggle button (or spacer for the padding column)
-                            if (col.modLabel != null && col.modAction != null) {
-                                Button(
-                                    onClick = {
-                                        StoreProvider.dispatch(Action.TrackPreviewKey(col.modLabel))
-                                        StoreProvider.dispatch(col.modAction)
-                                        if (!connected) {
-                                            StoreProvider.dispatch(
-                                                Action.UpdateMessage("Preview: ${col.modLabel} toggled"),
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = if (col.modActive) activeColors else inactiveColors,
-                                ) {
-                                    ResponsiveText(
-                                        text = col.modLabel,
-                                        minSize = 8.sp,
-                                        maxSize = keyFontSize,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                }
-                            } else {
-                                Spacer(Modifier.height(48.dp))
-                            }
-                            // Key rows 0–2 (three rows form the D-pad cross)
-                            KeyCell(col.key0)
-                            KeyCell(col.key1)
-                            KeyCell(col.key2)
+                            NavGridColumn(col, style, handlers)
                         }
                     }
                 }
 
-                // Right arrow
-                Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
-                    if (page < maxPage) {
-                        IconButton(onClick = { page++ }) {
-                            Text("❯", style = MaterialTheme.typography.titleLarge)
-                        }
-                    }
-                }
+                NavPageArrow(visible = page < maxPage, glyph = "❯", arrowWidthDp = arrowWidthDp) { page++ }
             }
         }
+    }
+}
+
+@Composable
+private fun NavPageArrow(
+    visible: Boolean,
+    glyph: String,
+    arrowWidthDp: Float,
+    onClick: () -> Unit,
+) {
+    Box(Modifier.width(arrowWidthDp.dp), contentAlignment = Alignment.Center) {
+        if (visible) {
+            IconButton(onClick = onClick) {
+                Text(glyph, style = MaterialTheme.typography.titleLarge)
+            }
+        }
+    }
+}
+
+@Composable
+private fun NavGridColumn(
+    col: NavGridCol,
+    style: KeyGridStyle,
+    handlers: NavGridHandlers,
+) {
+    // Modifier toggle button (or spacer for the padding column)
+    if (col.modLabel != null && col.modAction != null) {
+        KeyModifierButton(col.modLabel, col.modActive, col.modAction, handlers.connected, style)
+    } else {
+        Spacer(Modifier.height(48.dp))
+    }
+    // Key rows 0–2 (three rows form the D-pad cross)
+    NavKeyCell(col.key0, style, handlers)
+    NavKeyCell(col.key1, style, handlers)
+    NavKeyCell(col.key2, style, handlers)
+}
+
+@Composable
+private fun NavKeyCell(
+    cell: NavCell,
+    style: KeyGridStyle,
+    handlers: NavGridHandlers,
+) {
+    when (cell) {
+        is NavCell.Empty -> Spacer(Modifier.height(48.dp)) // match button height
+        is NavCell.Key -> KeyCellButton(cell.label, style) { handlers.dispatchKey(cell.label) }
+        is NavCell.ScrollLock ->
+            Button(
+                onClick = handlers.dispatchScrollLock,
+                modifier = Modifier.fillMaxWidth(),
+                colors = if (handlers.scrollLockActive) style.activeColors else style.inactiveColors,
+            ) {
+                ResponsiveText(
+                    text = "Scrl Lk",
+                    minSize = 8.sp,
+                    maxSize = style.keyFontSize,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
     }
 }

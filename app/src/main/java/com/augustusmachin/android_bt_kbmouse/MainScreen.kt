@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
@@ -92,129 +93,12 @@ fun MainScreen() {
     val settings by settingsViewModel.settings.collectAsState(
         initial = com.augustusmachin.android_bt_kbmouse.Settings(),
     )
+    // Read the BT device name here (this composable performs a checkSelfPermission for
+    // POST_NOTIFICATIONS, satisfying lint) and pass the plain name down.
+    val connectedName = connected?.name
+    val onShowMessage: (String) -> Unit = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
     Scaffold(
-        topBar = {
-            Column {
-                // Move the navigation bar to the top so it's accessible even when the IME is visible.
-                NavigationBar {
-                    val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val currentDestination = navBackStackEntry?.destination
-                    Screen.values().forEach { screen ->
-                        val isEnabled =
-                            connected != null || screen == Screen.Pairing ||
-                                screen == Screen.Settings || settings.debugLogging || settings.offlinePreview
-                        NavigationBarItem(
-                            icon = { Icon(painterResource(id = screen.icon), contentDescription = screen.title) },
-                            label = { Text(screen.title) },
-                            selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                            // Always enabled so onClick fires; disabled appearance applied via colors.
-                            enabled = true,
-                            colors =
-                                if (!isEnabled) {
-                                    NavigationBarItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                                        unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                                        selectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                                        unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                                        indicatorColor = Color.Transparent,
-                                    )
-                                } else {
-                                    NavigationBarItemDefaults.colors()
-                                },
-                            onClick = {
-                                if (!isEnabled) {
-                                    scope.launch { snackbarHostState.showSnackbar("Connect a device first") }
-                                } else {
-                                    navController.navigate(screen.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            },
-                        )
-                    }
-                }
-
-                // Compact status row — hidden on Keyboard screen to save space.
-                val statusNavEntry by navController.currentBackStackEntryAsState()
-                if (statusNavEntry?.destination?.route != Screen.Keyboard.route) {
-                    CenterAlignedTopAppBar(
-                        title = {
-                            val chip =
-                                if (settings.debugLogging) {
-                                    val t =
-                                        when (settings.logLevel) {
-                                            1 -> "Info"
-                                            2 -> "Error"
-                                            else -> "All"
-                                        }
-                                    " • Log:" + t
-                                } else {
-                                    ""
-                                }
-                            // Compact status: indicator + device name; omit the large app title to save space.
-                            val connectedName = connected?.name
-                            val statusText =
-                                if (connectedName != null) "Connected to $connectedName" else "Disconnected"
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier =
-                                    Modifier.semantics {
-                                        this[SemanticsProperties.ContentDescription] = listOf(statusText)
-                                    },
-                            ) {
-                                val indicatorColor =
-                                    if (connectedName != null) {
-                                        MaterialTheme.colorScheme.tertiary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface.copy(
-                                            alpha = 0.34f,
-                                        )
-                                    }
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(indicatorColor),
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = connectedName ?: "Disconnected", style = MaterialTheme.typography.bodySmall)
-                                if (settings.debugLogging && chip.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(chip, style = MaterialTheme.typography.labelSmall)
-                                }
-                            }
-                        },
-                        actions = {
-                            // Scan action
-                            IconButton(
-                                onClick = { StoreProvider.dispatch(Action.StartDiscovery) },
-                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_bluetooth),
-                                    contentDescription = "Scan",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            // Settings action
-                            IconButton(
-                                onClick = { navController.navigate(Screen.Settings.route) },
-                                modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_settings),
-                                    contentDescription = "Settings",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        },
-                    )
-                }
-            }
-        },
+        topBar = { MainTopBar(navController, connected, connectedName, settings, onShowMessage) },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     ) { innerPadding ->
         val message = appState.connection.message
@@ -233,14 +117,180 @@ fun MainScreen() {
                 StoreProvider.dispatch(Action.UpdateMessage(null))
             }
         }
-        NavHost(navController, startDestination = Screen.Pairing.route, Modifier) {
-            composable(Screen.Pairing.route) { PairingScreen(contentPadding = innerPadding) }
-            composable(Screen.Keyboard.route) { KeyboardScreen(contentPadding = innerPadding) }
-            composable(Screen.Mouse.route) { MouseScreen(contentPadding = innerPadding) }
-            composable(Screen.Settings.route) {
-                SettingsScreen(contentPadding = innerPadding, onOpenLogs = { navController.navigate("logs") })
-            }
-            composable("logs") { LogsScreen(contentPadding = innerPadding) }
+        MainNavHost(navController, innerPadding)
+    }
+}
+
+@Composable
+private fun MainTopBar(
+    navController: androidx.navigation.NavHostController,
+    connected: android.bluetooth.BluetoothDevice?,
+    connectedName: String?,
+    settings: Settings,
+    onShowMessage: (String) -> Unit,
+) {
+    Column {
+        // Move the navigation bar to the top so it's accessible even when the IME is visible.
+        MainNavigationBar(navController, connected, settings, onShowMessage)
+
+        // Compact status row — hidden on Keyboard screen to save space.
+        val statusNavEntry by navController.currentBackStackEntryAsState()
+        if (statusNavEntry?.destination?.route != Screen.Keyboard.route) {
+            StatusTopBar(connectedName, settings, navController)
         }
+    }
+}
+
+@Composable
+private fun MainNavigationBar(
+    navController: androidx.navigation.NavHostController,
+    connected: android.bluetooth.BluetoothDevice?,
+    settings: Settings,
+    onShowMessage: (String) -> Unit,
+) {
+    NavigationBar {
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentDestination = navBackStackEntry?.destination
+        Screen.values().forEach { screen ->
+            val isEnabled =
+                connected != null || screen == Screen.Pairing ||
+                    screen == Screen.Settings || settings.debugLogging || settings.offlinePreview
+            NavigationBarItem(
+                icon = { Icon(painterResource(id = screen.icon), contentDescription = screen.title) },
+                label = { Text(screen.title) },
+                selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                // Always enabled so onClick fires; disabled appearance applied via colors.
+                enabled = true,
+                colors =
+                    if (!isEnabled) {
+                        NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                            selectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                            indicatorColor = Color.Transparent,
+                        )
+                    } else {
+                        NavigationBarItemDefaults.colors()
+                    },
+                onClick = {
+                    if (!isEnabled) {
+                        onShowMessage("Connect a device first")
+                    } else {
+                        navController.navigate(screen.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                },
+            )
+        }
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun StatusTopBar(
+    connectedName: String?,
+    settings: Settings,
+    navController: androidx.navigation.NavHostController,
+) {
+    CenterAlignedTopAppBar(
+        title = { StatusTitle(connectedName, settings) },
+        actions = { StatusActions(navController) },
+    )
+}
+
+@Composable
+private fun StatusTitle(
+    connectedName: String?,
+    settings: Settings,
+) {
+    val chip =
+        if (settings.debugLogging) {
+            val t =
+                when (settings.logLevel) {
+                    1 -> "Info"
+                    2 -> "Error"
+                    else -> "All"
+                }
+            " • Log:" + t
+        } else {
+            ""
+        }
+    // Compact status: indicator + device name; omit the large app title to save space.
+    val statusText =
+        if (connectedName != null) "Connected to $connectedName" else "Disconnected"
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier =
+            Modifier.semantics {
+                this[SemanticsProperties.ContentDescription] = listOf(statusText)
+            },
+    ) {
+        val indicatorColor =
+            if (connectedName != null) {
+                MaterialTheme.colorScheme.tertiary
+            } else {
+                MaterialTheme.colorScheme.onSurface.copy(
+                    alpha = 0.34f,
+                )
+            }
+        Box(
+            modifier =
+                Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(indicatorColor),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = connectedName ?: "Disconnected", style = MaterialTheme.typography.bodySmall)
+        if (settings.debugLogging && chip.isNotEmpty()) {
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(chip, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+private fun StatusActions(navController: androidx.navigation.NavHostController) {
+    // Scan action
+    IconButton(
+        onClick = { StoreProvider.dispatch(Action.StartDiscovery) },
+        modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.ic_bluetooth),
+            contentDescription = "Scan",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    // Settings action
+    IconButton(
+        onClick = { navController.navigate(Screen.Settings.route) },
+        modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.ic_settings),
+            contentDescription = "Settings",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun MainNavHost(
+    navController: androidx.navigation.NavHostController,
+    innerPadding: PaddingValues,
+) {
+    NavHost(navController, startDestination = Screen.Pairing.route, Modifier) {
+        composable(Screen.Pairing.route) { PairingScreen(contentPadding = innerPadding) }
+        composable(Screen.Keyboard.route) { KeyboardScreen(contentPadding = innerPadding) }
+        composable(Screen.Mouse.route) { MouseScreen(contentPadding = innerPadding) }
+        composable(Screen.Settings.route) {
+            SettingsScreen(contentPadding = innerPadding, onOpenLogs = { navController.navigate("logs") })
+        }
+        composable("logs") { LogsScreen(contentPadding = innerPadding) }
     }
 }
