@@ -694,133 +694,30 @@ class BluetoothService : Service(), IBluetoothService {
         }
     }
 
-    // Multi-key chord state
-    private val pressedKeys = LinkedHashSet<Byte>() // preserve insertion order
-    private var currentModifiers: Int = 0
-
-    override fun setModifiers(mods: Int) {
-        synchronized(this) { currentModifiers = mods and 0xFF }
-        sendCurrentKeyboardReport()
+    // HID report output (chord state + report writing) lives in HidReportSender.
+    // It reads the current device/proxy/descriptor mode live via these lambdas.
+    private val reportSender by lazy {
+        HidReportSender(
+            context = this,
+            currentDevice = { connectedDevice },
+            currentHid = { hidDevice() },
+            isSimplified = { hidSimplified },
+            onError = { msg -> eventListener?.onError(msg) },
+        )
     }
 
-    override fun sendKeyPress(keyCode: Byte, modifiers: Int) {
-        pressKey(keyCode, modifiers)
-        try { Thread.sleep(10) } catch (_: InterruptedException) {}
-        releaseKey(keyCode)
-    }
-
-    override fun pressKey(keyCode: Byte, modifiers: Int) {
-        synchronized(this) {
-            currentModifiers = modifiers and 0xFF
-            if (pressedKeys.size < 6) pressedKeys.add(keyCode) else {
-                // replace the oldest to ensure a report still goes out
-                if (pressedKeys.isNotEmpty()) {
-                    pressedKeys.remove(pressedKeys.first())
-                    pressedKeys.add(keyCode)
-                }
-            }
-        }
-        sendCurrentKeyboardReport()
-    }
-
-    override fun releaseKey(keyCode: Byte) {
-        synchronized(this) { pressedKeys.remove(keyCode) }
-        sendCurrentKeyboardReport()
-    }
-
-    private fun sendCurrentKeyboardReport() {
-        val device = connectedDevice ?: return
-        val hid = hidDevice() ?: return
-        val keys = synchronized(this) { pressedKeys.toList().take(6) }
-        val report = HidReportBuilder.keyboardReport(currentModifiers, keys)
-        DebugLog.log("BluetoothService", "kbd mods=" + currentModifiers + " keys=" + keys)
-        // Ensure BLUETOOTH_CONNECT before sending HID report
-        val hasBtConnectReport = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        if (hasBtConnectReport) {
-            try {
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                    hid.sendReport(device, HidDescriptorVariants.REPORT_ID_KEYBOARD.toInt(), report)
-                } else {
-                    DebugLog.e("BluetoothService", "HID sendReport not supported on API < 28; skipping keyboard report")
-                }
-            } catch (se: SecurityException) { DebugLog.e("BluetoothService", "sendReport SecurityException: ${se.message}"); eventListener?.onError("HID report failed due to missing permission") } catch (e: Exception) { DebugLog.e("BluetoothService", "kbd report error: ${e.message}"); e.printStackTrace(); eventListener?.onError("HID report failed: ${e.message}") }
-        } else {
-            DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; cannot send keyboard report")
-        }
-    }
-
-    @Volatile private var heldMouseButtons = 0
-
-    override fun sendMouseMove(dx: Int, dy: Int) {
-        sendMouseReport(heldMouseButtons, dx, dy, 0, 0)
-    }
-
-    override fun mouseButtonDown(button: Int) {
-        heldMouseButtons = heldMouseButtons or button
-        sendMouseReport(heldMouseButtons, 0, 0, 0, 0)
-    }
-
-    override fun mouseButtonUp() {
-        heldMouseButtons = 0
-        sendMouseReport(0, 0, 0, 0, 0)
-    }
-
-    override fun sendLeftClick() {
-        clickMouse(buttonMask = 0x01)
-    }
-
-    override fun sendRightClick() {
-        clickMouse(buttonMask = 0x02)
-    }
-
-    override fun sendMiddleClick() {
-        clickMouse(buttonMask = 0x04)
-    }
-
-    // Scroll is only available in the FULL descriptor; no-op when SIMPLE is active.
-    override fun sendScroll(delta: Int) {
-        if (!hidSimplified) sendMouseReport(0, 0, 0, delta, 0)
-    }
-    override fun sendScrollH(delta: Int) {
-        if (!hidSimplified) sendMouseReport(0, 0, 0, 0, delta)
-    }
-
-    private fun clickMouse(buttonMask: Int) {
-        DebugLog.log("BluetoothService", "mouse click mask=" + buttonMask)
-        sendMouseReport(buttonMask, 0, 0, 0, 0)
-        try { Thread.sleep(10) } catch (_: InterruptedException) {}
-        sendMouseReport(0, 0, 0, 0, 0)
-    }
-
-    private fun sendMouseReport(buttons: Int, dx: Int, dy: Int, wheel: Int, hWheel: Int) {
-        val device = connectedDevice ?: return
-        val hid = hidDevice() ?: return
-        // SIMPLE: 3 bytes [buttons][dx][dy]; FULL: 5 bytes [buttons][dx][dy][wheelV][wheelH]
-        val report = if (hidSimplified) {
-            HidReportBuilder.mouseReportSimple(buttons, dx, dy)
-        } else {
-            HidReportBuilder.mouseReport(buttons, dx, dy, wheel, hWheel)
-        }
-        DebugLog.log("BluetoothService", "mouse btn=$buttons dx=$dx dy=$dy wheel=$wheel hwheel=$hWheel simplified=$hidSimplified")
-        val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        if (hasBtConnect) {
-            try {
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                    hid.sendReport(device, HidDescriptorVariants.REPORT_ID_MOUSE.toInt(), report)
-                } else {
-                    DebugLog.e("BluetoothService", "HID sendReport not supported on API < 28; skipping mouse report")
-                }
-            } catch (se: SecurityException) {
-                DebugLog.e("BluetoothService", "mouse sendReport SecurityException: ${se.message}")
-                eventListener?.onError("Mouse click failed due to missing permission")
-            } catch (e: Exception) {
-                DebugLog.e("BluetoothService", "mouse report error: ${e.message}")
-                e.printStackTrace()
-            }
-        } else {
-            DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; cannot send mouse report")
-        }
-    }
+    override fun setModifiers(mods: Int) = reportSender.setModifiers(mods)
+    override fun sendKeyPress(keyCode: Byte, modifiers: Int) = reportSender.sendKeyPress(keyCode, modifiers)
+    override fun pressKey(keyCode: Byte, modifiers: Int) = reportSender.pressKey(keyCode, modifiers)
+    override fun releaseKey(keyCode: Byte) = reportSender.releaseKey(keyCode)
+    override fun sendMouseMove(dx: Int, dy: Int) = reportSender.sendMouseMove(dx, dy)
+    override fun mouseButtonDown(button: Int) = reportSender.mouseButtonDown(button)
+    override fun mouseButtonUp() = reportSender.mouseButtonUp()
+    override fun sendLeftClick() = reportSender.sendLeftClick()
+    override fun sendRightClick() = reportSender.sendRightClick()
+    override fun sendMiddleClick() = reportSender.sendMiddleClick()
+    override fun sendScroll(delta: Int) = reportSender.sendScroll(delta)
+    override fun sendScrollH(delta: Int) = reportSender.sendScrollH(delta)
 
     override fun onBind(intent: Intent): IBinder {
         return binder
