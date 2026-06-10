@@ -402,3 +402,12 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 - Phase 3: UT-09 (ServiceNotifications) and UT-10 (SettingsViewModel/BootReceiver) assessed and SKIPPED with rationale — no worthwhile pure seams (already-tested helpers cover the pure bits; rest is Context-bound). No deps added.
 - Verified: clean 5-gate run green; detekt baseline unchanged at 36 (no new entries); connectedDebugAndroidTest 97 tests 0 failed.
 - CAVEAT: the 13 physical HID tests were NOT run this session (declined). UT-06 changed the live hid.sendReport path; it's verified by code review (verbatim relocation), host unit tests (fake transport), and the standard suite, but NOT by hardware. Recommend running the physical HID suite before relying on the transport change in production.
+
+## 2026-06-10T17:45:06Z - Claude Opus 4.8 - BlueDeck Release Hardening pass complete (Phases 1-13)
+- Ran docs/BLUEDECK_RELEASE_HARDENING_TODO.md as a Ralph loop using decisions from docs/replies1.md. All 227 boxes [x]. Commits eb74ac6..66db358 (not yet pushed).
+- P1 backend lifecycle: switchBackend stops the inactive service (stopClassic/BleBackend) via pure BackendTransitionPlanner (stop-before-start, never both).
+- P2 permissions: PermissionPolicy split into requiredForClassicStartup(connect-only)/requiredForScan/requiredForBleStartup(connect+advertise)/optionalForStartup/missingRequired. Fixed bug where denying BLUETOOTH_SCAN blocked Classic startup.
+- P3 Pairing scan = scan-only. P4 BLE toggle gated on connect+advertise (BleHogpToggle). P5 services stopSelf on missing perm / startForeground failure (startInForeground(): Boolean; dropped notify-fallback).
+- P6 ScrollPolicy: SIMPLE no longer dispatches/advertises scroll (HID layer already no-op'd). P7 removed forced DebugLog.setEnabled(true); delayed notification prompt. P8 QuickTilePolicy: QS tile UNAVAILABLE in BLE mode + non-optimistic state (useBleHogp mirrored to bt_hid prefs).
+- P9 PHYSICAL_HID_TESTING.md documents ConnectProfile(HID). P10 BlueDeck palette in Theme (system bars use background for contrast), splash uses string res, removed stale ic_launcher_*. P11 versionName=0.1.0 (authorized via replies1), README ConnectProfile note, historical docs to docs/history/ (kept UIUX_FIXES1_TODO - referenced by CLAUDE.md).
+- Validation: clean unit + assemble + lint + ktlint + detekt green; instrumented 97/0; physical HID 13/13; cold-launch clean, versionName=0.1.0 on device.
