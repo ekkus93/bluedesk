@@ -21,13 +21,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import android.app.Notification
-import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.pm.ServiceInfo
-import android.graphics.Color
-import androidx.core.app.NotificationCompat
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 import android.service.quicksettings.TileService
@@ -353,7 +347,7 @@ class BluetoothService : Service(), IBluetoothService {
         discoveredDevices.clear()
         StoreProvider.dispatch(Action.UpdateDiscoveredDevices(emptyList()))
         DebugLog.log("BluetoothService", "startDiscovery")
-        val hasBtScanStart = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasBtScanStart = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_SCAN) == android.content.pm.PackageManager.PERMISSION_GRANTED
         if (!hasBtScanStart) {
             DebugLog.e("BluetoothService", "BLUETOOTH_SCAN not granted; cannot start discovery")
             StoreProvider.dispatch(Action.UpdateMessage("Scan permission not granted"))
@@ -592,36 +586,8 @@ class BluetoothService : Service(), IBluetoothService {
     }
 
     private fun startInForeground() {
-        val channelId = "bt_hid_service"
         val mgr = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (android.os.Build.VERSION.SDK_INT >= 26) {
-            if (mgr.getNotificationChannel(channelId) == null) {
-                val ch = NotificationChannel(channelId, "Bluetooth HID Service", NotificationManager.IMPORTANCE_LOW)
-                ch.enableLights(false)
-                ch.enableVibration(false)
-                mgr.createNotificationChannel(ch)
-            }
-        }
-        val pi = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or (if (android.os.Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
-        )
-        val actionFlags = PendingIntent.FLAG_UPDATE_CURRENT or (if (android.os.Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
-        val connectPi = PendingIntent.getBroadcast(this, 1, Intent(ACTION_CONNECT).setPackage(packageName), actionFlags)
-        val disconnectPi = PendingIntent.getBroadcast(this, 2, Intent(ACTION_DISCONNECT).setPackage(packageName), actionFlags)
-        val forgetPi = PendingIntent.getBroadcast(this, 3, Intent(ACTION_FORGET).setPackage(packageName), actionFlags)
-        val notif: Notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("BlueDeck running")
-            .setContentText("Tap to manage connection")
-            .setSmallIcon(R.drawable.ic_bluetooth)
-            .setContentIntent(pi)
-            .addAction(R.drawable.ic_bluetooth, "Connect", connectPi)
-            .addAction(R.drawable.ic_bluetooth, "Disconnect", disconnectPi)
-            .addAction(R.drawable.ic_settings, "Forget", forgetPi)
-            .setOngoing(true)
-            .build()
+        val notif = ServiceNotifications.buildForeground(this, ACTION_CONNECT, ACTION_DISCONNECT, ACTION_FORGET)
         // Use the two-argument startForeground where possible. On some
         // platform builds the system may still enforce foreground-service
         // types; guard against that so the service doesn't crash the app.
@@ -643,27 +609,7 @@ class BluetoothService : Service(), IBluetoothService {
         DebugLog.e("BluetoothService", msg)
         // Post a user-visible notification with a shortcut to app settings
         try {
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val channelId = "bt_hid_error"
-            if (android.os.Build.VERSION.SDK_INT >= 26) {
-                if (nm.getNotificationChannel(channelId) == null) {
-                    val ch = NotificationChannel(channelId, "Bluetooth HID errors", NotificationManager.IMPORTANCE_HIGH)
-                    ch.enableLights(true)
-                    ch.lightColor = Color.RED
-                    nm.createNotificationChannel(ch)
-                }
-            }
-            val settingsIntent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", packageName, null))
-            settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            val pi = PendingIntent.getActivity(this, 0, settingsIntent, PendingIntent.FLAG_UPDATE_CURRENT or (if (android.os.Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0))
-            val notif = NotificationCompat.Builder(this, channelId)
-                .setContentTitle("Bluetooth permission required")
-                .setContentText(msg)
-                .setSmallIcon(R.drawable.ic_bluetooth)
-                .setContentIntent(pi)
-                .setAutoCancel(true)
-                .build()
-            nm.notify(2, notif)
+            ServiceNotifications.postMissingPermission(this, msg)
         } catch (e: Exception) {
             DebugLog.e("BluetoothService", "failed to post settings notification: ${e.message}")
         }
