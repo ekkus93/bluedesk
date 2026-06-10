@@ -96,6 +96,9 @@ class MainActivity : ComponentActivity() {
     private var serviceBound = false
     private var bleHogpBound = false
 
+    // The backend + permissions chosen at startup once settings have loaded.
+    private var startupPlan: StartupPermissionPlan? = null
+
     // Settings are collected in SettingsViewModel which performs global side-effects (DebugLog)
     private val settingsViewModel: SettingsViewModel by viewModels()
 
@@ -252,27 +255,28 @@ class MainActivity : ComponentActivity() {
         // DebugLog enable/level is settings-driven: SettingsViewModel applies the persisted
         // debugLogging preference after settings load. Do not force-enable logging at startup.
         installComposeUi()
-        // Defer starting/binding services until required runtime permissions are granted.
+        // Defer starting/binding services until the *selected backend's* required runtime
+        // permissions are resolved. Settings load first so the request is backend-aware
+        // (Classic needs connect; BLE needs connect+advertise).
         val permissionLauncher: ActivityResultLauncher<Array<String>> =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-                // Only block startup if a REQUIRED Classic HID permission (connect) was denied.
-                // Scan, advertise, and notification denials are non-fatal for Classic startup.
-                val required = PermissionPolicy.requiredForClassicStartup(android.os.Build.VERSION.SDK_INT)
-                if (PermissionPolicy.missingRequired(result, required).isNotEmpty()) {
-                    showPermissionNeededDialog()
-                } else {
-                    startServicesAndBind()
+                onStartupPermissionResult(result)
+            }
+        lifecycleScope.launch {
+            settingsViewModel.isLoaded.first { it }
+            val plan =
+                StartupPermissionPlanner.plan(settingsViewModel.settings.value, android.os.Build.VERSION.SDK_INT)
+            startupPlan = plan
+            val missing =
+                plan.requiredPermissions.filter {
+                    ContextCompat.checkSelfPermission(this@MainActivity, it) != PackageManager.PERMISSION_GRANTED
                 }
+            if (missing.isEmpty()) {
+                startPlannedBackend(plan)
+                StartupState.markPermissionFlowResolved()
+            } else {
+                permissionLauncher.launch(missing.toTypedArray())
             }
-
-        val missing =
-            requiredStartupPermissions().filter {
-                ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-            }
-        if (missing.isEmpty()) {
-            startServicesAndBind()
-        } else {
-            permissionLauncher.launch(missing.toTypedArray())
         }
 
         // Observe backend-mode changes at runtime and switch services cleanly.
@@ -340,20 +344,53 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requiredStartupPermissions(): Array<String> =
-        PermissionPolicy.requiredForClassicStartup(android.os.Build.VERSION.SDK_INT).toTypedArray()
+    private fun startPlannedBackend(plan: StartupPermissionPlan) {
+        DebugLog.log("MainActivity", "startPlannedBackend backend=${plan.backend}")
+        if (plan.backend == BackendMode.BLE_HOGP) startAndBindBleBackend() else startAndBindClassicBackend()
+    }
 
-    private fun startServicesAndBind() {
+    /** Result of the startup permission request for the planned backend. */
+    private fun onStartupPermissionResult(result: Map<String, Boolean>) {
+        val plan = startupPlan
+        if (plan == null) {
+            StartupState.markPermissionFlowResolved()
+            return
+        }
+        when {
+            PermissionPolicy.missingRequired(result, plan.requiredPermissions).isEmpty() -> {
+                startPlannedBackend(plan)
+                StartupState.markPermissionFlowResolved()
+            }
+            plan.backend == BackendMode.BLE_HOGP -> handleBleStartupDenied()
+            else -> {
+                showPermissionNeededDialog()
+                StartupState.markPermissionFlowResolved()
+            }
+        }
+    }
+
+    /**
+     * Interactive BLE startup denial: persist useBleHogp=false and fall back to Classic if its
+     * permission is present, otherwise prompt. (Boot does NOT persist this — see BootReceiver.)
+     */
+    private fun handleBleStartupDenied() {
+        DebugLog.e("MainActivity", "BLE startup permissions denied; falling back to Classic")
+        StoreProvider.dispatch(
+            Action.UpdateMessage("BLE HOGP needs Bluetooth connect/advertise permissions; staying on Classic."),
+        )
         lifecycleScope.launch {
-            // Wait for persisted settings before choosing the HID backend (Phase 3).
-            settingsViewModel.isLoaded.first { it }
-            val useBle = settingsViewModel.settings.value.useBleHogp
-            DebugLog.log("MainActivity", "startServicesAndBind backend=${BackendSelector.fromSettings(useBle)}")
-            if (useBle) startAndBindBleBackend() else startAndBindClassicBackend()
+            SettingsManager.setUseBleHogp(this@MainActivity, false)
+            val classicMissing =
+                PermissionPolicy.requiredForClassicStartup(android.os.Build.VERSION.SDK_INT).filter {
+                    ContextCompat.checkSelfPermission(this@MainActivity, it) != PackageManager.PERMISSION_GRANTED
+                }
+            if (classicMissing.isEmpty()) startAndBindClassicBackend() else showPermissionNeededDialog()
+            StartupState.markPermissionFlowResolved()
         }
     }
 
     private fun startAndBindClassicBackend() {
+        if (serviceBound) return
         val intent = Intent(this, BluetoothService::class.java)
         if (android.os.Build.VERSION.SDK_INT >= SDK_INT_OREO) startForegroundService(intent) else startService(intent)
         runCatchingLogged("MainActivity", "bind BluetoothService failed") {
@@ -362,6 +399,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startAndBindBleBackend() {
+        if (bleHogpBound) return
         val intent = Intent(this, BleHogpService::class.java)
         if (android.os.Build.VERSION.SDK_INT >= SDK_INT_OREO) startForegroundService(intent) else startService(intent)
         runCatchingLogged("MainActivity", "bind BleHogpService failed") {

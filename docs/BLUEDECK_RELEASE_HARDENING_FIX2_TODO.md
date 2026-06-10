@@ -1,0 +1,491 @@
+# BlueDeck Release Hardening Fix 2 TODO
+
+## Implementation rules
+
+- This is a narrow follow-up pass.
+- Do not redo the whole previous hardening pass.
+- Do not rename package, namespace, or application ID.
+- Do not change splash duration from `1800L`.
+- Do not change tagline wording: keep `The handy keyboard and mouse`.
+- Do not redesign the UI.
+- Do not suppress tests/lint to make results green.
+- Do not mark manual smoke items complete unless actually manually tested.
+
+---
+
+## Phase 1 — Fix persisted BLE startup permission handling
+
+### Task 1.1 — Identify current startup flow
+
+- [x] Open `MainActivity.kt`.
+- [x] Locate `requiredStartupPermissions()`.
+- [x] Locate startup permission launcher.
+- [x] Locate `startServicesAndBind()`.
+- [x] Confirm whether settings are loaded before backend permission selection.
+
+Acceptance criteria:
+
+- [x] Current startup order is understood before patching.
+
+### Task 1.2 — Add startup permission planner
+
+- [x] Add `StartupPermissionPlanner` or equivalent pure helper.
+- [x] Planner input includes:
+  - [x] settings or `useBleHogp`,
+  - [x] SDK version.
+- [x] Planner output includes:
+  - [x] selected backend,
+  - [x] required permissions.
+- [x] If `useBleHogp == false`, output Classic startup permissions.
+- [x] If `useBleHogp == true`, output BLE startup permissions.
+
+Acceptance criteria:
+
+- [x] Startup permission selection is testable without Android framework mocks.
+
+### Task 1.3 — Update MainActivity startup permission flow
+
+- [x] Wait for settings to load before computing startup permissions.
+- [x] If persisted backend is Classic:
+  - [x] request/check `PermissionPolicy.requiredForClassicStartup(...)`.
+- [x] If persisted backend is BLE:
+  - [x] request/check `PermissionPolicy.requiredForBleStartup(...)`.
+- [x] Do not always call Classic startup permissions before settings are loaded.
+- [x] Do not start BLE if BLE required permissions are missing.
+
+Acceptance criteria:
+
+- [x] Persisted BLE mode startup cannot bypass advertise permission.
+
+### Task 1.4 — Handle BLE startup denial
+
+Implement preferred v0.1 behavior:
+
+- [x] If BLE startup permissions are denied, persist `useBleHogp = false`.
+- [x] Fall back to Classic if Classic required permissions are granted.
+- [x] Show/log:
+  ```text
+  BLE HOGP needs Bluetooth connect/advertise permissions; staying on Classic.
+  ```
+- [x] Do not silently half-start BLE.
+
+Acceptance criteria:
+
+- [x] Revoked BLE permissions do not produce broken BLE startup.
+
+### Task 1.5 — Add tests
+
+Add `StartupPermissionPlannerTest` or equivalent:
+
+- [x] persisted Classic => Classic startup permissions.
+- [x] persisted Classic excludes scan.
+- [x] persisted BLE => BLE startup permissions.
+- [x] persisted BLE includes advertise.
+- [x] persisted BLE includes connect.
+- [x] persisted BLE excludes scan unless explicitly needed.
+
+Acceptance criteria:
+
+- [x] Tests catch the previous always-Classic startup-permission bug.
+
+---
+
+## Phase 2 — Fix `BluetoothService` foreground failure handling
+
+### Task 2.1 — Update `BluetoothService.onCreate()`
+
+- [ ] Open `BluetoothService.kt`.
+- [ ] Locate `startInForeground()`.
+- [ ] Check its return value.
+- [ ] If false, return immediately:
+  ```kotlin
+  if (!startInForeground()) return
+  ```
+
+Acceptance criteria:
+
+- [ ] `BluetoothService` does not continue if foreground promotion fails.
+
+### Task 2.2 — Move foreground promotion earlier
+
+- [ ] Reorder `onCreate()` so foreground promotion happens before major Bluetooth side effects where practical.
+- [ ] Avoid calling `getProfileProxy(...)` before foreground promotion if possible.
+- [ ] Avoid receiver registration before foreground promotion if possible.
+- [ ] Avoid paired-device dispatch before foreground promotion if possible.
+
+Acceptance criteria:
+
+- [ ] Failed foreground promotion aborts before service starts Bluetooth work.
+
+### Task 2.3 — Validate Classic service failure path
+
+- [ ] Add pure helper test if practical.
+- [ ] Otherwise document manual validation for simulated `startForeground()` failure.
+- [ ] Confirm `BleHogpService` still checks `if (!startInForeground()) return`.
+
+Acceptance criteria:
+
+- [ ] Both Classic and BLE services abort on foreground failure.
+
+---
+
+## Phase 3 — Implement backend-aware BootReceiver behavior
+
+### Task 3.1 — Implement Option A only
+
+- [ ] Implement **Option A — backend-aware boot startup**.
+- [ ] Do not implement the Classic-only v0.1 option.
+- [ ] Do not silently start Classic when `useBleHogp == true`.
+- [ ] Do not silently fall back to Classic when BLE boot permissions are missing.
+
+Acceptance criteria:
+
+- [ ] Boot behavior respects the selected backend.
+
+### Task 3.2 — Read both boot settings
+
+- [ ] `BootReceiver` reads `startOnBoot`.
+- [ ] `BootReceiver` reads `useBleHogp`.
+- [ ] If `startOnBoot == false`, start nothing.
+- [ ] If `startOnBoot == true && useBleHogp == false`, evaluate Classic startup.
+- [ ] If `startOnBoot == true && useBleHogp == true`, evaluate BLE startup.
+
+Acceptance criteria:
+
+- [ ] BootReceiver decision is based on both settings.
+
+### Task 3.3 — Start Classic only when Classic is selected and permitted
+
+- [ ] If `startOnBoot == true && useBleHogp == false`, start `BluetoothService`.
+- [ ] Start Classic only if Classic startup permissions are present.
+- [ ] If Classic permissions are missing, start nothing and log a clear reason.
+
+Acceptance criteria:
+
+- [ ] Classic boot startup is permission-checked.
+
+### Task 3.4 — Start BLE only when BLE is selected and permitted
+
+- [ ] If `startOnBoot == true && useBleHogp == true`, start `BleHogpService`.
+- [ ] Start BLE only if BLE startup permissions are present:
+  - [ ] `BLUETOOTH_CONNECT`,
+  - [ ] `BLUETOOTH_ADVERTISE`.
+- [ ] If BLE permissions are missing, start nothing and log:
+  ```text
+  Start on boot skipped: BLE HOGP selected but required Bluetooth connect/advertise permissions are missing.
+  ```
+- [ ] Do not persist `useBleHogp=false` from the boot receiver.
+- [ ] Do not start Classic as a fallback.
+
+Acceptance criteria:
+
+- [ ] BLE-selected boot never silently starts Classic.
+
+### Task 3.5 — Replace blocking receiver logic
+
+- [ ] Remove `runBlocking` from `BootReceiver`.
+- [ ] Use `goAsync()`.
+- [ ] Launch coroutine work off the receiver callback.
+- [ ] Use timeout, for example `withTimeoutOrNull(3_000)`.
+- [ ] Always call `pendingResult.finish()` in `finally`.
+
+Acceptance criteria:
+
+- [ ] BootReceiver does not block indefinitely.
+
+### Task 3.6 — Add BootStartPlanner
+
+- [ ] Add pure `BootStartPlanner` or equivalent helper.
+- [ ] Planner returns explicit decisions:
+  - [ ] start nothing,
+  - [ ] start Classic,
+  - [ ] start BLE,
+  - [ ] skip with reason.
+- [ ] Planner input includes:
+  - [ ] `startOnBoot`,
+  - [ ] `useBleHogp`,
+  - [ ] Classic permission availability,
+  - [ ] BLE permission availability,
+  - [ ] SDK version if needed.
+
+Acceptance criteria:
+
+- [ ] Boot decisions are unit-testable without Android framework mocks.
+
+### Task 3.7 — Add boot planner tests
+
+Add `BootStartPlannerTest`:
+
+- [ ] `startOnBoot=false` => start nothing.
+- [ ] `startOnBoot=true`, Classic selected, Classic permissions granted => start Classic.
+- [ ] `startOnBoot=true`, BLE selected, BLE permissions granted => start BLE.
+- [ ] Classic selected but Classic permissions missing => start nothing / skip.
+- [ ] BLE selected but `BLUETOOTH_CONNECT` missing => start nothing / skip.
+- [ ] BLE selected but `BLUETOOTH_ADVERTISE` missing => start nothing / skip.
+- [ ] BLE selected with missing permissions never starts Classic.
+- [ ] Boot planner exposes a clear skip reason for missing BLE permissions.
+
+Acceptance criteria:
+
+- [ ] Backend-aware boot behavior is protected by tests.
+
+---
+
+## Phase 4 — Replace timer-only notification permission sequencing
+
+### Task 4.1 — Remove timer-only sequencing
+
+- [ ] Locate `NOTIF_PROMPT_DELAY_MS`.
+- [ ] Confirm whether notification permission prompt is launched after a fixed delay.
+- [ ] Do not rely solely on `delay(...)` to avoid permission dialog races.
+
+Acceptance criteria:
+
+- [ ] Timer-only permission sequencing is removed or no longer the only guard.
+
+### Task 4.2 — Add startup permission completion state
+
+- [ ] Add state indicating startup permission flow is resolved.
+- [ ] Set it only after:
+  - [ ] startup Bluetooth permissions granted and handled, or
+  - [ ] denied and fallback/no-start decision handled.
+- [ ] Notification permission prompt can only happen after this state.
+
+Acceptance criteria:
+
+- [ ] Notification permission launcher cannot fire while startup Bluetooth launcher is active.
+
+### Task 4.3 — Keep notification optional
+
+- [ ] Denying `POST_NOTIFICATIONS` does not block app.
+- [ ] Notification permission is not included in fatal startup permission requests.
+- [ ] If user denies, log/show non-blocking message only.
+
+Acceptance criteria:
+
+- [ ] Notification permission remains optional.
+
+### Task 4.4 — Add validation
+
+- [ ] Add pure state test if practical.
+- [ ] Otherwise document manual first-launch test:
+  - [ ] fresh install,
+  - [ ] Bluetooth permission prompt appears,
+  - [ ] notification prompt does not overlap/race,
+  - [ ] denial does not block Classic operation.
+
+Acceptance criteria:
+
+- [ ] Sequencing behavior is validated.
+
+---
+
+## Phase 5 — Correct validation evidence wording
+
+### Task 5.1 — Update hardening validation notes
+
+- [ ] Find validation notes in TODO/docs/memory.
+- [ ] Replace overbroad manual-smoke completion claims.
+- [ ] Use separate labels:
+  - [ ] Unit-verified,
+  - [ ] Instrumented-verified,
+  - [ ] Physical-HID-verified,
+  - [ ] Manual-device-verified,
+  - [ ] Pending manual UX smoke test.
+
+Acceptance criteria:
+
+- [ ] Unit tests are not presented as manual UX smoke tests.
+
+### Task 5.2 — Update manual smoke checklist status
+
+For each item, mark one of:
+
+```text
+PASS — manually verified on device
+PASS — unit/instrumented verified only
+PENDING — needs human manual smoke
+FAIL — issue found
+N/A — not applicable
+```
+
+Acceptance criteria:
+
+- [ ] Validation record is honest and useful.
+
+### Task 5.3 — Preserve real green results
+
+- [ ] Do not remove true test results.
+- [ ] Keep unit/build/lint/instrumented/physical HID results if they were actually run.
+- [ ] Just classify them accurately.
+
+Acceptance criteria:
+
+- [ ] Validation history remains useful without overclaiming.
+
+---
+
+## Phase 6 — Minor polish fixes
+
+### Task 6.1 — Fix BLE denial message
+
+- [ ] Open `SettingsScreen.kt`.
+- [ ] Update BLE permission denial copy to mention both connect and advertise.
+- [ ] Suggested text:
+  ```text
+  BLE HOGP needs Bluetooth connect/advertise permissions; staying on Classic.
+  ```
+
+Acceptance criteria:
+
+- [ ] Message matches actual required BLE permissions.
+
+### Task 6.2 — Fix README scroll wording
+
+- [ ] Open `README.md`.
+- [ ] Find feature list scroll wording.
+- [ ] Update to:
+  ```text
+  two-finger vertical/horizontal scroll in Full descriptor mode
+  ```
+- [ ] Ensure SIMPLE mode is not implied to support scroll.
+
+Acceptance criteria:
+
+- [ ] README feature list matches actual descriptor behavior.
+
+### Task 6.3 — Clean XML theme colors if safe
+
+- [ ] Search for old template colors:
+  - [ ] `purple_500`,
+  - [ ] `purple_700`,
+  - [ ] `teal_200`.
+- [ ] Update XML theme colors to BlueDeck palette where safe.
+- [ ] Do not break `Theme.BlueDeck.Starting`.
+- [ ] Do not break `Theme.BluetoothKeyboardMouse`.
+
+Acceptance criteria:
+
+- [ ] XML theme resources do not visibly clash with BlueDeck branding.
+
+### Task 6.4 — Polish Quick Settings tile label if low risk
+
+- [ ] If tile connected label uses raw MAC address, prefer bonded device name.
+- [ ] Fall back to address only if no name is available.
+- [ ] Do not mark tile active unless connection is confirmed.
+- [ ] Do not rework tile architecture.
+
+Acceptance criteria:
+
+- [ ] Tile label is less ugly without changing core behavior.
+
+---
+
+## Phase 7 — Validation
+
+### Task 7.1 — Unit/JVM tests
+
+Run:
+
+```bash
+./gradlew clean test
+```
+
+Acceptance criteria:
+
+- [ ] Tests pass or failures are documented.
+
+### Task 7.2 — Build
+
+Run:
+
+```bash
+./gradlew assembleDebug
+```
+
+Acceptance criteria:
+
+- [ ] Debug APK builds.
+
+### Task 7.3 — Lint/static checks
+
+Run:
+
+```bash
+./gradlew lintDebug
+./gradlew ktlintCheck
+./gradlew detekt
+```
+
+Acceptance criteria:
+
+- [ ] No release-blocking lint/static-analysis failures.
+
+### Task 7.4 — Instrumented tests
+
+If device/emulator available:
+
+```bash
+./gradlew connectedDebugAndroidTest
+```
+
+Acceptance criteria:
+
+- [ ] Instrumented tests pass or hardware-dependent skips are documented.
+
+### Task 7.5 — Physical HID tests if setup available
+
+Run physical HID test with:
+
+```bash
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.augustusmachin.android_bt_kbmouse.BluetoothHidSendReportTest \
+  -Pandroid.testInstrumentationRunnerArguments.runPhysicalHidTests=true \
+  -Pandroid.testInstrumentationRunnerArguments.hidHostAddress=<LAPTOP_BT_ADDRESS> \
+  -Pandroid.testInstrumentationRunnerArguments.hidPhoneAddress=<PHONE_BT_ADDRESS>
+```
+
+Use DBus `ConnectProfile(HID)` from the Linux host.
+
+Acceptance criteria:
+
+- [ ] Physical HID results are recorded separately from normal instrumented tests.
+
+### Task 7.6 — Manual UX smoke
+
+Manually verify on device if possible:
+
+- [ ] Fresh install Classic startup permission flow.
+- [ ] Fresh install persisted BLE startup path if possible.
+- [ ] Notification permission prompt does not race Bluetooth prompt.
+- [ ] BLE permission denial falls back to Classic.
+- [ ] Boot behavior matches chosen Option A or Option B.
+- [ ] `BluetoothService` starts normally after foreground promotion.
+- [ ] BlueDeck app still launches and shows splash/icon/name.
+
+Acceptance criteria:
+
+- [ ] Manual UX smoke items are marked accurately, not inferred from unit tests.
+
+---
+
+## Phase 8 — Final acceptance checklist
+
+Do not mark Fix 2 complete until all are true:
+
+- [ ] Startup permission plan depends on persisted backend setting.
+- [ ] Persisted Classic mode requests/checks Classic startup permissions.
+- [ ] Persisted BLE mode requests/checks BLE startup permissions.
+- [ ] Missing BLE permissions do not silently start BLE service.
+- [ ] BLE startup denial falls back to Classic or cleanly stops with clear message.
+- [ ] `BluetoothService` aborts on failed `startInForeground()`.
+- [ ] `BluetoothService` does not do major Bluetooth setup before failed foreground promotion.
+- [ ] Boot behavior is backend-aware and documented.
+- [ ] Boot never silently starts Classic when BLE mode is selected.
+- [ ] Notification permission prompt is state-sequenced, not timer-only.
+- [ ] Validation notes distinguish unit/instrumented/physical/manual evidence.
+- [ ] BLE denial copy mentions connect + advertise.
+- [ ] README says scroll is Full descriptor mode.
+- [ ] Startup planner tests exist and pass.
+- [ ] Boot planner tests exist and cover backend-aware boot.
+- [ ] Build/test/lint/static validation passes or failures are honestly documented.
