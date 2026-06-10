@@ -110,8 +110,9 @@ so pre-existing findings are grandfathered and only new ones fail; regenerate wi
 `ktlintGenerateBaseline` / `detektBaseline`.
 
 CI runs Android Lint, ktlint, detekt, build, and unit tests on every push and pull request to `master`.
-Physical HID tests are opt-in — see
-[docs/PHYSICAL_HID_TESTING.md](docs/PHYSICAL_HID_TESTING.md).
+Physical HID tests are opt-in and host-initiated — on Linux/BlueZ the host opens the HID
+profile with `dbus-send … org.bluez.Device1.ConnectProfile string:00001124-…` (not just
+`bluetoothctl connect`). See [docs/PHYSICAL_HID_TESTING.md](docs/PHYSICAL_HID_TESTING.md).
 
 ## Known issues
 
