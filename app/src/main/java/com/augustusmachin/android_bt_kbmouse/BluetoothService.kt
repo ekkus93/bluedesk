@@ -61,95 +61,92 @@ class BluetoothService : Service(), IBluetoothService {
                 intent: Intent,
             ) {
                 when (intent.action) {
-                    BluetoothDevice.ACTION_FOUND -> {
-                        val device: BluetoothDevice? =
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
-                            } else {
-                                @Suppress("DEPRECATION")
-                                intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE) as? BluetoothDevice
-                            }
-                        device?.let {
-                            if (!discoveredDevices.contains(it)) {
-                                discoveredDevices.add(it)
-                                DebugLog.log("BluetoothService", "FOUND ${it.address}")
-                            }
-                            StoreProvider.dispatch(Action.UpdateDiscoveredDevices(discoveredDevices.toList()))
-                        }
-                    }
+                    BluetoothDevice.ACTION_FOUND -> handleDeviceFound(intent)
                     BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
                         DebugLog.log("BluetoothService", "discovery finished")
                         StoreProvider.dispatch(Action.UpdateIsScanning(false))
                     }
-                    BluetoothDevice.ACTION_BOND_STATE_CHANGED -> {
-                        val state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, -1)
-                        val dev: BluetoothDevice? =
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
-                            } else {
-                                @Suppress("DEPRECATION")
-                                intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE) as? BluetoothDevice
-                            }
-                        DebugLog.log("BluetoothService", "BOND_STATE_CHANGED=$state dev=${dev?.address}")
-                        when (state) {
-                            BluetoothDevice.BOND_BONDED ->
-                                if (dev != null) {
-                                    lastTargetDevice = dev
-                                    lastDeviceAddress = dev.address
-                                    devicePrefs.setLastDevice(dev.address)
-                                    scheduleReconnect(0)
-                                    StoreProvider.dispatch(Action.UpdatePairedDevices(getPairedDevices()))
-                                }
-                            BluetoothDevice.BOND_NONE ->
-                                if (dev != null) {
-                                    DebugLog.log("BluetoothService", "BOND_NONE for ${dev.address}")
-                                    StoreProvider.dispatch(Action.UpdatePairedDevices(getPairedDevices()))
-                                    if (connectedDevice?.address == dev.address) {
-                                        connectedDevice = null
-                                        StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
-                                        StoreProvider.dispatch(Action.UpdateMessage("Unpaired: ${dev.address}"))
-                                    }
-                                    if (lastDeviceAddress == dev.address) {
-                                        devicePrefs.setLastDevice(null)
-                                        lastDeviceAddress = null
-                                        lastTargetDevice = null
-                                        StoreProvider.dispatch(Action.UpdateDefaultDevice(null))
-                                    }
-                                }
-                        }
-                    }
-                    BluetoothAdapter.ACTION_STATE_CHANGED -> {
-                        val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
-                        when (state) {
-                            BluetoothAdapter.STATE_OFF, BluetoothAdapter.STATE_TURNING_OFF -> {
-                                btEnabled = false
-                                DebugLog.log("BluetoothService", "Bluetooth OFF - pausing reconnect and clearing HID")
-                                reconnectRunnable?.let { mainHandler.removeCallbacks(it) }
-                                reconnectRunnable = null
-                                reconnectPending = true
-                                hid = null
-                            }
-                            BluetoothAdapter.STATE_ON -> {
-                                btEnabled = true
-                                DebugLog.log(
-                                    "BluetoothService",
-                                    "Bluetooth ON - (re)acquiring HID proxy and resuming reconnect",
-                                )
-                                bluetoothAdapter?.getProfileProxy(
-                                    this@BluetoothService,
-                                    profileListener,
-                                    BluetoothProfile.HID_DEVICE,
-                                )
-                                if (reconnectPending || connectedDevice == null) {
-                                    reconnectPending = false
-                                    scheduleReconnect(0)
-                                }
-                            }
-                        }
-                    }
+                    BluetoothDevice.ACTION_BOND_STATE_CHANGED -> handleBondStateChanged(intent)
+                    BluetoothAdapter.ACTION_STATE_CHANGED -> handleAdapterStateChanged(intent)
                 }
             }
         }
+
+    private fun deviceFromIntent(intent: Intent): BluetoothDevice? =
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE) as? BluetoothDevice
+        }
+
+    private fun handleDeviceFound(intent: Intent) {
+        val device = deviceFromIntent(intent) ?: return
+        if (!discoveredDevices.contains(device)) {
+            discoveredDevices.add(device)
+            DebugLog.log("BluetoothService", "FOUND ${device.address}")
+        }
+        StoreProvider.dispatch(Action.UpdateDiscoveredDevices(discoveredDevices.toList()))
+    }
+
+    private fun handleBondStateChanged(intent: Intent) {
+        val state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, -1)
+        val dev = deviceFromIntent(intent)
+        DebugLog.log("BluetoothService", "BOND_STATE_CHANGED=$state dev=${dev?.address}")
+        when (state) {
+            BluetoothDevice.BOND_BONDED -> if (dev != null) onBondBonded(dev)
+            BluetoothDevice.BOND_NONE -> if (dev != null) onBondRemoved(dev)
+        }
+    }
+
+    private fun onBondBonded(dev: BluetoothDevice) {
+        lastTargetDevice = dev
+        lastDeviceAddress = dev.address
+        devicePrefs.setLastDevice(dev.address)
+        scheduleReconnect(0)
+        StoreProvider.dispatch(Action.UpdatePairedDevices(getPairedDevices()))
+    }
+
+    private fun onBondRemoved(dev: BluetoothDevice) {
+        DebugLog.log("BluetoothService", "BOND_NONE for ${dev.address}")
+        StoreProvider.dispatch(Action.UpdatePairedDevices(getPairedDevices()))
+        if (connectedDevice?.address == dev.address) {
+            connectedDevice = null
+            StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
+            StoreProvider.dispatch(Action.UpdateMessage("Unpaired: ${dev.address}"))
+        }
+        if (lastDeviceAddress == dev.address) {
+            devicePrefs.setLastDevice(null)
+            lastDeviceAddress = null
+            lastTargetDevice = null
+            StoreProvider.dispatch(Action.UpdateDefaultDevice(null))
+        }
+    }
+
+    private fun handleAdapterStateChanged(intent: Intent) {
+        when (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)) {
+            BluetoothAdapter.STATE_OFF, BluetoothAdapter.STATE_TURNING_OFF -> {
+                btEnabled = false
+                DebugLog.log("BluetoothService", "Bluetooth OFF - pausing reconnect and clearing HID")
+                reconnectRunnable?.let { mainHandler.removeCallbacks(it) }
+                reconnectRunnable = null
+                reconnectPending = true
+                hid = null
+            }
+            BluetoothAdapter.STATE_ON -> {
+                btEnabled = true
+                DebugLog.log(
+                    "BluetoothService",
+                    "Bluetooth ON - (re)acquiring HID proxy and resuming reconnect",
+                )
+                bluetoothAdapter?.getProfileProxy(this, profileListener, BluetoothProfile.HID_DEVICE)
+                if (reconnectPending || connectedDevice == null) {
+                    reconnectPending = false
+                    scheduleReconnect(0)
+                }
+            }
+        }
+    }
 
     interface ServiceEventListener {
         fun onConnected(device: BluetoothDevice)
@@ -716,37 +713,37 @@ class BluetoothService : Service(), IBluetoothService {
         }
     }
 
-    override fun disconnectDevice() {
-        manualDisconnect = true
+    /** Best-effort HID disconnect from [target], guarded by BLUETOOTH_CONNECT + API 28. */
+    private fun disconnectHidFrom(target: BluetoothDevice) {
+        val hasBtConnect =
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!hasBtConnect) {
+            DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; skipping disconnect")
+            return
+        }
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.P) {
+            DebugLog.e("BluetoothService", "HID disconnect not supported on API < 28; skipping")
+            return
+        }
         try {
-            val target = connectedDevice ?: lastTargetDevice
-            DebugLog.log("BluetoothService", "disconnectDevice target=${target?.address}")
-            if (target != null) {
-                val hasBtConnectDisc =
-                    ContextCompat.checkSelfPermission(
-                        this@BluetoothService,
-                        Manifest.permission.BLUETOOTH_CONNECT,
-                    ) ==
-                        android.content.pm.PackageManager.PERMISSION_GRANTED
-                if (hasBtConnectDisc) {
-                    try {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                            hid?.disconnect(target)
-                        } else {
-                            DebugLog.e("BluetoothService", "HID disconnect not supported on API < 28; skipping")
-                        }
-                    } catch (se: SecurityException) {
-                        DebugLog.e("BluetoothService", "hid.disconnect SecurityException: ${se.message}")
-                    }
-                } else {
-                    DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; skipping disconnect")
-                }
-            }
+            hid?.disconnect(target)
+        } catch (se: SecurityException) {
+            DebugLog.e("BluetoothService", "hid.disconnect SecurityException: ${se.message}")
         } catch (
             @Suppress("TooGenericExceptionCaught") e: Exception,
         ) {
-            // defensive: has finally that clears connection state
-            DebugLog.e("BluetoothService", "disconnect error: ${e.message}")
+            // defensive: never let a disconnect failure propagate
+            DebugLog.e("BluetoothService", "hid.disconnect error: ${e.message}")
+        }
+    }
+
+    override fun disconnectDevice() {
+        manualDisconnect = true
+        val target = connectedDevice ?: lastTargetDevice
+        DebugLog.log("BluetoothService", "disconnectDevice target=${target?.address}")
+        try {
+            if (target != null) disconnectHidFrom(target)
         } finally {
             connectedDevice = null
             devicePrefs.setConnectedName(null)
@@ -886,30 +883,7 @@ class BluetoothService : Service(), IBluetoothService {
         try {
             if (connectedDevice?.address == device.address) {
                 manualDisconnect = true
-                // Guard hid.disconnect with BLUETOOTH_CONNECT check
-                val hasBtConnectForget =
-                    ContextCompat.checkSelfPermission(
-                        this@BluetoothService,
-                        Manifest.permission.BLUETOOTH_CONNECT,
-                    ) ==
-                        android.content.pm.PackageManager.PERMISSION_GRANTED
-                if (hasBtConnectForget) {
-                    try {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                            hid?.disconnect(device)
-                        } else {
-                            DebugLog.e(
-                                "BluetoothService",
-                                "HID disconnect not supported on API < 28; skipping forget-device disconnect",
-                            )
-                        }
-                    } catch (se: SecurityException) {
-                        DebugLog.e("BluetoothService", "hid.disconnect SecurityException: ${se.message}")
-                    } catch (_: Exception) {
-                    }
-                } else {
-                    DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; skipping disconnect in forgetDevice")
-                }
+                disconnectHidFrom(device)
                 connectedDevice = null
                 devicePrefs.setConnectedName(null)
                 refreshQsTile()

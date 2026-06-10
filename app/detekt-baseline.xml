@@ -33,9 +33,6 @@
     <ID>LongMethod:SettingsScreen.kt$@Composable fun SettingsScreen( contentPadding: PaddingValues = PaddingValues(), onOpenLogs: (() -&gt; Unit)? = null, )</ID>
     <ID>NestedBlockDepth:BleHogpService.kt$BleHogpService$fun notifyKeyboard(report: ByteArray)</ID>
     <ID>NestedBlockDepth:BleHogpService.kt$BleHogpService$fun notifyMouse(report: ByteArray)</ID>
-    <ID>NestedBlockDepth:BluetoothService.kt$BluetoothService$override fun disconnectDevice()</ID>
-    <ID>NestedBlockDepth:BluetoothService.kt$BluetoothService$override fun forgetDevice( device: BluetoothDevice, unpair: Boolean, )</ID>
-    <ID>NestedBlockDepth:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$override fun onReceive( context: Context, intent: Intent, )</ID>
     <ID>TooManyFunctions:BleHogpKeySender.kt$BleHogpKeySender : KeySender</ID>
     <ID>TooManyFunctions:BluetoothKeySender.kt$BluetoothKeySender : KeySender</ID>
     <ID>TooManyFunctions:BluetoothService.kt$BluetoothService : ServiceIBluetoothService</ID>

@@ -379,3 +379,11 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 - The other 16 catches have extra logic (multi-catch w/ SecurityException, scheduleReconnect()/onError()/finish()/fallback notify, return value, catch Throwable, or a finally) → kept exact logic + added per-site @Suppress("TooGenericExceptionCaught") with a "defensive: <reason>" comment (ktlint puts the annotation on the catch param; deep-indent ones wrap to multiline). NO narrowing (would risk crashing the service).
 - Removed all 8 TooGenericExceptionCaught baseline entries → baseline 49 → 41 (now entirely structural: CyclomaticComplexMethod 15, LongMethod 14, TooManyFunctions 7, NestedBlockDepth 5).
 - Verified: detekt(0 TooGeneric), ktlint, compile, unit, lint, connectedDebugAndroidTest (97 tests, 0 failed, 13 physical skipped). HidReportSender hot-path catches only got annotations (no logic change).
+
+## 2026-06-10T11:12:56Z - Claude Opus 4.8 - Flatten 3 BluetoothService NestedBlockDepth (safe extractions)
+- User chose "safe extractions only" for TooManyFunctions + NestedBlockDepth.
+- onReceive: extracted the 3 receiver branches into private methods handleDeviceFound / handleBondStateChanged (+ onBondBonded/onBondRemoved) / handleAdapterStateChanged, plus a deviceFromIntent() helper that dedupes the SDK-versioned getParcelableExtra (also collapsed 2 inline @Suppress(DEPRECATION) to 1). onReceive is now a thin when-dispatch.
+- disconnectDevice + forgetDevice: extracted shared disconnectHidFrom(target) helper (keeps checkSelfPermission INLINE with hid.disconnect so lint MissingPermission stays satisfied — the key lesson; catches SecurityException + generic Exception so forgetDevice's prior swallow is preserved, now logged). Both methods flattened.
+- Removed the 3 BluetoothService NestedBlockDepth baseline entries → baseline 41 → 38.
+- LEFT baselined per user choice: 2 BleHogpService notify NestedBlockDepth (extracting inner body re-triggers lint MissingPermission) + all 7 TooManyFunctions (large cohesive HID API surface). Note: adding the helper methods raised BluetoothService's function count, so TooManyFunctions stays baselined (accepted tradeoff).
+- Verified: detekt, ktlint, compile, unit, lint, connectedDebugAndroidTest (97 tests, 0 failed), and all 13 physical HID tests (0 failed, HID connected). Behavior preserved.
