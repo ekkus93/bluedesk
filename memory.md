@@ -387,3 +387,10 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 - Removed the 3 BluetoothService NestedBlockDepth baseline entries → baseline 41 → 38.
 - LEFT baselined per user choice: 2 BleHogpService notify NestedBlockDepth (extracting inner body re-triggers lint MissingPermission) + all 7 TooManyFunctions (large cohesive HID API surface). Note: adding the helper methods raised BluetoothService's function count, so TooManyFunctions stays baselined (accepted tradeoff).
 - Verified: detekt, ktlint, compile, unit, lint, connectedDebugAndroidTest (97 tests, 0 failed), and all 13 physical HID tests (0 failed, HID connected). Behavior preserved.
+
+## 2026-06-10T11:22:21Z - Claude Opus 4.8 - Flatten BleHogpService notify (last 2 NestedBlockDepth → 0)
+- notifyKeyboard/notifyMouse were nested forEach{forEach{try{if/else}}} (depth 5). Extracted private notifyOne(dev, ch, report) that does the per-device notify with its OWN try/catch(SecurityException) inside it. KEY: lint MissingPermission is satisfied by the SecurityException catch inside notifyOne (my earlier failed notifyChangedCompat had NO catch in the helper → lint flagged it). notifyKeyboard/notifyMouse keep their inline hasConnect check + snapshot and just call notifyOne in the inner loop. Depth now 3.
+- GOTCHA: first tried also extracting a shared notifyChars helper → that pushed BleHogpService to 11 functions, tripping a NEW TooManyFunctions. Backed out notifyChars; only notifyOne (+1 function → 10, under the 11 threshold). NestedBlockDepth fixed without a TooManyFunctions regression.
+- Removed the 2 BleHogpService NestedBlockDepth baseline entries → baseline 38 → 36. NestedBlockDepth now 0 in the baseline.
+- Verified: detekt, ktlint, compile, unit, lint (no MissingPermission), connectedDebugAndroidTest (97 tests, 0 failed). BLE notify path is behavior-identical extraction; Classic physical HID tests don't cover BLE so the standard suite is the relevant net.
+- Baseline now 36: CyclomaticComplexMethod 15, LongMethod 14, TooManyFunctions 7. NestedBlockDepth fully cleared.

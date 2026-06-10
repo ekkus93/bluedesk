@@ -446,7 +446,6 @@ class BleHogpService : Service() {
     }
 
     fun notifyKeyboard(report: ByteArray) {
-        val snapshot = synchronized(connected) { connected.toList() }
         val hasConnect =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
@@ -457,25 +456,14 @@ class BleHogpService : Service() {
             DebugLog.e("BleHogpService", "BLUETOOTH_CONNECT not granted; cannot notify keyboard")
             return
         }
+        val snapshot = synchronized(connected) { connected.toList() }
         listOfNotNull(kbInputChar, kbInputReportChar).forEach { ch ->
             ch.setValueCompat(report)
-            snapshot.forEach { dev ->
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        gattServer?.notifyCharacteristicChanged(dev, ch, false, report)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        gattServer?.notifyCharacteristicChanged(dev, ch, false)
-                    }
-                } catch (e: SecurityException) {
-                    DebugLog.e("BleHogpService", "notifyKeyboard SecurityException: ${e.message}")
-                }
-            }
+            snapshot.forEach { dev -> notifyOne(dev, ch, report) }
         }
     }
 
     fun notifyMouse(report: ByteArray) {
-        val snapshot = synchronized(connected) { connected.toList() }
         val hasConnect =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
@@ -486,20 +474,27 @@ class BleHogpService : Service() {
             DebugLog.e("BleHogpService", "BLUETOOTH_CONNECT not granted; cannot notify mouse")
             return
         }
+        val snapshot = synchronized(connected) { connected.toList() }
         listOfNotNull(mouseInputChar, mouseInputReportChar).forEach { ch ->
             ch.setValueCompat(report)
-            snapshot.forEach { dev ->
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        gattServer?.notifyCharacteristicChanged(dev, ch, false, report)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        gattServer?.notifyCharacteristicChanged(dev, ch, false)
-                    }
-                } catch (e: SecurityException) {
-                    DebugLog.e("BleHogpService", "notifyMouse SecurityException: ${e.message}")
-                }
+            snapshot.forEach { dev -> notifyOne(dev, ch, report) }
+        }
+    }
+
+    private fun notifyOne(
+        dev: BluetoothDevice,
+        ch: BluetoothGattCharacteristic,
+        report: ByteArray,
+    ) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                gattServer?.notifyCharacteristicChanged(dev, ch, false, report)
+            } else {
+                @Suppress("DEPRECATION")
+                gattServer?.notifyCharacteristicChanged(dev, ch, false)
             }
+        } catch (e: SecurityException) {
+            DebugLog.e("BleHogpService", "notify SecurityException: ${e.message}")
         }
     }
 
