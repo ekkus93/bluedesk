@@ -209,84 +209,10 @@ class BluetoothService : Service(), IBluetoothService {
                             module.listener =
                                 object : BluetoothHidModule.HidEventListenerExt {
                                     override fun onAppStatus(registered: Boolean) {
-                                        if (!registered) {
-                                            eventListener?.onError("HID app registration failed")
+                                        if (registered) {
+                                            onHidAppRegistered()
                                         } else {
-                                            eventListener?.onInfo("HID app registered")
-                                            val addr = lastDeviceAddress
-                                            if (connectedDevice == null && addr != null) {
-                                                try {
-                                                    val dev = bluetoothAdapter?.getRemoteDevice(addr)
-                                                    if (dev != null) {
-                                                        lastTargetDevice = dev
-                                                        reconnectAttempt = 0
-                                                        DebugLog.log("BluetoothService", "auto reconnect now to $addr")
-                                                        eventListener?.onInfo("Initiating connection request to $addr")
-                                                        eventListener?.onInfo(
-                                                            "Some Linux/BlueZ hosts still require " +
-                                                                "the host to initiate the HID connection " +
-                                                                "with bluetoothctl connect " +
-                                                                "<this phone's Bluetooth address>.",
-                                                        )
-                                                        // Ensure BLUETOOTH_CONNECT is available
-                                                        // before attempting connect
-                                                        val hasBtConnect =
-                                                            ContextCompat.checkSelfPermission(
-                                                                this@BluetoothService,
-                                                                Manifest.permission.BLUETOOTH_CONNECT,
-                                                            ) ==
-                                                                android.content.pm.PackageManager.PERMISSION_GRANTED
-                                                        if (hasBtConnect) {
-                                                            try {
-                                                                if (android.os.Build.VERSION.SDK_INT >=
-                                                                    android.os.Build.VERSION_CODES.P
-                                                                ) {
-                                                                    hid?.connect(dev)
-                                                                } else {
-                                                                    DebugLog.e(
-                                                                        "BluetoothService",
-                                                                        "HID connect not supported on " +
-                                                                            "API < 28; skipping",
-                                                                    )
-                                                                }
-                                                            } catch (se: SecurityException) {
-                                                                DebugLog.e(
-                                                                    "BluetoothService",
-                                                                    "hid.connect SecurityException: ${se.message}",
-                                                                )
-                                                                eventListener?.onError(
-                                                                    "HID connect failed due to missing permission",
-                                                                )
-                                                            } catch (
-                                                                @Suppress("TooGenericExceptionCaught") e: Exception,
-                                                            ) {
-                                                                // defensive: multi-catch; schedules a reconnect retry
-                                                                DebugLog.e(
-                                                                    "BluetoothService",
-                                                                    "immediate reconnect error: ${e.message}",
-                                                                )
-                                                                scheduleReconnect()
-                                                            }
-                                                        } else {
-                                                            DebugLog.e(
-                                                                "BluetoothService",
-                                                                "BLUETOOTH_CONNECT not granted; " +
-                                                                    "skipping immediate auto-connect",
-                                                            )
-                                                            reportMissingBluetoothConnect()
-                                                        }
-                                                    }
-                                                } catch (
-                                                    @Suppress("TooGenericExceptionCaught") e: Exception,
-                                                ) {
-                                                    // defensive: schedules a reconnect retry
-                                                    DebugLog.e(
-                                                        "BluetoothService",
-                                                        "immediate reconnect error: ${e.message}",
-                                                    )
-                                                    scheduleReconnect()
-                                                }
-                                            }
+                                            eventListener?.onError("HID app registration failed")
                                         }
                                     }
 
@@ -652,6 +578,56 @@ class BluetoothService : Service(), IBluetoothService {
             @Suppress("TooGenericExceptionCaught") e: Exception,
         ) {
             DebugLog.e("BluetoothService", "reconnect error: ${e.message}")
+            scheduleReconnect()
+        }
+    }
+
+    private fun onHidAppRegistered() {
+        eventListener?.onInfo("HID app registered")
+        val addr = lastDeviceAddress
+        if (connectedDevice != null || addr == null) return
+        try {
+            val dev = bluetoothAdapter?.getRemoteDevice(addr) ?: return
+            lastTargetDevice = dev
+            reconnectAttempt = 0
+            DebugLog.log("BluetoothService", "auto reconnect now to $addr")
+            eventListener?.onInfo("Initiating connection request to $addr")
+            eventListener?.onInfo(
+                "Some Linux/BlueZ hosts still require the host to initiate the HID connection " +
+                    "with bluetoothctl connect <this phone's Bluetooth address>.",
+            )
+            connectImmediately(dev)
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception,
+        ) {
+            // defensive: schedules a reconnect retry
+            DebugLog.e("BluetoothService", "immediate reconnect error: ${e.message}")
+            scheduleReconnect()
+        }
+    }
+
+    private fun connectImmediately(dev: BluetoothDevice) {
+        val hasBtConnect =
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!hasBtConnect) {
+            DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; skipping immediate auto-connect")
+            reportMissingBluetoothConnect()
+            return
+        }
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.P) {
+            DebugLog.e("BluetoothService", "HID connect not supported on API < 28; skipping")
+            return
+        }
+        try {
+            hid?.connect(dev)
+        } catch (se: SecurityException) {
+            DebugLog.e("BluetoothService", "hid.connect SecurityException: ${se.message}")
+            eventListener?.onError("HID connect failed due to missing permission")
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception,
+        ) {
+            DebugLog.e("BluetoothService", "immediate reconnect error: ${e.message}")
             scheduleReconnect()
         }
     }
