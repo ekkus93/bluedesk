@@ -169,15 +169,15 @@ Acceptance criteria:
 
 ### UT-08 — `HidReportSenderTest`: mouse state
 
-- [ ] `sendMouseMove(dx, dy)` emits the expected mouse report (with clamping).
-- [ ] `mouseButtonDown(button)` / `mouseButtonUp()` toggle the button mask
+- [x] `sendMouseMove(dx, dy)` emits the expected mouse report (with clamping).
+- [x] `mouseButtonDown(button)` / `mouseButtonUp()` toggle the button mask
       correctly across calls.
-- [ ] `sendLeftClick` / `sendRightClick` / `sendMiddleClick` emit the
+- [x] `sendLeftClick` / `sendRightClick` / `sendMiddleClick` emit the
       press→release sequence with masks 0x01 / 0x02 / 0x04.
 
 Acceptance criteria:
-- [ ] Click tests assert the press→release sequence.
-- [ ] Verification suite passes.
+- [x] Click tests assert the press→release sequence.
+- [x] Verification suite passes.
 
 ---
 
