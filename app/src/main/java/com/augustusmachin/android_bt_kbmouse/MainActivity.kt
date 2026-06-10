@@ -249,10 +249,8 @@ class MainActivity : ComponentActivity() {
             )
         } catch (_: Exception) {
         }
-        // SettingsViewModel drives DebugLog enable/level after persisted settings load.
-        // Keep a minimal startup log enabled until settings arrive.
-        DebugLog.setEnabled(true)
-        DebugLog.setLevel(DebugLog.Level.ERROR)
+        // DebugLog enable/level is settings-driven: SettingsViewModel applies the persisted
+        // debugLogging preference after settings load. Do not force-enable logging at startup.
         installComposeUi()
         // Defer starting/binding services until required runtime permissions are granted.
         val permissionLauncher: ActivityResultLauncher<Array<String>> =

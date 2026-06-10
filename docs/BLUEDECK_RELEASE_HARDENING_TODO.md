@@ -273,25 +273,25 @@ Acceptance criteria:
 
 ### Task 7.1 — Remove forced startup debug logging
 
-- [ ] Search for `DebugLog.setEnabled(true)`.
-- [ ] Remove forced call from `MainActivity.onCreate()`.
-- [ ] Let settings observer/viewmodel apply persisted logging preference.
-- [ ] Keep only privacy-safe minimal startup logging if needed.
+- [x] Search for `DebugLog.setEnabled(true)`.
+- [x] Remove forced call from `MainActivity.onCreate()`.
+- [x] Let settings observer/viewmodel apply persisted logging preference.
+- [x] Keep only privacy-safe minimal startup logging if needed.
 
 Acceptance criteria:
 
-- [ ] Debug logging is settings-driven.
+- [x] Debug logging is settings-driven.
 
 ### Task 7.2 — Sequence notification permission prompt
 
-- [ ] Find notification permission request in Compose.
-- [ ] Ensure it does not race the startup Bluetooth permission launcher.
-- [ ] Request notification permission later or from explicit user action.
-- [ ] Denial must not block app functionality.
+- [x] Find notification permission request in Compose.
+- [x] Ensure it does not race the startup Bluetooth permission launcher.
+- [x] Request notification permission later or from explicit user action.
+- [x] Denial must not block app functionality.
 
 Acceptance criteria:
 
-- [ ] First-launch permission flow is predictable.
+- [x] First-launch permission flow is predictable.
 
 ---
 

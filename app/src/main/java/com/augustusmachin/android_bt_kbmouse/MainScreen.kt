@@ -56,6 +56,10 @@ import kotlinx.coroutines.launch
 
 private const val SDK_INT_TIRAMISU = 33
 
+// Delay before requesting the optional notification permission, so it doesn't race the
+// startup Bluetooth permission prompt on first launch.
+private const val NOTIF_PROMPT_DELAY_MS = 1200L
+
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
@@ -73,6 +77,9 @@ fun MainScreen() {
         }
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= SDK_INT_TIRAMISU) {
+            // Let the startup Bluetooth permission prompt resolve first so the two prompts do
+            // not race on first launch. Notifications are optional and never block the app.
+            kotlinx.coroutines.delay(NOTIF_PROMPT_DELAY_MS)
             val sp = context.getSharedPreferences("perm", Context.MODE_PRIVATE)
             if (!sp.getBoolean("notif_asked", false)) {
                 val granted =
