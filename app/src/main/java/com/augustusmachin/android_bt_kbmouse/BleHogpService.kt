@@ -34,7 +34,7 @@ private const val HID_INFO_BCD_HID_LSB: Byte = 0x11
 private const val SDK_INT_OREO = 26
 private const val SDK_INT_MARSHMALLOW = 23
 
-class BleHogpService : Service() {
+class BleHogpService : Service(), HogpNotifier {
     companion object {
         private val UUID_HID_SERVICE = UUID.fromString("00001812-0000-1000-8000-00805f9b34fb")
         private val UUID_BATTERY_SERVICE = UUID.fromString("0000180F-0000-1000-8000-00805f9b34fb")
@@ -445,7 +445,7 @@ class BleHogpService : Service() {
         }
     }
 
-    fun notifyKeyboard(report: ByteArray) {
+    override fun notifyKeyboard(report: ByteArray) {
         val hasConnect =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
@@ -463,7 +463,7 @@ class BleHogpService : Service() {
         }
     }
 
-    fun notifyMouse(report: ByteArray) {
+    override fun notifyMouse(report: ByteArray) {
         val hasConnect =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED

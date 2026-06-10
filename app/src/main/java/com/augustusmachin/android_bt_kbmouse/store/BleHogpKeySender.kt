@@ -1,7 +1,7 @@
 package com.augustusmachin.android_bt_kbmouse.store
 
-import com.augustusmachin.android_bt_kbmouse.BleHogpService
 import com.augustusmachin.android_bt_kbmouse.HidReportBuilder
+import com.augustusmachin.android_bt_kbmouse.HogpNotifier
 
 private const val MAX_ROLLOVER_KEYS = 6
 private const val MOUSE_BUTTON_MIDDLE = 0x04
@@ -19,7 +19,7 @@ private const val KEY_PRESS_HOLD_MS = 40L
  * Discovery/connection commands are no-ops: BLE HOGP is advertising-based;
  * the host initiates the connection, not us.
  */
-class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
+class BleHogpKeySender(private val notifier: HogpNotifier) : KeySender {
     @Volatile private var modifierByte: Int = 0
     private val pressedKeys = mutableListOf<Byte>()
 
@@ -42,19 +42,19 @@ class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
     ) {
         modifierByte = mods
         synchronized(pressedKeys) { if (!pressedKeys.contains(code)) pressedKeys.add(code) }
-        svc.notifyKeyboard(buildKeyReport())
+        notifier.notifyKeyboard(buildKeyReport())
     }
 
     override fun sendKeyUp(code: Byte) {
         synchronized(pressedKeys) { pressedKeys.remove(code) }
-        svc.notifyKeyboard(buildKeyReport())
+        notifier.notifyKeyboard(buildKeyReport())
     }
 
     override fun moveMouse(
         dx: Int,
         dy: Int,
     ) {
-        svc.notifyMouse(buildMouseReport(dx, dy))
+        notifier.notifyMouse(buildMouseReport(dx, dy))
     }
 
     override fun leftClick() {
@@ -71,23 +71,23 @@ class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
 
     private fun click(mask: Int) {
         buttonsMask = buttonsMask or mask
-        svc.notifyMouse(buildMouseReport())
+        notifier.notifyMouse(buildMouseReport())
         try {
             Thread.sleep(CLICK_HOLD_MS)
         } catch (_: InterruptedException) {
         }
         buttonsMask = buttonsMask and mask.inv()
-        svc.notifyMouse(buildMouseReport())
+        notifier.notifyMouse(buildMouseReport())
     }
 
     override fun mouseButtonDown(button: Int) {
         buttonsMask = buttonsMask or button
-        svc.notifyMouse(buildMouseReport())
+        notifier.notifyMouse(buildMouseReport())
     }
 
     override fun mouseButtonUp() {
         buttonsMask = 0
-        svc.notifyMouse(buildMouseReport())
+        notifier.notifyMouse(buildMouseReport())
     }
 
     override fun toggleCapsLock() {
@@ -110,6 +110,6 @@ class BleHogpKeySender(private val svc: BleHogpService) : KeySender {
 
     override fun setModifiers(mods: Int) {
         modifierByte = mods
-        svc.notifyKeyboard(buildKeyReport())
+        notifier.notifyKeyboard(buildKeyReport())
     }
 }
