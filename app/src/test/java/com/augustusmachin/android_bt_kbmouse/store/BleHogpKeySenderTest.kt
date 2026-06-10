@@ -73,4 +73,62 @@ class BleHogpKeySenderTest {
         assertArrayEquals(byteArrayOf(0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00), fake.lastKeyboard)
         assertEquals("only key-down + setModifiers reports emitted", 2, fake.keyboardReports.size)
     }
+
+    // ── Phase 1 / UT-03: mouse report logic ─────────────────────────────────
+
+    @Test
+    fun `moveMouse emits a 3-byte report with current button mask`() {
+        val fake = FakeHogpNotifier()
+        val s = BleHogpKeySender(fake)
+        s.moveMouse(10, -5)
+        assertArrayEquals(byteArrayOf(0x00, 10, -5), fake.lastMouse)
+    }
+
+    @Test
+    fun `moveMouse clamps deltas to the signed-byte range`() {
+        val fake = FakeHogpNotifier()
+        val s = BleHogpKeySender(fake)
+        s.moveMouse(200, -200)
+        assertArrayEquals(byteArrayOf(0x00, 127, -127), fake.lastMouse)
+    }
+
+    @Test
+    fun `mouseButtonDown sets the mask and mouseButtonUp clears it`() {
+        val fake = FakeHogpNotifier()
+        val s = BleHogpKeySender(fake)
+        s.mouseButtonDown(0x01)
+        assertArrayEquals(byteArrayOf(0x01, 0x00, 0x00), fake.lastMouse)
+        s.mouseButtonUp()
+        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00), fake.lastMouse)
+    }
+
+    @Test
+    fun `leftClick emits press then release`() {
+        val fake = FakeHogpNotifier()
+        val s = BleHogpKeySender(fake)
+        s.leftClick()
+        assertEquals(2, fake.mouseReports.size)
+        assertArrayEquals(byteArrayOf(0x01, 0x00, 0x00), fake.mouseReports[0])
+        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00), fake.mouseReports[1])
+    }
+
+    @Test
+    fun `rightClick emits press then release`() {
+        val fake = FakeHogpNotifier()
+        val s = BleHogpKeySender(fake)
+        s.rightClick()
+        assertEquals(2, fake.mouseReports.size)
+        assertArrayEquals(byteArrayOf(0x02, 0x00, 0x00), fake.mouseReports[0])
+        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00), fake.mouseReports[1])
+    }
+
+    @Test
+    fun `middleClick emits press then release with mask 0x04`() {
+        val fake = FakeHogpNotifier()
+        val s = BleHogpKeySender(fake)
+        s.middleClick()
+        assertEquals(2, fake.mouseReports.size)
+        assertArrayEquals(byteArrayOf(0x04, 0x00, 0x00), fake.mouseReports[0])
+        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00), fake.mouseReports[1])
+    }
 }

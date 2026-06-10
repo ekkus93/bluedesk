@@ -94,20 +94,20 @@ Acceptance criteria:
 
 ### UT-03 — `BleHogpKeySenderTest`: mouse report logic
 
-- [ ] `moveMouse(dx, dy)` emits a 3-byte SIMPLE mouse report `[buttons, dx, dy]`
+- [x] `moveMouse(dx, dy)` emits a 3-byte SIMPLE mouse report `[buttons, dx, dy]`
       with the current `buttonsMask` (0 initially).
-- [ ] `moveMouse` clamps dx/dy via `HidReportBuilder` (e.g. 200 → 127, -200 →
+- [x] `moveMouse` clamps dx/dy via `HidReportBuilder` (e.g. 200 → 127, -200 →
       -127) — assert the clamped bytes.
-- [ ] `mouseButtonDown(button)` ORs the mask and emits a report with the button
+- [x] `mouseButtonDown(button)` ORs the mask and emits a report with the button
       bit set; `mouseButtonUp()` resets the mask to 0 and emits a cleared report.
-- [ ] `leftClick` / `rightClick` / `middleClick` each emit **two** reports: the
+- [x] `leftClick` / `rightClick` / `middleClick` each emit **two** reports: the
       button-pressed report (mask 0x01 / 0x02 / 0x04) then the released report
       (mask 0x00). Assert both, in order, from the recorded sequence.
 
 Acceptance criteria:
-- [ ] Click tests assert the press→release **sequence** of report bytes.
-- [ ] `middleClick` uses `MOUSE_BUTTON_MIDDLE` (0x04).
-- [ ] Verification suite passes.
+- [x] Click tests assert the press→release **sequence** of report bytes.
+- [x] `middleClick` uses `MOUSE_BUTTON_MIDDLE` (0x04).
+- [x] Verification suite passes.
 
 ### UT-04 — `BleHogpKeySenderTest`: lock-key sequences
 
