@@ -120,4 +120,4 @@ Physical HID tests are opt-in — see
 - [Roadmap & test plan](docs/ROADMAP.md)
 - [Development notes (archive)](docs/DEVELOPMENT_NOTES.md)
 - [Physical HID testing](docs/PHYSICAL_HID_TESTING.md)
-- [Extended keys](EXTENDED_KEYS.md)
+- [Extended keys](docs/EXTENDED_KEYS.md)

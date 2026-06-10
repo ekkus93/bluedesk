@@ -25,6 +25,3 @@ run_claude.sh*
 
 # Editor backup files
 *~
-
-# BlueDeck source asset pack (PNGs extracted to docs/branding/)
-bluedeck_android_assets.zip
