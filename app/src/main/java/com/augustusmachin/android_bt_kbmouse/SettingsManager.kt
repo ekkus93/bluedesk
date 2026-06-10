@@ -53,22 +53,27 @@ object SettingsManager {
     private val KEY_HID_SIMPLE = booleanPreferencesKey("hid_simplified")
     private val KEY_USE_BLE_HOGP = booleanPreferencesKey("use_ble_hogp")
 
+    private fun <T> androidx.datastore.preferences.core.Preferences.orDefault(
+        key: androidx.datastore.preferences.core.Preferences.Key<T>,
+        default: T,
+    ): T = this[key] ?: default
+
     fun fromPreferences(p: androidx.datastore.preferences.core.Preferences): Settings =
         Settings(
-            touchpadSensitivity = p[KEY_SENS] ?: 1.5f,
-            scrollSpeed = p[KEY_SCROLL] ?: 1.0f,
-            invertScroll = p[KEY_INVERT] ?: false,
-            enableHorizontalScroll = p[KEY_HSCROLL] ?: true,
-            invertHorizontalScroll = p[KEY_HSCROLL_INV] ?: false,
-            enableMiddleClick = p[KEY_MIDDLE] ?: true,
-            keyRepeatDelayMs = p[KEY_REPEAT] ?: 350,
-            clickSound = p[KEY_CLICK] ?: true,
-            debugLogging = p[KEY_DEBUG] ?: false,
-            logLevel = p[KEY_LOGLEVEL] ?: 0,
-            offlinePreview = p[KEY_OFFLINE_PREVIEW] ?: false,
-            startOnBoot = p[KEY_START_ON_BOOT] ?: false,
-            hidSimplified = p[KEY_HID_SIMPLE] ?: true,
-            useBleHogp = p[KEY_USE_BLE_HOGP] ?: false,
+            touchpadSensitivity = p.orDefault(KEY_SENS, default = 1.5f),
+            scrollSpeed = p.orDefault(KEY_SCROLL, default = 1.0f),
+            invertScroll = p.orDefault(KEY_INVERT, default = false),
+            enableHorizontalScroll = p.orDefault(KEY_HSCROLL, default = true),
+            invertHorizontalScroll = p.orDefault(KEY_HSCROLL_INV, default = false),
+            enableMiddleClick = p.orDefault(KEY_MIDDLE, default = true),
+            keyRepeatDelayMs = p.orDefault(KEY_REPEAT, default = 350),
+            clickSound = p.orDefault(KEY_CLICK, default = true),
+            debugLogging = p.orDefault(KEY_DEBUG, default = false),
+            logLevel = p.orDefault(KEY_LOGLEVEL, default = 0),
+            offlinePreview = p.orDefault(KEY_OFFLINE_PREVIEW, default = false),
+            startOnBoot = p.orDefault(KEY_START_ON_BOOT, default = false),
+            hidSimplified = p.orDefault(KEY_HID_SIMPLE, default = true),
+            useBleHogp = p.orDefault(KEY_USE_BLE_HOGP, default = false),
             keyMap = emptyMap(),
         )
 
