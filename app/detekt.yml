@@ -41,3 +41,9 @@ empty-blocks:
   EmptyFunctionBlock:
     # No-op overrides (e.g. interface stubs / unused service callbacks) are intentional.
     ignoreOverridden: true
+
+complexity:
+  CyclomaticComplexMethod:
+    # A flat dispatch/lookup `when` with one-line branches is not "complex" in the
+    # harmful sense; don't count single-expression when-entries toward complexity.
+    ignoreSimpleWhenEntries: true

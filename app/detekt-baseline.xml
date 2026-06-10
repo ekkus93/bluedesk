@@ -5,7 +5,6 @@
     <ID>CyclomaticComplexMethod:BluetoothServiceLogicTest.kt$BluetoothServiceLogicTest$@Test fun maps_onConnectionStateChanged_to_VM_state()</ID>
     <ID>CyclomaticComplexMethod:KeyboardScreen.kt$@Composable fun KeyboardScreen(contentPadding: PaddingValues = PaddingValues())</ID>
     <ID>CyclomaticComplexMethod:MainScreen.kt$@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class) @Composable fun MainScreen()</ID>
-    <ID>CyclomaticComplexMethod:Middleware.kt$KeySenderMiddleware$fun create()</ID>
     <ID>CyclomaticComplexMethod:MouseScreen.kt$@Composable fun MouseScreen(contentPadding: PaddingValues = PaddingValues())</ID>
     <ID>CyclomaticComplexMethod:NavigationKeysScreen.kt$@Composable fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues())</ID>
     <ID>CyclomaticComplexMethod:PairingScreen.kt$@Composable fun PairingScreen(contentPadding: PaddingValues = PaddingValues())</ID>
