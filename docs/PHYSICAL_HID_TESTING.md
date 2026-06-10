@@ -159,6 +159,51 @@ You have **90 seconds** from registration to run this command.
 > bluetoothctl connect 8C:6A:3B:5E:D3:48
 > ```
 
+#### Preferred: open the HID profile directly with `ConnectProfile(HID)`
+
+`bluetoothctl connect <phone>` opens a *generic* ACL connection and brings up whichever
+profiles BlueZ chooses — which may **not** include the HID control/interrupt channels. The
+known-good, deterministic command asks BlueZ to open the HID profile
+(UUID `00001124-0000-1000-8000-00805f9b34fb`) explicitly via D-Bus:
+
+```bash
+dbus-send --system --print-reply \
+  --dest=org.bluez \
+  /org/bluez/hci0/dev_<PHONE_BT_ADDRESS_UNDERSCORE> \
+  org.bluez.Device1.ConnectProfile \
+  string:00001124-0000-1000-8000-00805f9b34fb
+```
+
+Concrete example for phone `8C:6A:3B:5E:D3:48` (note the underscores in the object path):
+
+```bash
+dbus-send --system --print-reply \
+  --dest=org.bluez \
+  /org/bluez/hci0/dev_8C_6A_3B_5E_D3_48 \
+  org.bluez.Device1.ConnectProfile \
+  string:00001124-0000-1000-8000-00805f9b34fb
+```
+
+- `bluetoothctl connect <phone>` may be enough on some controllers but is **not guaranteed**
+  to open the HID profile — keep it as a fallback/diagnostic, not the primary step.
+- `ConnectProfile(HID)` is the command verified to reach `STATE_CONNECTED` in the passing runs.
+
+#### If it still fails: clean re-pair
+
+A stale pairing (lost HID record in the SDP cache, or a link-key mismatch) can block HID even
+when a generic connection succeeds. Remove and re-pair from the **host** — only after
+confirming the address with `bluetoothctl devices` so you don't remove the wrong device:
+
+```bash
+bluetoothctl remove <PHONE_BT_ADDRESS>
+bluetoothctl scan on          # wait for the phone to appear, then:
+bluetoothctl pair <PHONE_BT_ADDRESS>
+bluetoothctl trust <PHONE_BT_ADDRESS>
+```
+
+Then re-run the test and issue `ConnectProfile(HID)` again. If it still fails, collect
+`journalctl -b -u bluetooth` and a `btmon` capture before concluding it is a BlueZ problem.
+
 ### Step 5: Observe the connection
 
 After you run `bluetoothctl connect`, you should see in the Android logcat (tag `BtHidTest`):

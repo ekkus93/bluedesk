@@ -336,8 +336,8 @@ Acceptance criteria:
 
 ### Task 9.1 — Promote DBus `ConnectProfile(HID)` known-good flow
 
-- [ ] Open `docs/PHYSICAL_HID_TESTING.md`.
-- [ ] Add Linux/BlueZ preferred command:
+- [x] Open `docs/PHYSICAL_HID_TESTING.md`.
+- [x] Add Linux/BlueZ preferred command:
 
 ```bash
 dbus-send --system --print-reply \
@@ -347,7 +347,7 @@ dbus-send --system --print-reply \
   string:00001124-0000-1000-8000-00805f9b34fb
 ```
 
-- [ ] Add concrete example:
+- [x] Add concrete example:
 
 ```bash
 dbus-send --system --print-reply \
@@ -359,32 +359,32 @@ dbus-send --system --print-reply \
 
 Acceptance criteria:
 
-- [ ] Docs include the command that actually opened HID profile in the passing run.
+- [x] Docs include the command that actually opened HID profile in the passing run.
 
 ### Task 9.2 — Clarify `bluetoothctl connect`
 
-- [ ] Explain `bluetoothctl connect <PHONE>` may establish a generic connection but may not open HID profile.
-- [ ] Keep it as a fallback/diagnostic, not the preferred physical test procedure if `ConnectProfile` is known-good.
+- [x] Explain `bluetoothctl connect <PHONE>` may establish a generic connection but may not open HID profile.
+- [x] Keep it as a fallback/diagnostic, not the preferred physical test procedure if `ConnectProfile` is known-good.
 
 Acceptance criteria:
 
-- [ ] Docs match latest physical-test discovery.
+- [x] Docs match latest physical-test discovery.
 
 ### Task 9.3 — Clean re-pair guidance
 
-- [ ] Document that stale pairing may require remove/re-pair.
-- [ ] Include safe commands/checks:
+- [x] Document that stale pairing may require remove/re-pair.
+- [x] Include safe commands/checks:
   ```bash
   bluetoothctl remove <PHONE_BT_ADDRESS>
   bluetoothctl scan on
   bluetoothctl pair <PHONE_BT_ADDRESS>
   bluetoothctl trust <PHONE_BT_ADDRESS>
   ```
-- [ ] Warn not to run destructive commands without knowing the address.
+- [x] Warn not to run destructive commands without knowing the address.
 
 Acceptance criteria:
 
-- [ ] Pairing-cache issue is documented.
+- [x] Pairing-cache issue is documented.
 
 ---
 
