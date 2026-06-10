@@ -278,6 +278,9 @@ class BluetoothService : Service(), IBluetoothService {
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
         super.onCreate()
+        // Promote to the foreground before any Bluetooth side effects. If promotion fails the
+        // controller has already stopped the service, so abort here — do not run as a fake FGS.
+        if (!startInForeground()) return
         // Prefer BluetoothManager.adapter on newer platform versions. If unavailable, fall back
         // to the older API but suppress the deprecation warning for the single fallback call
         // so the code remains clean on modern toolchains while preserving compatibility.
@@ -333,7 +336,6 @@ class BluetoothService : Service(), IBluetoothService {
         }
         bluetoothAdapter?.getProfileProxy(this, profileListener, BluetoothProfile.HID_DEVICE)
         StoreProvider.dispatch(Action.UpdatePairedDevices(getPairedDevices()))
-        startInForeground()
     }
 
     override fun onStartCommand(

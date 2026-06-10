@@ -94,38 +94,38 @@ Acceptance criteria:
 
 ### Task 2.1 — Update `BluetoothService.onCreate()`
 
-- [ ] Open `BluetoothService.kt`.
-- [ ] Locate `startInForeground()`.
-- [ ] Check its return value.
-- [ ] If false, return immediately:
+- [x] Open `BluetoothService.kt`.
+- [x] Locate `startInForeground()`.
+- [x] Check its return value.
+- [x] If false, return immediately:
   ```kotlin
   if (!startInForeground()) return
   ```
 
 Acceptance criteria:
 
-- [ ] `BluetoothService` does not continue if foreground promotion fails.
+- [x] `BluetoothService` does not continue if foreground promotion fails.
 
 ### Task 2.2 — Move foreground promotion earlier
 
-- [ ] Reorder `onCreate()` so foreground promotion happens before major Bluetooth side effects where practical.
-- [ ] Avoid calling `getProfileProxy(...)` before foreground promotion if possible.
-- [ ] Avoid receiver registration before foreground promotion if possible.
-- [ ] Avoid paired-device dispatch before foreground promotion if possible.
+- [x] Reorder `onCreate()` so foreground promotion happens before major Bluetooth side effects where practical.
+- [x] Avoid calling `getProfileProxy(...)` before foreground promotion if possible.
+- [x] Avoid receiver registration before foreground promotion if possible.
+- [x] Avoid paired-device dispatch before foreground promotion if possible.
 
 Acceptance criteria:
 
-- [ ] Failed foreground promotion aborts before service starts Bluetooth work.
+- [x] Failed foreground promotion aborts before service starts Bluetooth work.
 
 ### Task 2.3 — Validate Classic service failure path
 
-- [ ] Add pure helper test if practical.
-- [ ] Otherwise document manual validation for simulated `startForeground()` failure.
-- [ ] Confirm `BleHogpService` still checks `if (!startInForeground()) return`.
+- [x] Add pure helper test if practical.
+- [x] Otherwise document manual validation for simulated `startForeground()` failure.
+- [x] Confirm `BleHogpService` still checks `if (!startInForeground()) return`.
 
 Acceptance criteria:
 
-- [ ] Both Classic and BLE services abort on foreground failure.
+- [x] Both Classic and BLE services abort on foreground failure.
 
 ---
 
