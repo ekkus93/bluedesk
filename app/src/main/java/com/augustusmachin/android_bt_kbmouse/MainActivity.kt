@@ -47,6 +47,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -134,8 +139,8 @@ val LocalKeyFontSize = staticCompositionLocalOf { 16.sp }
 class MainActivity : ComponentActivity() {
 
     private companion object {
-        // Minimum time the cold-start splash stays visible, in ms. Tune to taste.
-        const val SPLASH_MIN_DISPLAY_MS = 1200L
+        // How long the branded BlueDeck launch screen stays visible, in ms. Tune to taste.
+        const val SPLASH_DISPLAY_MS = 1800L
     }
 
     private val permReceiver = object : android.content.BroadcastReceiver() {
@@ -276,19 +281,11 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Install the BlueDeck splash screen before the content view is created.
-        // App startup is never blocked; we only hold the splash on screen for a
-        // brief MINIMUM so it's actually visible (it would otherwise flash by).
-        val splashScreen = installSplashScreen()
-        var keepSplashOnScreen = true
-        splashScreen.setKeepOnScreenCondition { keepSplashOnScreen }
+        // Install the system splash (a circular icon) for the cold-start window,
+        // then let it hand off immediately to our branded Compose launch screen
+        // (BlueDeckSplash), which is what shows the name + tagline.
+        installSplashScreen()
         super.onCreate(savedInstanceState)
-        // Release the splash after the minimum display time, then force a draw
-        // pass so the keep-on-screen condition is re-evaluated and it dismisses.
-        window.decorView.postDelayed({
-            keepSplashOnScreen = false
-            window.decorView.invalidate()
-        }, SPLASH_MIN_DISPLAY_MS)
         // Register receiver for permission-error reports from services
         try {
             androidx.core.content.ContextCompat.registerReceiver(this, permReceiver, IntentFilter(BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
@@ -299,7 +296,21 @@ class MainActivity : ComponentActivity() {
         DebugLog.setLevel(DebugLog.Level.ERROR)
         setContent {
             AndroidbtkbmouseTheme {
-                MainScreen()
+                var showSplash by remember { mutableStateOf(true) }
+                LaunchedEffect(Unit) {
+                    delay(SPLASH_DISPLAY_MS)
+                    showSplash = false
+                }
+                Box(Modifier.fillMaxSize()) {
+                    MainScreen()
+                    AnimatedVisibility(
+                        visible = showSplash,
+                        enter = EnterTransition.None,
+                        exit = fadeOut(animationSpec = tween(durationMillis = 450))
+                    ) {
+                        BlueDeckSplash()
+                    }
+                }
             }
         }
         // Defer starting/binding services until required runtime permissions are granted.
