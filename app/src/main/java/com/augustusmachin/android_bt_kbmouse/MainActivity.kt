@@ -103,6 +103,7 @@ import android.content.pm.PackageManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import android.view.SoundEffectConstants
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -270,6 +271,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Install the BlueDeck splash screen before the content view is created.
+        // It dismisses as soon as the first frame is ready (no artificial delay).
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         // Register receiver for permission-error reports from services
         try {

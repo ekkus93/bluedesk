@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- BlueDeck brand colors -->
+    <color name="bluedeck_navy">#101827</color>
+    <color name="bluedeck_navy_dark">#07111F</color>
+    <color name="bluedeck_cyan">#00D4FF</color>
+    <color name="bluedeck_teal">#00BFA6</color>
+    <color name="bluedeck_indigo">#4F46E5</color>
+    <color name="bluedeck_soft_white">#F8FAFC</color>
+
+    <!-- Adaptive icon background must be simple and mask-safe. -->
+    <color name="bluedeck_icon_background">#101827</color>
+
+    <!-- Android 12+ splash background. -->
+    <color name="bluedeck_splash_background">#07111F</color>
+</resources>

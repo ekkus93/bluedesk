@@ -1,6 +1,14 @@
-# Android Bluetooth Keyboard and Mouse
+# BlueDeck
 
-This document outlines the plan for creating an Android application that functions as a Bluetooth keyboard and mouse.
+Turn your Android phone into a Bluetooth keyboard and mouse.
+
+## Branding
+
+App name: BlueDeck
+Full name: BlueDeck: Bluetooth Keyboard & Mouse
+Tagline: Your phone as a Bluetooth keyboard and mouse.
+
+Brand assets (launcher icon and splash previews) live in [`docs/branding/`](docs/branding/).
 
 ## Development
 

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="240dp"
+    android:viewportWidth="240"
+    android:viewportHeight="240">
+
+    <!-- Connection arcs -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#3300D4FF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M52,94 C88,42 152,42 188,94" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#5500D4FF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M68,105 C94,70 146,70 172,105" />
+
+    <!-- Phone -->
+    <path
+        android:fillColor="#151E35"
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="4"
+        android:strokeLineJoin="round"
+        android:pathData="M52,72 H100 Q112,72 112,84 V168 Q112,180 100,180 H52 Q40,180 40,168 V84 Q40,72 52,72 Z" />
+    <path android:fillColor="#F8FAFC" android:pathData="M54,136 H66 V148 H54 Z" />
+    <path android:fillColor="#F8FAFC" android:pathData="M72,136 H84 V148 H72 Z" />
+    <path android:fillColor="#F8FAFC" android:pathData="M90,136 H102 V148 H90 Z" />
+    <path android:fillColor="#F8FAFC" android:pathData="M54,154 H69 V166 H54 Z" />
+    <path android:fillColor="#F8FAFC" android:pathData="M75,154 H90 V166 H75 Z" />
+
+    <!-- Laptop -->
+    <path
+        android:fillColor="#151E35"
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="4"
+        android:strokeLineJoin="round"
+        android:pathData="M138,92 H202 Q210,92 210,100 V150 H130 V100 Q130,92 138,92 Z" />
+    <path
+        android:fillColor="#00D4FF"
+        android:fillAlpha="0.25"
+        android:pathData="M120,160 H220 L208,180 H132 Z" />
+    <path
+        android:fillColor="#F8FAFC"
+        android:fillAlpha="0.7"
+        android:pathData="M150,166 H192 Q196,166 196,170 Q196,174 192,174 H150 Q146,174 146,170 Q146,166 150,166 Z" />
+
+    <!-- Bluetooth glyph -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#00BFA6"
+        android:strokeWidth="9"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M120,34 V124 M120,34 L154,68 L120,96 L154,130 L120,164 M120,96 L88,64 M120,96 L88,128" />
+
+    <!-- Cursor -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:strokeColor="#07111F"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round"
+        android:pathData="M96,148 L128,166 L113,172 L122,193 L112,197 L103,176 L88,190 Z" />
+</vector>

@@ -392,7 +392,7 @@ class BleHogpService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0))
         val notif: Notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_bluetooth)
-            .setContentTitle("BLE HID active")
+            .setContentTitle("BlueDeck (BLE) active")
             .setContentText("Advertising as BLE keyboard/mouse")
             .setContentIntent(pi)
             .setOngoing(true)

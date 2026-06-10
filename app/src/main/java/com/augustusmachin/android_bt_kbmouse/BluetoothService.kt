@@ -613,7 +613,7 @@ class BluetoothService : Service(), IBluetoothService {
         val disconnectPi = PendingIntent.getBroadcast(this, 2, Intent(ACTION_DISCONNECT).setPackage(packageName), actionFlags)
         val forgetPi = PendingIntent.getBroadcast(this, 3, Intent(ACTION_FORGET).setPackage(packageName), actionFlags)
         val notif: Notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Bluetooth HID running")
+            .setContentTitle("BlueDeck running")
             .setContentText("Tap to manage connection")
             .setSmallIcon(R.drawable.ic_bluetooth)
             .setContentIntent(pi)

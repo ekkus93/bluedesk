@@ -13,4 +13,13 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
+
+    <!-- Cold-start splash theme (AndroidX core-splashscreen). Hands off to the
+         normal app theme as soon as the first frame is ready; no artificial delay. -->
+    <style name="Theme.BlueDeck.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/bluedeck_splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_bluedeck</item>
+        <item name="windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+        <item name="postSplashScreenTheme">@style/Theme.BluetoothKeyboardMouse</item>
+    </style>
 </resources>
