@@ -36,7 +36,7 @@ class BluetoothService : Service(), IBluetoothService {
         const val ACTION_MISSING_BLUETOOTH_CONNECT = "com.augustusmachin.android_bt_kbmouse.ACTION_MISSING_BLUETOOTH_CONNECT"
     }
 
-    private val btPrefs by lazy { getSharedPreferences("bt_hid", MODE_PRIVATE) }
+    private val devicePrefs by lazy { BtDevicePrefs(this) }
 
     private val binder = LocalBinder()
     private var bluetoothAdapter: BluetoothAdapter? = null
@@ -86,7 +86,7 @@ class BluetoothService : Service(), IBluetoothService {
                         BluetoothDevice.BOND_BONDED -> if (dev != null) {
                             lastTargetDevice = dev
                             lastDeviceAddress = dev.address
-                            btPrefs.edit().putString("last_device", dev.address).apply()
+                            devicePrefs.setLastDevice(dev.address)
                             scheduleReconnect(0)
                             StoreProvider.dispatch(Action.UpdatePairedDevices(getPairedDevices()))
                         }
@@ -99,7 +99,7 @@ class BluetoothService : Service(), IBluetoothService {
                                 StoreProvider.dispatch(Action.UpdateMessage("Unpaired: ${dev.address}"))
                             }
                             if (lastDeviceAddress == dev.address) {
-                                btPrefs.edit().remove("last_device").apply()
+                                devicePrefs.setLastDevice(null)
                                 lastDeviceAddress = null
                                 lastTargetDevice = null
                                 StoreProvider.dispatch(Action.UpdateDefaultDevice(null))
@@ -223,7 +223,7 @@ class BluetoothService : Service(), IBluetoothService {
                                     DebugLog.e("BluetoothService", "BLUETOOTH_SCAN not granted; skipping cancelDiscovery")
                                 }
                                 // persist connected address for QS tile (avoid device.name which requires BLUETOOTH_CONNECT)
-                                btPrefs.edit().putString("connected_name", device.address).apply()
+                                devicePrefs.setConnectedName(device.address)
                                 // notify tile to refresh
                                 refreshQsTile()
                                 eventListener?.onConnected(device)
@@ -231,7 +231,7 @@ class BluetoothService : Service(), IBluetoothService {
                                 eventListener?.onInfo("HID state DISCONNECTED ${device.address}")
                                 connectedDevice = null
                                 // clear connected name
-                                btPrefs.edit().remove("connected_name").apply()
+                                devicePrefs.setConnectedName(null)
                                 refreshQsTile()
                                 eventListener?.onDisconnected(device)
                                 if (!manualDisconnect) scheduleReconnect()
@@ -296,7 +296,7 @@ class BluetoothService : Service(), IBluetoothService {
             registerReceiver(notifActionReceiver, notifFilter)
         }
         refreshQsTile()
-        lastDeviceAddress = btPrefs.getString("last_device", null)
+        lastDeviceAddress = devicePrefs.getLastDevice()
         if (lastDeviceAddress != null) {
             DebugLog.log("BluetoothService", "remembered last_device=$lastDeviceAddress")
         }
@@ -483,7 +483,7 @@ class BluetoothService : Service(), IBluetoothService {
         DebugLog.log("BluetoothService", "connectDevice ${device.address}")
         // Avoid accessing device.name which requires BLUETOOTH_CONNECT; show address instead
         eventListener?.onInfo("Connecting to ${device.address} (manual)")
-        btPrefs.edit().putString("last_device", device.address).apply()
+        devicePrefs.setLastDevice(device.address)
         lastDeviceAddress = device.address
         // Ensure BLUETOOTH_CONNECT is available before attempting connect
         val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -535,7 +535,7 @@ class BluetoothService : Service(), IBluetoothService {
             e.printStackTrace()
         } finally {
             connectedDevice = null
-            btPrefs.edit().remove("connected_name").apply()
+            devicePrefs.setConnectedName(null)
             refreshQsTile()
         }
     }
@@ -569,7 +569,7 @@ class BluetoothService : Service(), IBluetoothService {
                 ACTION_DISCONNECT -> disconnectDevice()
                 ACTION_FORGET -> {
                     DebugLog.log("BluetoothService", "forget last_device")
-                    btPrefs.edit().remove("last_device").remove("connected_name").apply()
+                    devicePrefs.clearLastAndConnected()
                     lastDeviceAddress = null
                     refreshQsTile()
                 }
@@ -631,7 +631,7 @@ class BluetoothService : Service(), IBluetoothService {
 
     override fun setDefaultDevice(device: BluetoothDevice) {
         DebugLog.log("BluetoothService", "setDefaultDevice ${device.address}")
-        btPrefs.edit().putString("last_device", device.address).apply()
+        devicePrefs.setLastDevice(device.address)
         lastDeviceAddress = device.address
         lastTargetDevice = device
         StoreProvider.dispatch(Action.UpdateDefaultDevice(device.address))
@@ -640,12 +640,12 @@ class BluetoothService : Service(), IBluetoothService {
     }
 
     override fun getAlias(device: BluetoothDevice): String? {
-        return btPrefs.getString("alias_${device.address}", null)
+        return devicePrefs.getAlias(device.address)
     }
 
     override fun setAlias(device: BluetoothDevice, alias: String) {
         DebugLog.log("BluetoothService", "setAlias ${device.address} -> $alias")
-        btPrefs.edit().putString("alias_${device.address}", alias).apply()
+        devicePrefs.setAlias(device.address, alias)
         eventListener?.onInfo("Renamed: $alias")
     }
 
@@ -668,17 +668,17 @@ class BluetoothService : Service(), IBluetoothService {
                     DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; skipping disconnect in forgetDevice")
                 }
                 connectedDevice = null
-                btPrefs.edit().remove("connected_name").apply()
+                devicePrefs.setConnectedName(null)
                 refreshQsTile()
                 eventListener?.onDisconnected(device)
             }
             if (lastDeviceAddress == device.address) {
-                btPrefs.edit().remove("last_device").apply()
+                devicePrefs.setLastDevice(null)
                 lastDeviceAddress = null
                 lastTargetDevice = null
                 StoreProvider.dispatch(Action.UpdateDefaultDevice(null))
             }
-            btPrefs.edit().remove("alias_${device.address}").apply()
+            devicePrefs.removeAlias(device.address)
             if (unpair) {
                 try {
                     val m = device.javaClass.getMethod("removeBond")

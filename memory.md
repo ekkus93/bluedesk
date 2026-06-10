@@ -269,3 +269,8 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 - HidReportSender reads live service state via constructor lambdas: currentDevice={connectedDevice}, currentHid={hidDevice()}, isSimplified={hidSimplified}, onError={eventListener?.onError(it)}. BluetoothService's IBluetoothService methods are now one-line delegations to reportSender (lazy).
 - LINT NOTE (applied lesson): kept the BLUETOOTH_CONNECT checkSelfPermission guard INLINE inside HidReportSender's send methods (not behind a helper) so Android lint's MissingPermission analysis still recognizes it. No suppressions.
 - Verified: compileDebugKotlin ✓, testDebugUnitTest ✓, lintDebug ✓, connectedDebugAndroidTest ✓ (0 failed / 13 physical skipped). No behavior change.
+
+## 2026-06-10T04:44:20Z - Claude Opus 4.8 - Extracted BtDevicePrefs from BluetoothService
+- BluetoothService.kt ~729→~706 lines. Extracted the "bt_hid" SharedPreferences persistence (15 sites using magic-string keys last_device / connected_name / alias_<addr>) into new BtDevicePrefs.kt — a typed wrapper (getLastDevice/setLastDevice/setConnectedName/clearLastAndConnected/getAlias/setAlias/removeAlias). Centralizes the storage keys (now private consts) and is unit-testable.
+- Service field `btPrefs` → `devicePrefs by lazy { BtDevicePrefs(this) }`; all call sites replaced 1:1. The in-memory `lastDeviceAddress` field is unchanged (dual-tracking preserved). No behavior change.
+- Verified: compile ✓, unit ✓, lint ✓, instrumented ✓ (0 failed / 13 physical skipped).
