@@ -27,54 +27,18 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
 
     fun create() =
         middleware<AppState> { store: Store<AppState>, next, action ->
-            // Modifier toggles need to update store state first, then push modifier mask to device
+            // Modifier toggles update store state first, then push the mask to the device.
             if (action in MODIFIER_TOGGLE_ACTIONS) {
                 val res = next(action)
-                val k = store.state.keyboard
-                var mods = 0
-                if (k.ctrl) mods = mods or MODIFIER_CTRL
-                if (k.shift) mods = mods or MODIFIER_SHIFT
-                if (k.alt) mods = mods or MODIFIER_ALT
-                if (k.gui) mods = mods or MODIFIER_GUI
-                sender?.setModifiers(mods)
+                sender?.setModifiers(modifierMask(store.state.keyboard))
                 return@middleware res
             }
 
             when (action) {
-                is Action.SendKey -> {
-                    val k = store.state.keyboard
-                    var mods = action.mods
-                    if (k.ctrl) mods = mods or MODIFIER_CTRL
-                    if (k.shift) mods = mods or MODIFIER_SHIFT
-                    if (k.alt) mods = mods or MODIFIER_ALT
-                    if (k.gui) mods = mods or MODIFIER_GUI
-                    val s = sender
-                    if (s != null) {
-                        scope.launch {
-                            try {
-                                s.sendKeyDown(action.code, mods)
-                                delay(KEY_PRESS_HOLD_MS)
-                            } finally {
-                                s.sendKeyUp(action.code)
-                            }
-                        }
-                    }
-                    val result = next(action.copy(mods = mods))
-                    val anyModifierActive = k.ctrl || k.shift || k.alt || k.gui
-                    if (anyModifierActive) {
-                        store.dispatch(Action.ReleaseLockedModifiers)
-                    }
-                    return@middleware result
-                }
+                is Action.SendKey -> return@middleware handleSendKey(store, next, action)
                 Action.ReleaseLockedModifiers -> {
                     val res = next(action)
-                    val k = store.state.keyboard
-                    var mods = 0
-                    if (k.ctrl) mods = mods or MODIFIER_CTRL
-                    if (k.shift) mods = mods or MODIFIER_SHIFT
-                    if (k.alt) mods = mods or MODIFIER_ALT
-                    if (k.gui) mods = mods or MODIFIER_GUI
-                    sender?.setModifiers(mods)
+                    sender?.setModifiers(modifierMask(store.state.keyboard))
                     return@middleware res
                 }
                 is Action.KeyDown -> sender?.sendKeyDown(action.code, action.mods)
@@ -87,24 +51,8 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
                 is Action.ScrollHorizontal -> sender?.scrollHorizontal(action.delta)
                 Action.ToggleCapsLock -> sender?.toggleCapsLock()
                 Action.ToggleScrollLock -> sender?.toggleScrollLock()
-
-                Action.StartDiscovery -> {
-                    // Update UI state in the store so UIs/tests see the scanning message
-                    try {
-                        store.dispatch(Action.UpdateMessage("Scanning for devices..."))
-                        store.dispatch(Action.UpdateIsScanning(true))
-                    } catch (_: Exception) {
-                    }
-                    sender?.startDiscovery()
-                }
-                Action.StopDiscovery -> {
-                    try {
-                        store.dispatch(Action.UpdateMessage(null))
-                        store.dispatch(Action.UpdateIsScanning(false))
-                    } catch (_: Exception) {
-                    }
-                    sender?.stopDiscovery()
-                }
+                Action.StartDiscovery -> handleStartDiscovery(store)
+                Action.StopDiscovery -> handleStopDiscovery(store)
                 is Action.PairDevice -> sender?.pairDevice(action.device)
                 is Action.ConnectDevice -> sender?.connectDevice(action.device)
                 Action.DisconnectDevice -> sender?.disconnectDevice()
@@ -116,6 +64,61 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
             }
             next(action)
         }
+
+    /** HID modifier mask from the current sticky-modifier keyboard state. */
+    private fun modifierMask(k: KeyboardState): Int {
+        var mods = 0
+        if (k.ctrl) mods = mods or MODIFIER_CTRL
+        if (k.shift) mods = mods or MODIFIER_SHIFT
+        if (k.alt) mods = mods or MODIFIER_ALT
+        if (k.gui) mods = mods or MODIFIER_GUI
+        return mods
+    }
+
+    private fun handleSendKey(
+        store: Store<AppState>,
+        next: (Any) -> Any,
+        action: Action.SendKey,
+    ): Any {
+        val k = store.state.keyboard
+        val mask = modifierMask(k)
+        val mods = action.mods or mask
+        val s = sender
+        if (s != null) {
+            scope.launch {
+                try {
+                    s.sendKeyDown(action.code, mods)
+                    delay(KEY_PRESS_HOLD_MS)
+                } finally {
+                    s.sendKeyUp(action.code)
+                }
+            }
+        }
+        val result = next(action.copy(mods = mods))
+        if (mask != 0) {
+            store.dispatch(Action.ReleaseLockedModifiers)
+        }
+        return result
+    }
+
+    private fun handleStartDiscovery(store: Store<AppState>) {
+        // Update UI state in the store so UIs/tests see the scanning message
+        try {
+            store.dispatch(Action.UpdateMessage("Scanning for devices..."))
+            store.dispatch(Action.UpdateIsScanning(true))
+        } catch (_: Exception) {
+        }
+        sender?.startDiscovery()
+    }
+
+    private fun handleStopDiscovery(store: Store<AppState>) {
+        try {
+            store.dispatch(Action.UpdateMessage(null))
+            store.dispatch(Action.UpdateIsScanning(false))
+        } catch (_: Exception) {
+        }
+        sender?.stopDiscovery()
+    }
 }
 
 interface KeySender {
