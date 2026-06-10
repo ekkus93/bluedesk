@@ -140,7 +140,6 @@ class BleHogpService : Service() {
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun setupGattServices() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
@@ -156,7 +155,7 @@ class BleHogpService : Service() {
                 UUID_PROTOCOL_MODE,
                 BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,
                 BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
-            ).also { it.setValue(byteArrayOf(protocolMode)) }
+            ).also { it.setValueCompat(byteArrayOf(protocolMode)) }
         hidService.addCharacteristic(proto)
 
         val hidInfo =
@@ -164,7 +163,7 @@ class BleHogpService : Service() {
                 UUID_HID_INFORMATION,
                 BluetoothGattCharacteristic.PROPERTY_READ,
                 BluetoothGattCharacteristic.PERMISSION_READ,
-            ).also { it.setValue(byteArrayOf(HID_INFO_BCD_HID_LSB, 0x01, 0x00, 0x02)) }
+            ).also { it.setValueCompat(byteArrayOf(HID_INFO_BCD_HID_LSB, 0x01, 0x00, 0x02)) }
         hidService.addCharacteristic(hidInfo)
 
         val ctrlPt =
@@ -180,7 +179,7 @@ class BleHogpService : Service() {
                 UUID_REPORT_MAP,
                 BluetoothGattCharacteristic.PROPERTY_READ,
                 BluetoothGattCharacteristic.PERMISSION_READ,
-            ).also { it.setValue(HidDescriptorVariants.SIMPLE) }
+            ).also { it.setValueCompat(HidDescriptorVariants.SIMPLE) }
         hidService.addCharacteristic(reportMap)
 
         // Boot keyboard input (notify) — report ID 1 in boot protocol
@@ -211,7 +210,7 @@ class BleHogpService : Service() {
                     BluetoothGattDescriptor(
                         UUID_REPORT_REF,
                         BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED,
-                    ).also { d -> d.setValue(byteArrayOf(0x01, 0x01)) },
+                    ).also { d -> d.setValueCompat(byteArrayOf(0x01, 0x01)) },
                 )
                 it.addDescriptor(
                     BluetoothGattDescriptor(
@@ -262,7 +261,7 @@ class BleHogpService : Service() {
                     BluetoothGattDescriptor(
                         UUID_REPORT_REF,
                         BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED,
-                    ).also { d -> d.setValue(byteArrayOf(0x02, 0x01)) },
+                    ).also { d -> d.setValueCompat(byteArrayOf(0x02, 0x01)) },
                 )
                 it.addDescriptor(
                     BluetoothGattDescriptor(
@@ -282,7 +281,7 @@ class BleHogpService : Service() {
                 BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
                 BluetoothGattCharacteristic.PERMISSION_READ,
             ).also {
-                it.setValue(byteArrayOf(100.toByte()))
+                it.setValueCompat(byteArrayOf(100.toByte()))
                 it.addDescriptor(
                     BluetoothGattDescriptor(
                         UUID_CCC,
@@ -342,7 +341,6 @@ class BleHogpService : Service() {
             }
         }
 
-    @Suppress("DEPRECATION")
     private val gattCb =
         object : BluetoothGattServerCallback() {
             override fun onConnectionStateChange(
@@ -368,7 +366,7 @@ class BleHogpService : Service() {
                 offset: Int,
                 char: BluetoothGattCharacteristic,
             ) {
-                val v = char.value ?: byteArrayOf()
+                val v = char.valueCompat() ?: byteArrayOf()
                 val slice = v.copyOfRange(offset.coerceAtMost(v.size), v.size)
                 gattSendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, slice)
             }
@@ -385,7 +383,7 @@ class BleHogpService : Service() {
                 when (char.uuid) {
                     UUID_PROTOCOL_MODE -> {
                         protocolMode = value.firstOrNull() ?: 0
-                        char.setValue(byteArrayOf(protocolMode))
+                        char.setValueCompat(byteArrayOf(protocolMode))
                     }
                     UUID_HID_CONTROL_POINT -> { /* 0=Suspend, 1=Exit Suspend — no-op */ }
                     UUID_BOOT_KB_OUTPUT -> {
@@ -404,7 +402,7 @@ class BleHogpService : Service() {
                 offset: Int,
                 descriptor: BluetoothGattDescriptor,
             ) {
-                val v = descriptor.value ?: byteArrayOf()
+                val v = descriptor.valueCompat() ?: byteArrayOf()
                 val slice = v.copyOfRange(offset.coerceAtMost(v.size), v.size)
                 gattSendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, slice)
             }
@@ -418,7 +416,7 @@ class BleHogpService : Service() {
                 offset: Int,
                 value: ByteArray,
             ) {
-                descriptor.setValue(value)
+                descriptor.setValueCompat(value)
                 if (responseNeeded) gattSendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
             }
         }
@@ -447,7 +445,6 @@ class BleHogpService : Service() {
         }
     }
 
-    @Suppress("DEPRECATION")
     fun notifyKeyboard(report: ByteArray) {
         val snapshot = synchronized(connected) { connected.toList() }
         val hasConnect =
@@ -461,7 +458,7 @@ class BleHogpService : Service() {
             return
         }
         listOfNotNull(kbInputChar, kbInputReportChar).forEach { ch ->
-            ch.setValue(report)
+            ch.setValueCompat(report)
             snapshot.forEach { dev ->
                 try {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -477,7 +474,6 @@ class BleHogpService : Service() {
         }
     }
 
-    @Suppress("DEPRECATION")
     fun notifyMouse(report: ByteArray) {
         val snapshot = synchronized(connected) { connected.toList() }
         val hasConnect =
@@ -491,7 +487,7 @@ class BleHogpService : Service() {
             return
         }
         listOfNotNull(mouseInputChar, mouseInputReportChar).forEach { ch ->
-            ch.setValue(report)
+            ch.setValueCompat(report)
             snapshot.forEach { dev ->
                 try {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -539,3 +535,24 @@ class BleHogpService : Service() {
         }
     }
 }
+
+// ── Deprecation compat shims ──────────────────────────────────────────────
+// BluetoothGattCharacteristic/Descriptor.setValue() and .value were deprecated
+// in API 33, but remain the supported way to seed values on a GATT *server*'s
+// local attributes (and the only option below API 33). Each shim contains the
+// single deprecated call so the suppression is tightly scoped and documented.
+@Suppress("DEPRECATION")
+private fun BluetoothGattCharacteristic.setValueCompat(value: ByteArray) {
+    setValue(value)
+}
+
+@Suppress("DEPRECATION")
+private fun BluetoothGattCharacteristic.valueCompat(): ByteArray? = value
+
+@Suppress("DEPRECATION")
+private fun BluetoothGattDescriptor.setValueCompat(value: ByteArray) {
+    setValue(value)
+}
+
+@Suppress("DEPRECATION")
+private fun BluetoothGattDescriptor.valueCompat(): ByteArray? = value
