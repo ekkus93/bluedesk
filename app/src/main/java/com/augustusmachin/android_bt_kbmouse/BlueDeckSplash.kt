@@ -61,7 +61,7 @@ fun BlueDeckSplash(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Bluetooth Keyboard & Mouse",
+            text = "The handy keyboard and mouse",
             color = BlueDeckSoftWhite,
             fontSize = 16.sp,
             textAlign = TextAlign.Center

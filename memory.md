@@ -236,3 +236,6 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 - Wiring (MainActivity.setContent): `var showSplash by remember { mutableStateOf(true) }`; `LaunchedEffect(Unit){ delay(SPLASH_DISPLAY_MS); showSplash=false }`; Box overlays `AnimatedVisibility(visible=showSplash, enter=EnterTransition.None, exit=fadeOut(tween(450))){ BlueDeckSplash() }` over MainScreen. Constant renamed SPLASH_MIN_DISPLAY_MS → `SPLASH_DISPLAY_MS = 1800L`.
 - Removed the earlier system-splash keep-on-screen HOLD (no longer needed) so we don't show two splashes back-to-back: system circle icon (brief cold-start window) → branded BlueDeck Compose splash (~1.8s) → fadeOut → app. installSplashScreen() retained for the smooth cold-start handoff.
 - Flow visually verified on SM-A546E: t≈1.6s frame shows full branded splash; t≈2.6s frame caught the fade-out revealing the Pairing screen. Build/unit tests/lint all green.
+
+## 2026-06-10T01:26:48Z - Claude Opus 4.8 - Splash tagline changed to "The handy keyboard and mouse"
+- Per user request, BlueDeckSplash.kt subtitle changed from "Bluetooth Keyboard & Mouse" to "The handy keyboard and mouse". (Note: the strings.xml `bluedeck_tagline`/`bluedeck_full_name` resources are unchanged and still hold the original marketing copy; the splash subtitle is its own literal in BlueDeckSplash.kt.)
