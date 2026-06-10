@@ -253,25 +253,7 @@ class MainActivity : ComponentActivity() {
         // Keep a minimal startup log enabled until settings arrive.
         DebugLog.setEnabled(true)
         DebugLog.setLevel(DebugLog.Level.ERROR)
-        setContent {
-            AndroidbtkbmouseTheme {
-                var showSplash by remember { mutableStateOf(true) }
-                LaunchedEffect(Unit) {
-                    delay(SPLASH_DISPLAY_MS)
-                    showSplash = false
-                }
-                Box(Modifier.fillMaxSize()) {
-                    MainScreen()
-                    AnimatedVisibility(
-                        visible = showSplash,
-                        enter = EnterTransition.None,
-                        exit = fadeOut(animationSpec = tween(durationMillis = 450)),
-                    ) {
-                        BlueDeckSplash()
-                    }
-                }
-            }
-        }
+        installComposeUi()
         // Defer starting/binding services until required runtime permissions are granted.
         val permissionLauncher: ActivityResultLauncher<Array<String>> =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
@@ -295,6 +277,32 @@ class MainActivity : ComponentActivity() {
         }
 
         // Observe backend-mode changes at runtime and switch services cleanly.
+        observeBackendChanges()
+    }
+
+    private fun installComposeUi() {
+        setContent {
+            AndroidbtkbmouseTheme {
+                var showSplash by remember { mutableStateOf(true) }
+                LaunchedEffect(Unit) {
+                    delay(SPLASH_DISPLAY_MS)
+                    showSplash = false
+                }
+                Box(Modifier.fillMaxSize()) {
+                    MainScreen()
+                    AnimatedVisibility(
+                        visible = showSplash,
+                        enter = EnterTransition.None,
+                        exit = fadeOut(animationSpec = tween(durationMillis = 450)),
+                    ) {
+                        BlueDeckSplash()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun observeBackendChanges() {
         lifecycleScope.launch {
             var prevUseBle: Boolean? = null
             settingsViewModel.settings.collect { s ->
