@@ -2,7 +2,6 @@ package com.augustusmachin.android_bt_kbmouse
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.NotificationManager
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -10,13 +9,11 @@ import android.bluetooth.BluetoothHidDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Binder
 import android.os.IBinder
-import android.service.quicksettings.TileService
 import androidx.core.content.ContextCompat
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
@@ -27,7 +24,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 private const val SDK_INT_TIRAMISU = 33
-private const val SDK_INT_NOUGAT = 24
 private const val DEFAULT_RECONNECT_BASE_MS = 2000L
 
 class BluetoothService : Service(), IBluetoothService {
@@ -44,6 +40,9 @@ class BluetoothService : Service(), IBluetoothService {
     private val binder = LocalBinder()
     private var bluetoothAdapter: BluetoothAdapter? = null
     private val discovery by lazy { DiscoveryController(this) { bluetoothAdapter } }
+    private val foreground by lazy {
+        ServiceForegroundController(this, ACTION_CONNECT, ACTION_DISCONNECT, ACTION_FORGET)
+    }
     private var bluetoothHidProfile: BluetoothProfile? = null
     private var bluetoothHidModule: BluetoothHidModule? = null
     private var hid: BluetoothHidDevice? = null
@@ -662,57 +661,11 @@ class BluetoothService : Service(), IBluetoothService {
             }
         }
 
-    private fun refreshQsTile() {
-        if (android.os.Build.VERSION.SDK_INT >= SDK_INT_NOUGAT) {
-            try {
-                TileService.requestListeningState(this, ComponentName(this, HidQuickTileService::class.java))
-            } catch (_: Exception) {
-            }
-        }
-    }
+    private fun refreshQsTile() = foreground.refreshQsTile()
 
-    private fun startInForeground() {
-        val mgr = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val notif = ServiceNotifications.buildForeground(this, ACTION_CONNECT, ACTION_DISCONNECT, ACTION_FORGET)
-        // Use the two-argument startForeground where possible. On some
-        // platform builds the system may still enforce foreground-service
-        // types; guard against that so the service doesn't crash the app.
-        try {
-            startForeground(1, notif)
-        } catch (
-            @Suppress("TooGenericExceptionCaught") e: Exception,
-        ) {
-            // defensive: falls back to plain notify
-            // Fall back to posting the notification without calling
-            // startForeground so the process won't be killed during
-            // startup on restrictive platform builds. This keeps the
-            // user-visible notification but accepts the risk that the
-            // service may not be treated as a true FGS by the system.
-            DebugLog.e("BluetoothService", "startForeground failed: ${e.message}")
-            mgr.notify(1, notif)
-        }
-    }
+    private fun startInForeground() = foreground.startInForeground()
 
-    private fun reportMissingBluetoothConnect() {
-        val msg = "App requires BLUETOOTH_CONNECT permission. Please grant it in Settings."
-        DebugLog.e("BluetoothService", msg)
-        // Post a user-visible notification with a shortcut to app settings
-        runCatchingLogged("BluetoothService", "failed to post settings notification") {
-            ServiceNotifications.postMissingPermission(this, msg)
-        }
-
-        // Broadcast so Activity can show UI and exit gracefully
-        runCatchingLogged("BluetoothService", "failed to send missing-perm broadcast") {
-            val b = Intent(ACTION_MISSING_BLUETOOTH_CONNECT).setPackage(packageName)
-            sendBroadcast(b)
-        }
-
-        // Stop the service gracefully
-        try {
-            stopSelf()
-        } catch (_: Exception) {
-        }
-    }
+    private fun reportMissingBluetoothConnect() = foreground.reportMissingBluetoothConnect()
 
     // Bonded device manager helpers
     override fun getLastDeviceAddress(): String? = lastDeviceAddress
