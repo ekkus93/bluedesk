@@ -13,6 +13,11 @@ object ForegroundServiceLogic {
     /** The service start mode used (START_STICKY). */
     fun startMode(): Int = android.app.Service.START_STICKY
 
-    /** Build notification content text (currently constant in BluetoothService). */
-    fun buildNotificationText(connectedName: String?): String = "Tap to manage connection"
+    /** Notification content text: shows the connected device when present. */
+    fun buildNotificationText(connectedName: String?): String =
+        if (connectedName.isNullOrBlank()) {
+            "Tap to manage connection"
+        } else {
+            "Connected to $connectedName"
+        }
 }

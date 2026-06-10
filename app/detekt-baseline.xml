@@ -17,7 +17,6 @@
     <ID>CyclomaticComplexMethod:PairingViewModelTest.kt$PairingViewModelTest$@Test fun disconnect_updatesState_and_message()</ID>
     <ID>CyclomaticComplexMethod:PairingViewModelTest.kt$PairingViewModelTest$@Test fun surfacesErrorMessages_and_clearsOnNavigate()</ID>
     <ID>CyclomaticComplexMethod:SettingsManager.kt$SettingsManager$fun fromPreferences(p: androidx.datastore.preferences.core.Preferences): Settings</ID>
-    <ID>FunctionOnlyReturningConstant:ForegroundServiceLogic.kt$ForegroundServiceLogic$fun buildNotificationText(connectedName: String?): String</ID>
     <ID>LongMethod:BleHogpService.kt$BleHogpService$private fun setupGattServices()</ID>
     <ID>LongMethod:BluetoothService.kt$BluetoothService$private fun scheduleReconnect(delayMs: Long = 0)</ID>
     <ID>LongMethod:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$override fun onReceive( context: Context, intent: Intent, )</ID>
@@ -52,6 +51,5 @@
     <ID>TooManyFunctions:IBluetoothService.kt$IBluetoothService</ID>
     <ID>TooManyFunctions:Middleware.kt$KeySender</ID>
     <ID>TooManyFunctions:SettingsManager.kt$SettingsManager</ID>
-    <ID>UnusedParameter:ForegroundServiceLogic.kt$ForegroundServiceLogic$connectedName: String?</ID>
   </CurrentIssues>
 </SmellBaseline>

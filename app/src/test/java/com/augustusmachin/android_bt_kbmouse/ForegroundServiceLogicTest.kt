@@ -21,6 +21,7 @@ class ForegroundServiceLogicTest {
     @Test
     fun notification_text_builder_content() {
         assertEquals("Tap to manage connection", ForegroundServiceLogic.buildNotificationText(null))
-        assertEquals("Tap to manage connection", ForegroundServiceLogic.buildNotificationText("DeviceName"))
+        assertEquals("Tap to manage connection", ForegroundServiceLogic.buildNotificationText(""))
+        assertEquals("Connected to DeviceName", ForegroundServiceLogic.buildNotificationText("DeviceName"))
     }
 }
