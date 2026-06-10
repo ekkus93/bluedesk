@@ -131,4 +131,36 @@ class BleHogpKeySenderTest {
         assertArrayEquals(byteArrayOf(0x04, 0x00, 0x00), fake.mouseReports[0])
         assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00), fake.mouseReports[1])
     }
+
+    // ── Phase 1 / UT-04: lock-key sequences ─────────────────────────────────
+
+    @Test
+    fun `toggleCapsLock emits 0x39 down then up`() {
+        val fake = FakeHogpNotifier()
+        val s = BleHogpKeySender(fake)
+        s.toggleCapsLock()
+        assertEquals(2, fake.keyboardReports.size)
+        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00), fake.keyboardReports[0])
+        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), fake.keyboardReports[1])
+    }
+
+    @Test
+    fun `toggleScrollLock emits 0x47 down then up`() {
+        val fake = FakeHogpNotifier()
+        val s = BleHogpKeySender(fake)
+        s.toggleScrollLock()
+        assertEquals(2, fake.keyboardReports.size)
+        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x47, 0x00, 0x00, 0x00, 0x00, 0x00), fake.keyboardReports[0])
+        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), fake.keyboardReports[1])
+    }
+
+    @Test
+    fun `lock toggle preserves the current modifier byte`() {
+        val fake = FakeHogpNotifier()
+        val s = BleHogpKeySender(fake)
+        s.setModifiers(0x02)
+        s.toggleCapsLock()
+        // reports: [0]=setModifiers, [1]=caps down (modifier preserved), [2]=caps up
+        assertArrayEquals(byteArrayOf(0x02, 0x00, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00), fake.keyboardReports[1])
+    }
 }

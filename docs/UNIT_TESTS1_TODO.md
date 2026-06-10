@@ -111,15 +111,15 @@ Acceptance criteria:
 
 ### UT-04 — `BleHogpKeySenderTest`: lock-key sequences
 
-- [ ] `toggleCapsLock()` emits a key-down report containing `0x39` then a
+- [x] `toggleCapsLock()` emits a key-down report containing `0x39` then a
       key-up report without it (assert the two reports / their key bytes).
-- [ ] `toggleScrollLock()` does the same for `0x47`.
-- [ ] Lock toggles preserve the current `modifierByte` in the emitted reports.
+- [x] `toggleScrollLock()` does the same for `0x47`.
+- [x] Lock toggles preserve the current `modifierByte` in the emitted reports.
 
 Acceptance criteria:
-- [ ] The `Thread.sleep` hold does not need to be asserted; assert only the
+- [x] The `Thread.sleep` hold does not need to be asserted; assert only the
       emitted report sequence (keep the test fast).
-- [ ] Verification suite passes.
+- [x] Verification suite passes.
 
 ### UT-05 — `BleHogpKeySenderTest`: BLE no-op commands
 
