@@ -13,7 +13,8 @@ class HidQuickTileServiceTest {
 
     @Test
     fun safe_noop_when_service_not_bound() {
-        // Simulate logic branch: no last device => would open activity; we assert fallback label remains app name when no connected_name
+        // Simulate logic branch: no last device => would open activity; we assert
+        // fallback label remains app name when no connected_name
         val spMock = mutableMapOf<String, String>()
         val connectedName = spMock["connected_name"]
         assertNull(connectedName) // tile would show app name and perform no connect/disconnect broadcast

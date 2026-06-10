@@ -11,11 +11,9 @@ style:
     ignorePropertyDeclaration: true
   MaxLineLength:
     maxLineLength: 120
-    excludePackageStatements: true
+    # Imports are unwrappable in Kotlin; everything else (incl. comments
+    # and package statements) is enforced.
     excludeImportStatements: true
-    # ktlint's max-line-length already exempts comments (KDoc, a copy-paste
-    # command line, etc.); match that so the two tools agree.
-    excludeCommentStatements: true
   WildcardImport:
     active: true
   ReturnCount:

@@ -7,7 +7,10 @@ object PermissionUxLogic {
     /** Return true when all required permissions are already granted. */
     fun shouldStartDiscovery(missing: Collection<String>): Boolean = missing.isEmpty()
 
-    /** Determine denied flow: if any permission is permanently denied (rationale = false) go to Settings else show rationale dialog. */
+    /**
+     * Determine denied flow: if any permission is permanently denied
+     * (rationale = false) go to Settings, else show the rationale dialog.
+     */
     fun deniedFlow(rationaleFlags: Map<String, Boolean>): DeniedFlow =
         if (rationaleFlags.values.any { it == false }) DeniedFlow.ShowSettings else DeniedFlow.ShowRationale
 

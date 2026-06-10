@@ -351,3 +351,8 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 - The 2 inline @Suppress on the 3-arg notifyCharacteristicChanged (version-branch else) were already precise/line-level; kept as-is.
 - GOTCHA (re-learned): tried to also fold the notify version-branch into a notifyChangedCompat() helper — Android lint MissingPermission then flagged the notify call inside the helper (lint can't follow the caller's permission guard into a helper, same as the earlier checkSelfPermission lesson). Reverted notify to inline. Also: editing a baselined method's body drifts its detekt baseline signature (LongMethod/NestedBlockDepth on setupGattServices/notify*) → regenerated detekt baseline (still 55, structural only).
 - Verified: detekt, ktlintCheck, compileDebugKotlin, testDebugUnitTest, lintDebug all green. Behavior-identical (shims do exactly setValue/value).
+
+## 2026-06-10T09:14:03Z - Claude Opus 4.8 - Tighten detekt MaxLineLength (drop comment/package excludes)
+- Removed excludeCommentStatements and excludePackageStatements from detekt.yml MaxLineLength; kept only excludeImportStatements (imports are unwrappable in Kotlin). Now comments + package statements are also held to 120.
+- Wrapped the 2 long comment lines that surfaced: PermissionUxLogic.kt KDoc (single-line → multi-line /** */) and HidQuickTileServiceTest.kt // comment (split to 2 lines). No copy-paste command line was affected (it was ≤120).
+- Verified: detekt, ktlintCheck, compileDebugKotlin, testDebugUnitTest, lintDebug all green. detekt baseline unchanged (55). Note: ktlint's own max-line-length still inherently exempts comments, so detekt is now the stricter enforcer for comment length.
