@@ -26,10 +26,13 @@ class GestureLogicTest {
                 accH,
                 dySum = 30f,
                 dxSum = 0f,
-                scrollSpeed = 1.0f,
-                invertV = false,
-                enableH = false,
-                invertH = false,
+                config =
+                    GestureLogic.ScrollConfig(
+                        scrollSpeed = 1.0f,
+                        invertVertical = false,
+                        enableHorizontal = false,
+                        invertHorizontal = false,
+                    ),
             )
         assertEquals(listOf(1), r1.verticalSteps) // 30 >= 24 => one step
         assertTrue(r1.horizontalSteps.isEmpty())
@@ -42,10 +45,13 @@ class GestureLogicTest {
                 r1.accumH,
                 dySum = -50f,
                 dxSum = 0f,
-                scrollSpeed = 1.0f,
-                invertV = false,
-                enableH = false,
-                invertH = false,
+                config =
+                    GestureLogic.ScrollConfig(
+                        scrollSpeed = 1.0f,
+                        invertVertical = false,
+                        enableHorizontal = false,
+                        invertHorizontal = false,
+                    ),
             )
         assertEquals(listOf(-1), r2.verticalSteps)
         // ~6-50 = -44 -> after one step (add 24) ~ -20 remains
@@ -60,10 +66,13 @@ class GestureLogicTest {
                 0f,
                 dySum = 0f,
                 dxSum = 25f,
-                scrollSpeed = 1.0f,
-                invertV = false,
-                enableH = true,
-                invertH = true,
+                config =
+                    GestureLogic.ScrollConfig(
+                        scrollSpeed = 1.0f,
+                        invertVertical = false,
+                        enableHorizontal = true,
+                        invertHorizontal = true,
+                    ),
             )
         assertEquals(emptyList<Int>(), r.verticalSteps)
         assertEquals(listOf(-1), r.horizontalSteps) // invert flips + to -

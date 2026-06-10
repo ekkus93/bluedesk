@@ -30,6 +30,14 @@ object GestureLogic {
         val accumH: Float,
     )
 
+    /** Scroll tuning that controls how accumulated deltas become scroll steps. */
+    data class ScrollConfig(
+        val scrollSpeed: Float,
+        val invertVertical: Boolean,
+        val enableHorizontal: Boolean,
+        val invertHorizontal: Boolean,
+    )
+
     /**
      * Accumulate two-finger scroll deltas and emit step-wise scroll events.
      * stepPx = 24f / max(scrollSpeed, 0.1f)
@@ -39,27 +47,24 @@ object GestureLogic {
         accumH: Float,
         dySum: Float,
         dxSum: Float,
-        scrollSpeed: Float,
-        invertV: Boolean,
-        enableH: Boolean,
-        invertH: Boolean,
+        config: ScrollConfig,
     ): ScrollResult {
-        val stepPx = (SCROLL_STEP_BASE_PX / scrollSpeed.coerceAtLeast(MIN_SCROLL_SPEED))
+        val stepPx = (SCROLL_STEP_BASE_PX / config.scrollSpeed.coerceAtLeast(MIN_SCROLL_SPEED))
         var vAcc = accumV + dySum
         var hAcc = accumH
         val vSteps = mutableListOf<Int>()
         val hSteps = mutableListOf<Int>()
         while (abs(vAcc) >= stepPx) {
             val step = if (vAcc > 0) 1 else -1
-            val send = if (invertV) -step else step
+            val send = if (config.invertVertical) -step else step
             vSteps += send
             vAcc -= stepPx * step
         }
-        if (enableH) {
+        if (config.enableHorizontal) {
             hAcc += dxSum
             while (abs(hAcc) >= stepPx) {
                 val step = if (hAcc > 0) 1 else -1
-                val send = if (invertH) -step else step
+                val send = if (config.invertHorizontal) -step else step
                 hSteps += send
                 hAcc -= stepPx * step
             }

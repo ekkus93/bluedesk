@@ -356,3 +356,8 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 - Removed excludeCommentStatements and excludePackageStatements from detekt.yml MaxLineLength; kept only excludeImportStatements (imports are unwrappable in Kotlin). Now comments + package statements are also held to 120.
 - Wrapped the 2 long comment lines that surfaced: PermissionUxLogic.kt KDoc (single-line → multi-line /** */) and HidQuickTileServiceTest.kt // comment (split to 2 lines). No copy-paste command line was affected (it was ≤120).
 - Verified: detekt, ktlintCheck, compileDebugKotlin, testDebugUnitTest, lintDebug all green. detekt baseline unchanged (55). Note: ktlint's own max-line-length still inherently exempts comments, so detekt is now the stricter enforcer for comment length.
+
+## 2026-06-10T09:24:27Z - Claude Opus 4.8 - Fix LongParameterList (GestureLogic.accumulateTwoFingerScroll)
+- The function had 8 params (>detekt threshold 6). Grouped the 4 scroll-tuning params (scrollSpeed, invertV, enableH, invertH) into a new GestureLogic.ScrollConfig data class → function now takes (accumV, accumH, dySum, dxSum, config) = 5 params, under the limit.
+- Updated the 3 GestureLogicTest call sites to pass ScrollConfig. Removed the LongParameterList entry from detekt-baseline.xml (surgically, to avoid re-baseline drift) → baseline 55 → 54. Genuinely fixed, not suppressed/baselined.
+- Verified: detekt, ktlintCheck, compileDebugKotlin, testDebugUnitTest, lintDebug all green.

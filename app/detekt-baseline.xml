@@ -34,7 +34,6 @@
     <ID>LongMethod:NavigationKeysScreen.kt$@Composable fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues())</ID>
     <ID>LongMethod:PairingScreen.kt$@Composable fun PairingScreen(contentPadding: PaddingValues = PaddingValues())</ID>
     <ID>LongMethod:SettingsScreen.kt$@Composable fun SettingsScreen( contentPadding: PaddingValues = PaddingValues(), onOpenLogs: (() -&gt; Unit)? = null, )</ID>
-    <ID>LongParameterList:GestureLogic.kt$GestureLogic$( accumV: Float, accumH: Float, dySum: Float, dxSum: Float, scrollSpeed: Float, invertV: Boolean, enableH: Boolean, invertH: Boolean, )</ID>
     <ID>NestedBlockDepth:BleHogpService.kt$BleHogpService$fun notifyKeyboard(report: ByteArray)</ID>
     <ID>NestedBlockDepth:BleHogpService.kt$BleHogpService$fun notifyMouse(report: ByteArray)</ID>
     <ID>NestedBlockDepth:BluetoothService.kt$BluetoothService$override fun disconnectDevice()</ID>
