@@ -99,16 +99,16 @@ Acceptance criteria:
 
 ### Task 2.1 — Find unsafe receiver registration
 
-- [ ] Open `BluetoothService.kt`.
-- [ ] Search for:
+- [x] Open `BluetoothService.kt`.
+- [x] Search for:
   ```kotlin
   registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
   ```
-- [ ] Identify any unguarded receiver flag overloads used on minSdk paths.
+- [x] Identify any unguarded receiver flag overloads used on minSdk paths.
 
 Acceptance criteria:
 
-- [ ] Unsafe receiver registration sites are identified.
+- [x] Unsafe receiver registration sites are identified.
 
 ### Task 2.2 — Replace with compatible registration
 
@@ -134,23 +134,23 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
 }
 ```
 
-- [ ] Apply to `BluetoothService`.
-- [ ] Apply to any similar unguarded receiver registrations if found.
-- [ ] Keep receiver unregister path safe.
+- [x] Apply to `BluetoothService`.
+- [x] Apply to any similar unguarded receiver registrations if found.
+- [x] Keep receiver unregister path safe.
 
 Acceptance criteria:
 
-- [ ] No API 33-only receiver overload is called unguarded on API 26–32.
+- [x] No API 33-only receiver overload is called unguarded on API 26–32.
 
 ### Task 2.3 — Validate
 
-- [ ] Build compiles.
-- [ ] Lint does not flag unsafe receiver registration.
-- [ ] Code is safe for minSdk.
+- [x] Build compiles.
+- [x] Lint does not flag unsafe receiver registration.
+- [x] Code is safe for minSdk.
 
 Acceptance criteria:
 
-- [ ] `BluetoothService` receiver registration is API-compatible.
+- [x] `BluetoothService` receiver registration is API-compatible.
 
 ---
 

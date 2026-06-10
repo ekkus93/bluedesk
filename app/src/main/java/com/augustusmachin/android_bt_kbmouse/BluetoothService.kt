@@ -23,7 +23,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
-private const val SDK_INT_TIRAMISU = 33
 private const val DEFAULT_RECONNECT_BASE_MS = 2000L
 
 class BluetoothService : Service(), IBluetoothService {
@@ -294,34 +293,17 @@ class BluetoothService : Service(), IBluetoothService {
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
         filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
         filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
-        // Robust dynamic receiver registration for newer preview SDKs: always specify flag
-        try {
-            registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } catch (se: SecurityException) {
-            // Some preview builds may reject NOT_EXPORTED; fall back to exported
-            DebugLog.e("BluetoothService", "registerReceiver NOT_EXPORTED rejected: ${se.message}")
-            try {
-                registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
-            } catch (_: Exception) {
-            }
-        }
+        // ContextCompat handles the API-level differences for the receiver-flags overload
+        // (added in API 33) so this is safe on minSdk 26. Receivers stay non-exported — they
+        // only handle this app's own broadcasts, never external ones.
+        ContextCompat.registerReceiver(this, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
         val notifFilter =
             IntentFilter().apply {
                 addAction(ACTION_CONNECT)
                 addAction(ACTION_DISCONNECT)
                 addAction(ACTION_FORGET)
             }
-        if (android.os.Build.VERSION.SDK_INT >= SDK_INT_TIRAMISU) {
-            try {
-                registerReceiver(notifActionReceiver, notifFilter, Context.RECEIVER_NOT_EXPORTED)
-            } catch (se: SecurityException) {
-                // Fallback: some preview/API levels may require explicit exported flag
-                registerReceiver(notifActionReceiver, notifFilter, Context.RECEIVER_EXPORTED)
-                DebugLog.e("BluetoothService", "Fallback to RECEIVER_EXPORTED for notifActionReceiver: ${se.message}")
-            }
-        } else {
-            registerReceiver(notifActionReceiver, notifFilter)
-        }
+        ContextCompat.registerReceiver(this, notifActionReceiver, notifFilter, ContextCompat.RECEIVER_NOT_EXPORTED)
         refreshQsTile()
         lastDeviceAddress = devicePrefs.getLastDevice()
         if (lastDeviceAddress != null) {
