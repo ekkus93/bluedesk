@@ -158,14 +158,14 @@ Acceptance criteria:
 
 ### UT-07 — `HidReportSenderTest`: keyboard + modifier state
 
-- [ ] `setModifiers(mods)` is reflected in the next emitted keyboard report.
-- [ ] `pressKey` / `releaseKey` accumulate and remove keys (rollover cap),
+- [x] `setModifiers(mods)` is reflected in the next emitted keyboard report.
+- [x] `pressKey` / `releaseKey` accumulate and remove keys (rollover cap),
       asserting exact report bytes.
-- [ ] `sendKeyPress` emits the down→up sequence with the correct key + modifiers.
+- [x] `sendKeyPress` emits the down→up sequence with the correct key + modifiers.
 
 Acceptance criteria:
-- [ ] Assertions check produced report bytes via the sink fake.
-- [ ] Verification suite passes.
+- [x] Assertions check produced report bytes via the sink fake.
+- [x] Verification suite passes.
 
 ### UT-08 — `HidReportSenderTest`: mouse state
 
