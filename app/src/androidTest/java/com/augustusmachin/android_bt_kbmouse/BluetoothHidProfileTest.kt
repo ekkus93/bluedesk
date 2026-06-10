@@ -165,7 +165,7 @@ class BluetoothHidProfileTest {
         assumeApi28()
         val adapter = requireEnabledAdapter() ?: return
         val hid = obtainHidProxy(adapter) ?: return
-        val module = BluetoothHidModule(adapter)
+        val module = BluetoothHidModule()
 
         // Register first
         val registerLatch = CountDownLatch(1)
@@ -199,7 +199,7 @@ class BluetoothHidProfileTest {
         assumeApi28()
         val adapter = requireEnabledAdapter() ?: return
         val hid = obtainHidProxy(adapter) ?: return
-        val module = BluetoothHidModule(adapter)
+        val module = BluetoothHidModule()
 
         try {
             // Register SIMPLE
@@ -281,7 +281,7 @@ class BluetoothHidProfileTest {
         assumeApi28()
         val adapter = requireEnabledAdapter() ?: return
         val hid = obtainHidProxy(adapter) ?: return
-        val module = BluetoothHidModule(adapter)
+        val module = BluetoothHidModule()
 
         // Pre-clear any stale registration left by the previous test (e.g.
         // unregisterApp_receivesRegisteredFalseCallback, which has no post-close sleep).

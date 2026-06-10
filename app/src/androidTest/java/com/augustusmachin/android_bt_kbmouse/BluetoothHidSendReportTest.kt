@@ -185,7 +185,7 @@ class BluetoothHidSendReportTest {
             val regLatch = CountDownLatch(1)
             var registered = false
 
-            val module = BluetoothHidModule(adapter)
+            val module = BluetoothHidModule()
             module.listener =
                 object : BluetoothHidModule.HidEventListenerExt {
                     override fun onAppStatus(r: Boolean) {
