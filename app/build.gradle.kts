@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
 }
 
 android {
@@ -77,4 +79,18 @@ dependencies {
     testImplementation("org.mockito:mockito-inline:5.2.0")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+// Static analysis / style. Existing findings are grandfathered via baselines;
+// new findings fail the build. Regenerate baselines with detektBaseline /
+// ktlintGenerateBaseline; auto-fix style with ktlintFormat.
+detekt {
+    buildUponDefaultConfig = true
+    baseline = file("$projectDir/detekt-baseline.xml")
+}
+
+ktlint {
+    android.set(true)
+    ignoreFailures.set(false)
+    baseline.set(file("$projectDir/ktlint-baseline.xml"))
 }

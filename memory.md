@@ -274,3 +274,11 @@ Note left for Opus, authored by Claude Haiku 4.5 on 2026-06-09. The user asked H
 - BluetoothService.kt ~729→~706 lines. Extracted the "bt_hid" SharedPreferences persistence (15 sites using magic-string keys last_device / connected_name / alias_<addr>) into new BtDevicePrefs.kt — a typed wrapper (getLastDevice/setLastDevice/setConnectedName/clearLastAndConnected/getAlias/setAlias/removeAlias). Centralizes the storage keys (now private consts) and is unit-testable.
 - Service field `btPrefs` → `devicePrefs by lazy { BtDevicePrefs(this) }`; all call sites replaced 1:1. The in-memory `lastDeviceAddress` field is unchanged (dual-tracking preserved). No behavior change.
 - Verified: compile ✓, unit ✓, lint ✓, instrumented ✓ (0 failed / 13 physical skipped).
+
+## 2026-06-10T04:53:35Z - Claude Opus 4.8 - Added ktlint + detekt static analysis
+- Added Gradle plugins (user-approved): org.jlleitschuh.gradle.ktlint 12.1.1 and io.gitlab.arturbosch.detekt 1.23.7, via version catalog ([versions] ktlint/detekt, [plugins] ktlint/detekt), applied in app/build.gradle.kts plugins{} with config blocks.
+- BASELINE strategy (adopt on existing code without a huge reformat): generated app/ktlint-baseline.xml (~82 files of findings) and app/detekt-baseline.xml (490 findings) so existing issues are grandfathered; NEW findings fail the build. Regenerate via ktlintGenerateBaseline / detektBaseline. Burn down with ktlintFormat (auto-fix) — NOT done yet (would be a big reformat diff; offered to user).
+- Added .editorconfig: ktlint_standard_function-naming = disabled (Compose @Composable funcs are PascalCase) and max_line_length = off (deep Compose trees). detekt: buildUponDefaultConfig=true.
+- CI: ci.yml now runs :app:ktlintCheck and :app:detekt after lintDebug. README Testing section documents the commands + baselines.
+- This directly answers "why didn't lint catch X": Android Lint only checks platform/correctness/security — NOT unused imports (neither does kotlinc by default), duplication, file/method size, magic strings. ktlint/detekt cover those. The 490+82 baselined findings are proof of the gap.
+- Verified: ktlintCheck ✓ + detekt ✓ green with baselines. (assembleDebug/unit/instrumented unaffected.)

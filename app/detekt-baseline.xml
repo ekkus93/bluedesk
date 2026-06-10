@@ -1,0 +1,496 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ComplexCondition:Middleware.kt$KeySenderMiddleware$action == Action.ToggleCtrl || action == Action.ToggleShift || action == Action.ToggleAlt || action == Action.ToggleGui</ID>
+    <ID>ComplexCondition:Middleware.kt$KeySenderMiddleware$k.ctrl || k.shift || k.alt || k.gui</ID>
+    <ID>CyclomaticComplexMethod:BluetoothServiceLogicTest.kt$BluetoothServiceLogicTest$@Test fun maps_onConnectionStateChanged_to_VM_state()</ID>
+    <ID>CyclomaticComplexMethod:ExtendedKeyMappings.kt$fun labelToHid(label: String): Byte?</ID>
+    <ID>CyclomaticComplexMethod:KeyboardScreen.kt$@Composable fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValues = PaddingValues())</ID>
+    <ID>CyclomaticComplexMethod:MainScreen.kt$@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class) @Composable fun MainScreen()</ID>
+    <ID>CyclomaticComplexMethod:Middleware.kt$KeySenderMiddleware$fun create()</ID>
+    <ID>CyclomaticComplexMethod:MouseScreen.kt$@Composable fun MouseScreen(contentPadding: PaddingValues = PaddingValues())</ID>
+    <ID>CyclomaticComplexMethod:NavigationKeysScreen.kt$@Composable fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues())</ID>
+    <ID>CyclomaticComplexMethod:PairingScreen.kt$@Composable fun PairingScreen(contentPadding: PaddingValues = PaddingValues())</ID>
+    <ID>CyclomaticComplexMethod:PairingStoreTest.kt$PairingStoreTest$@Test fun connect_onSelection_invokesService_and_updatesState()</ID>
+    <ID>CyclomaticComplexMethod:PairingStoreTest.kt$PairingStoreTest$@Test fun disconnect_updatesState_and_message()</ID>
+    <ID>CyclomaticComplexMethod:PairingStoreTest.kt$PairingStoreTest$@Test fun surfacesErrorMessages_and_clearsOnNavigate()</ID>
+    <ID>CyclomaticComplexMethod:PairingViewModelTest.kt$PairingViewModelTest$@Test fun connect_onSelection_invokesService_and_updatesState()</ID>
+    <ID>CyclomaticComplexMethod:PairingViewModelTest.kt$PairingViewModelTest$@Test fun disconnect_updatesState_and_message()</ID>
+    <ID>CyclomaticComplexMethod:PairingViewModelTest.kt$PairingViewModelTest$@Test fun surfacesErrorMessages_and_clearsOnNavigate()</ID>
+    <ID>CyclomaticComplexMethod:SettingsManager.kt$SettingsManager$fun fromPreferences(p: androidx.datastore.preferences.core.Preferences): Settings</ID>
+    <ID>EmptyFunctionBlock:BluetoothServiceLogicTest.kt$BluetoothServiceLogicTest.EventService${}</ID>
+    <ID>EmptyFunctionBlock:PairingStoreTest.kt$PairingStoreTest.CaptureService${}</ID>
+    <ID>EmptyFunctionBlock:PairingStoreTest.kt$PairingStoreTest.DiscService${}</ID>
+    <ID>EmptyFunctionBlock:PairingStoreTest.kt$PairingStoreTest.ErrorService${}</ID>
+    <ID>EmptyFunctionBlock:PairingStoreTest.kt$PairingStoreTest.FakeService${ }</ID>
+    <ID>EmptyFunctionBlock:PairingStoreTest.kt$PairingStoreTest.FakeService${}</ID>
+    <ID>EmptyFunctionBlock:PairingViewModelTest.kt$PairingViewModelTest.CaptureService${}</ID>
+    <ID>EmptyFunctionBlock:PairingViewModelTest.kt$PairingViewModelTest.DiscService${}</ID>
+    <ID>EmptyFunctionBlock:PairingViewModelTest.kt$PairingViewModelTest.ErrorService${}</ID>
+    <ID>EmptyFunctionBlock:PairingViewModelTest.kt$PairingViewModelTest.FakeService${ }</ID>
+    <ID>EmptyFunctionBlock:PairingViewModelTest.kt$PairingViewModelTest.FakeService${}</ID>
+    <ID>FunctionNaming:BlueDeckSplash.kt$@Composable fun BlueDeckSplash(modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:ExtendedKeysScreen.kt$@Composable fun ExtendedKeysScreen()</ID>
+    <ID>FunctionNaming:FunctionKeysScreen.kt$@Composable fun FunctionKeysScreen()</ID>
+    <ID>FunctionNaming:KeyboardScreen.kt$@Composable fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValues = PaddingValues())</ID>
+    <ID>FunctionNaming:LogsScreen.kt$@Composable fun LogsScreen(contentPadding: PaddingValues = PaddingValues())</ID>
+    <ID>FunctionNaming:MainScreen.kt$@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class) @Composable fun MainScreen()</ID>
+    <ID>FunctionNaming:MouseScreen.kt$@Composable fun MouseScreen(contentPadding: PaddingValues = PaddingValues())</ID>
+    <ID>FunctionNaming:NavigationKeysScreen.kt$@Composable fun KeyCell(cell: NavCell)</ID>
+    <ID>FunctionNaming:NavigationKeysScreen.kt$@Composable fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues())</ID>
+    <ID>FunctionNaming:PairingScreen.kt$@Composable fun PairingScreen(contentPadding: PaddingValues = PaddingValues())</ID>
+    <ID>FunctionNaming:ResponsiveText.kt$@Composable fun ResponsiveText( text: String, minSize: TextUnit = 10.sp, maxSize: TextUnit = 16.sp, fontWeight: FontWeight? = null, letterSpacing: TextUnit = TextUnit.Unspecified )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: (() -&gt; Unit)? = null)</ID>
+    <ID>FunctionNaming:Theme.kt$@Composable fun AndroidbtkbmouseTheme( darkTheme: Boolean = isSystemInDarkTheme(), dynamicColor: Boolean = false, content: @Composable () -&gt; Unit )</ID>
+    <ID>FunctionOnlyReturningConstant:ForegroundServiceLogic.kt$ForegroundServiceLogic$fun buildNotificationText(connectedName: String?): String</ID>
+    <ID>ImplicitDefaultLocale:ExtendedKeysScreen.kt$String.format("0x%02X", code.toInt() and 0xFF)</ID>
+    <ID>ImplicitDefaultLocale:FunctionKeysScreen.kt$String.format("0x%02X", code.toInt() and 0xFF)</ID>
+    <ID>ImplicitDefaultLocale:NavigationKeysScreen.kt$String.format("0x%02X", code.toInt() and 0xFF)</ID>
+    <ID>LongMethod:BleHogpService.kt$BleHogpService$@Suppress("DEPRECATION") private fun setupGattServices()</ID>
+    <ID>LongMethod:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$override fun onReceive(context: Context, intent: Intent)</ID>
+    <ID>LongMethod:ExtendedKeysScreen.kt$@Composable fun ExtendedKeysScreen()</ID>
+    <ID>LongMethod:FunctionKeysScreen.kt$@Composable fun FunctionKeysScreen()</ID>
+    <ID>LongMethod:KeyboardScreen.kt$@Composable fun KeyboardScreen(navController: NavHostController, contentPadding: PaddingValues = PaddingValues())</ID>
+    <ID>LongMethod:MainScreen.kt$@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class) @Composable fun MainScreen()</ID>
+    <ID>LongMethod:Middleware.kt$KeySenderMiddleware$fun create()</ID>
+    <ID>LongMethod:MouseScreen.kt$@Composable fun MouseScreen(contentPadding: PaddingValues = PaddingValues())</ID>
+    <ID>LongMethod:NavigationKeysScreen.kt$@Composable fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues())</ID>
+    <ID>LongMethod:PairingScreen.kt$@Composable fun PairingScreen(contentPadding: PaddingValues = PaddingValues())</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable fun SettingsScreen(contentPadding: PaddingValues = PaddingValues(), onOpenLogs: (() -&gt; Unit)? = null)</ID>
+    <ID>LongParameterList:GestureLogic.kt$GestureLogic$( accumV: Float, accumH: Float, dySum: Float, dxSum: Float, scrollSpeed: Float, invertV: Boolean, enableH: Boolean, invertH: Boolean )</ID>
+    <ID>MagicNumber:BleHogpKeySender.kt$BleHogpKeySender$0x04</ID>
+    <ID>MagicNumber:BleHogpKeySender.kt$BleHogpKeySender$10</ID>
+    <ID>MagicNumber:BleHogpKeySender.kt$BleHogpKeySender$40</ID>
+    <ID>MagicNumber:BleHogpKeySender.kt$BleHogpKeySender$6</ID>
+    <ID>MagicNumber:BleHogpLogic.kt$BleHogpLogic$0x05</ID>
+    <ID>MagicNumber:BleHogpLogic.kt$BleHogpLogic$0x06</ID>
+    <ID>MagicNumber:BleHogpLogic.kt$BleHogpLogic$0x07</ID>
+    <ID>MagicNumber:BleHogpLogic.kt$BleHogpLogic$0x09</ID>
+    <ID>MagicNumber:BleHogpLogic.kt$BleHogpLogic$0xFF</ID>
+    <ID>MagicNumber:BleHogpLogic.kt$BleHogpLogic$8</ID>
+    <ID>MagicNumber:BleHogpService.kt$BleHogpService$0x11</ID>
+    <ID>MagicNumber:BleHogpService.kt$BleHogpService$23</ID>
+    <ID>MagicNumber:BleHogpService.kt$BleHogpService$26</ID>
+    <ID>MagicNumber:BlueDeckSplash.kt$0xFF00D4FF</ID>
+    <ID>MagicNumber:BlueDeckSplash.kt$0xFF07111F</ID>
+    <ID>MagicNumber:BlueDeckSplash.kt$0xFF0B1D3A</ID>
+    <ID>MagicNumber:BlueDeckSplash.kt$0xFF101827</ID>
+    <ID>MagicNumber:BlueDeckSplash.kt$0xFFF8FAFC</ID>
+    <ID>MagicNumber:BluetoothService.kt$BluetoothService$2000L</ID>
+    <ID>MagicNumber:BluetoothService.kt$BluetoothService$24</ID>
+    <ID>MagicNumber:BluetoothService.kt$BluetoothService$33</ID>
+    <ID>MagicNumber:BootReceiver.kt$BootReceiver$26</ID>
+    <ID>MagicNumber:Color.kt$0xFF00695C</ID>
+    <ID>MagicNumber:Color.kt$0xFF3949AB</ID>
+    <ID>MagicNumber:Color.kt$0xFF80CBC4</ID>
+    <ID>MagicNumber:Color.kt$0xFFB39DDB</ID>
+    <ID>MagicNumber:Color.kt$0xFFF48FB1</ID>
+    <ID>MagicNumber:Color.kt$0xFFFFCDD2</ID>
+    <ID>MagicNumber:ExtendedKeyMappings.kt$0x39</ID>
+    <ID>MagicNumber:ExtendedKeyMappings.kt$12</ID>
+    <ID>MagicNumber:ExtendedKeysScreen.kt$0xFF</ID>
+    <ID>MagicNumber:ExtendedKeysScreen.kt$200</ID>
+    <ID>MagicNumber:ExtendedKeysScreen.kt$3</ID>
+    <ID>MagicNumber:ExtendedKeysScreen.kt$36f</ID>
+    <ID>MagicNumber:ExtendedKeysScreen.kt$6f</ID>
+    <ID>MagicNumber:ForegroundServiceLogic.kt$ForegroundServiceLogic$5000L</ID>
+    <ID>MagicNumber:FunctionKeysScreen.kt$0xFF</ID>
+    <ID>MagicNumber:FunctionKeysScreen.kt$3</ID>
+    <ID>MagicNumber:FunctionKeysScreen.kt$36f</ID>
+    <ID>MagicNumber:FunctionKeysScreen.kt$6</ID>
+    <ID>MagicNumber:FunctionKeysScreen.kt$6f</ID>
+    <ID>MagicNumber:GestureLogic.kt$GestureLogic$0.1f</ID>
+    <ID>MagicNumber:GestureLogic.kt$GestureLogic$20</ID>
+    <ID>MagicNumber:GestureLogic.kt$GestureLogic$220</ID>
+    <ID>MagicNumber:GestureLogic.kt$GestureLogic$24f</ID>
+    <ID>MagicNumber:GestureLogic.kt$GestureLogic$3</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x03</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x05</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x06</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x07</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x08</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x09</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x0A</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x0C</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x15</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x25</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x30</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x31</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x38</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x65</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x75</ID>
+    <ID>MagicNumber:HidDescriptorVariants.kt$HidDescriptorVariants$0x7F</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x04</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x1E</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x20</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x21</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x22</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x23</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x24</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x25</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x26</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x27</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x2E</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x30</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x31</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x33</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x34</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x35</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x36</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x37</ID>
+    <ID>MagicNumber:HidImeMapper.kt$0x38</ID>
+    <ID>MagicNumber:HidQuickTileService.kt$HidQuickTileService$23</ID>
+    <ID>MagicNumber:HidReportBuilder.kt$HidReportBuilder$0xFF</ID>
+    <ID>MagicNumber:HidReportBuilder.kt$HidReportBuilder$127</ID>
+    <ID>MagicNumber:HidReportBuilder.kt$HidReportBuilder$6</ID>
+    <ID>MagicNumber:HidReportBuilder.kt$HidReportBuilder$8</ID>
+    <ID>MagicNumber:HidReportSender.kt$HidReportSender$0xFF</ID>
+    <ID>MagicNumber:HidReportSender.kt$HidReportSender$10</ID>
+    <ID>MagicNumber:HidReportSender.kt$HidReportSender$6</ID>
+    <ID>MagicNumber:KeyboardScreen.kt$10f</ID>
+    <ID>MagicNumber:KeyboardScreen.kt$16f</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$26</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity.&lt;no name provided&gt;.&lt;no name provided&gt;$0x04</ID>
+    <ID>MagicNumber:MainScreen.kt$33</ID>
+    <ID>MagicNumber:Middleware.kt$KeySenderMiddleware$0x04</ID>
+    <ID>MagicNumber:Middleware.kt$KeySenderMiddleware$0x08</ID>
+    <ID>MagicNumber:Middleware.kt$KeySenderMiddleware$40</ID>
+    <ID>MagicNumber:MouseScreen.kt$0.1f</ID>
+    <ID>MagicNumber:MouseScreen.kt$0.5f</ID>
+    <ID>MagicNumber:MouseScreen.kt$20</ID>
+    <ID>MagicNumber:MouseScreen.kt$220</ID>
+    <ID>MagicNumber:MouseScreen.kt$24f</ID>
+    <ID>MagicNumber:MouseScreen.kt$3</ID>
+    <ID>MagicNumber:NavigationKeysScreen.kt$0xFF</ID>
+    <ID>MagicNumber:NavigationKeysScreen.kt$3</ID>
+    <ID>MagicNumber:NavigationKeysScreen.kt$36f</ID>
+    <ID>MagicNumber:NavigationKeysScreen.kt$6f</ID>
+    <ID>MagicNumber:PairingScreen.kt$31</ID>
+    <ID>MagicNumber:PairingScreen.kt$33</ID>
+    <ID>MagicNumber:PermissionPolicy.kt$PermissionPolicy$31</ID>
+    <ID>MagicNumber:ReconnectLogic.kt$ReconnectLogic$2000L</ID>
+    <ID>MagicNumber:ReconnectLogic.kt$ReconnectLogic$30_000L</ID>
+    <ID>MagicNumber:ResponsiveText.kt$0.5f</ID>
+    <ID>MagicNumber:ServiceNotifications.kt$ServiceNotifications$23</ID>
+    <ID>MagicNumber:ServiceNotifications.kt$ServiceNotifications$26</ID>
+    <ID>MagicNumber:ServiceNotifications.kt$ServiceNotifications$3</ID>
+    <ID>MagicNumber:SettingsScreen.kt$0.5f</ID>
+    <ID>MagicNumber:SettingsScreen.kt$1000</ID>
+    <ID>MagicNumber:SettingsScreen.kt$150</ID>
+    <ID>MagicNumber:SettingsScreen.kt$23</ID>
+    <ID>MagicNumber:SettingsScreen.kt$3.0f</ID>
+    <ID>MatchingDeclarationName:Actions.kt$Action</ID>
+    <ID>MaxLineLength:AutoReconnectLogicTest.kt$AutoReconnectLogicTest$val d = ReconnectLogic.nextDelay(manualDisconnect = false, success = false, btEnabled = true, base = base, currentAttempt = attempt)</ID>
+    <ID>MaxLineLength:AutoReconnectLogicTest.kt$AutoReconnectLogicTest$val d1 = ReconnectLogic.nextDelay(manualDisconnect = true, success = false, btEnabled = true, base = 2000L, currentAttempt = 0)</ID>
+    <ID>MaxLineLength:AutoReconnectLogicTest.kt$AutoReconnectLogicTest$val d2 = ReconnectLogic.nextDelay(manualDisconnect = false, success = true, btEnabled = true, base = 2000L, currentAttempt = 2)</ID>
+    <ID>MaxLineLength:AutoReconnectLogicTest.kt$AutoReconnectLogicTest$val d3 = ReconnectLogic.nextDelay(manualDisconnect = false, success = false, btEnabled = false, base = 2000L, currentAttempt = 2)</ID>
+    <ID>MaxLineLength:BleHogpLogic.kt$BleHogpLogic$private val FULL_REPORT_MAP = byteArrayOf(0x05,0x01,0x09,0x06,0xA1.toByte(),0x01,0x05,0x07,0x19.toByte(),0xE0.toByte(),0x29.toByte(),0xE7.toByte(),0xC0.toByte())</ID>
+    <ID>MaxLineLength:BleHogpService.kt$BleHogpService$BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED</ID>
+    <ID>MaxLineLength:BleHogpService.kt$BleHogpService$nm.createNotificationChannel(NotificationChannel(channelId, "BLE HID Service", NotificationManager.IMPORTANCE_LOW))</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$// Unregister HID app only on supported platforms (API 28+) and if BLUETOOTH_CONNECT is available; guard against SecurityException</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$DebugLog.e("BluetoothService", "HID connect not supported on API &lt; 28; skipping auto reconnect")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$DebugLog.e("BluetoothService", "HID disconnect not supported on API &lt; 28; skipping forget-device disconnect")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$DebugLog.e("BluetoothService", "Skipping hid.unregisterApp: either BLUETOOTH_CONNECT not granted or API &lt; 28")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$eventListener?.onInfo("Note: Some hosts (especially Linux/BlueZ) must initiate the HID connection from the host side.")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$eventListener?.onInfo("Requested HID connection. Some Linux/BlueZ hosts must initiate the HID connection from the host side. On Linux, run bluetoothctl connect &lt;this phone's Bluetooth address&gt; from the laptop.")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$try { bluetoothAdapter?.cancelDiscovery() } catch (se: SecurityException) { DebugLog.e("BluetoothService", "cancelDiscovery SecurityException: ${se.message}") }</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$try { hid?.unregisterApp() } catch (se: SecurityException) { DebugLog.e("BluetoothService", "unregisterApp SecurityException: ${se.message}") } catch (_: Exception) {}</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$val hasBtConnectDestroy = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$val hasBtConnectDisc = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$val hasBtConnectForget = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$val hasBtScan = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_SCAN) == android.content.pm.PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$val hasBtScan2 = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_SCAN) == android.content.pm.PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$val hasBtScanStart = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_SCAN) == android.content.pm.PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService$}</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; reporting and skipping HID initialization to avoid SecurityException")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$DebugLog.e("BluetoothService", "HID profile requires API 28+; skipping HID initialization on this OS")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$DebugLog.log("BluetoothService", "Bluetooth ON - (re)acquiring HID proxy and resuming reconnect")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$bluetoothAdapter?.getProfileProxy(this@BluetoothService, profileListener, BluetoothProfile.HID_DEVICE)</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$val</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$// persist connected address for QS tile (avoid device.name which requires BLUETOOTH_CONNECT)</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$DebugLog.e("BluetoothService", "BLUETOOTH_CONNECT not granted; skipping immediate auto-connect")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$DebugLog.e("BluetoothService", "BLUETOOTH_SCAN not granted; skipping cancelDiscovery")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$DebugLog.e("BluetoothService", "HID connect not supported on API &lt; 28; skipping")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$DebugLog.e("BluetoothService", "hid.connect SecurityException: ${se.message}")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$DebugLog.e("BluetoothService", "immediate reconnect error: ${e.message}")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$eventListener?.onError("HID connect failed due to missing permission")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$eventListener?.onInfo("Some Linux/BlueZ hosts still require the host to initiate the HID connection with bluetoothctl connect &lt;this phone's Bluetooth address&gt;.")</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$if</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$try { bluetoothAdapter?.cancelDiscovery() } catch (se: SecurityException) { DebugLog.e("BluetoothService", "cancelDiscovery SecurityException: ${se.message}") }</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$val hasBtConnect = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$val hasBtScanCancel = ContextCompat.checkSelfPermission(this@BluetoothService, Manifest.permission.BLUETOOTH_SCAN) == android.content.pm.PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:BluetoothService.kt$BluetoothService.Companion$const val ACTION_MISSING_BLUETOOTH_CONNECT = "com.augustusmachin.android_bt_kbmouse.ACTION_MISSING_BLUETOOTH_CONNECT"</ID>
+    <ID>MaxLineLength:ExtendedKeysScreen.kt$previewHistory.add(0, "${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())} $msg")</ID>
+    <ID>MaxLineLength:GestureLogicTest.kt$GestureLogicTest$assertEquals(GestureLogic.Tap.Middle, GestureLogic.tapAction(moved = false, durationMs = 150, maxPointers = 3, enableMiddle = true))</ID>
+    <ID>MaxLineLength:GestureLogicTest.kt$GestureLogicTest$assertEquals(GestureLogic.Tap.None, GestureLogic.tapAction(moved = false, durationMs = 150, maxPointers = 3, enableMiddle = false))</ID>
+    <ID>MaxLineLength:GestureLogicTest.kt$GestureLogicTest$assertEquals(GestureLogic.Tap.None, GestureLogic.tapAction(moved = false, durationMs = 300, maxPointers = 3, enableMiddle = true))</ID>
+    <ID>MaxLineLength:GestureLogicTest.kt$GestureLogicTest$assertEquals(GestureLogic.Tap.None, GestureLogic.tapAction(moved = true, durationMs = 150, maxPointers = 3, enableMiddle = true))</ID>
+    <ID>MaxLineLength:GestureLogicTest.kt$GestureLogicTest$val r = GestureLogic.accumulateTwoFingerScroll(0f, 0f, dySum = 0f, dxSum = 25f, scrollSpeed = 1.0f, invertV = false, enableH = true, invertH = true)</ID>
+    <ID>MaxLineLength:GestureLogicTest.kt$GestureLogicTest$val r1 = GestureLogic.accumulateTwoFingerScroll(accV, accH, dySum = 30f, dxSum = 0f, scrollSpeed = 1.0f, invertV = false, enableH = false, invertH = false)</ID>
+    <ID>MaxLineLength:GestureLogicTest.kt$GestureLogicTest$val r2 = GestureLogic.accumulateTwoFingerScroll(r1.accumV, r1.accumH, dySum = -50f, dxSum = 0f, scrollSpeed = 1.0f, invertV = false, enableH = false, invertH = false)</ID>
+    <ID>MaxLineLength:HidImeMapper.kt$'!' to Pair(0x1E, 0x02)</ID>
+    <ID>MaxLineLength:HidImeMapper.kt$'^' to Pair(0x23, 0x02)</ID>
+    <ID>MaxLineLength:HidImeMapper.kt$'_' to Pair(0x2D, 0x02)</ID>
+    <ID>MaxLineLength:HidImeMapper.kt$'~' to Pair(0x35, 0x02)</ID>
+    <ID>MaxLineLength:HidQuickTileService.kt$HidQuickTileService$val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT &gt;= 23) PendingIntent.FLAG_IMMUTABLE else 0)</ID>
+    <ID>MaxLineLength:HidQuickTileServiceTest.kt$HidQuickTileServiceTest$// Simulate logic branch: no last device =&gt; would open activity; we assert fallback label remains app name when no connected_name</ID>
+    <ID>MaxLineLength:HidReportBuilderTest.kt$HidReportBuilderTest$val rpt = HidReportBuilder.mouseReport(0, 0, 0, wheel = v.toInt(), hWheel = HidReportBuilder.wheelValue(-2, invert = true).toInt())</ID>
+    <ID>MaxLineLength:HidReportSender.kt$HidReportSender$val hasBtConnect = ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:HidReportSender.kt$HidReportSender$val hasBtConnectReport = ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == android.content.pm.PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:HidReportSender.kt$HidReportSender$}</ID>
+    <ID>MaxLineLength:KeyboardScreen.kt$if</ID>
+    <ID>MaxLineLength:LogsScreen.kt$val meta = "App: ${context.packageName}\nDevice: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (SDK ${android.os.Build.VERSION.SDK_INT})\nTime: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date())}\nFilter: " + when(filter){0-&gt;"All";1-&gt;"Info";else-&gt;"Error"} + "\n\n"</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$.</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$androidx.core.content.ContextCompat.registerReceiver(this, permReceiver, IntentFilter(BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity.&lt;no name provided&gt;$.</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity.&lt;no name provided&gt;$if</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity.&lt;no name provided&gt;$val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity.&lt;no name provided&gt;.&lt;no name provided&gt;$// Avoid reading device.name here to prevent BLUETOOTH_CONNECT permission lint in non-UI contexts; use address for message</ID>
+    <ID>MaxLineLength:MainScreen.kt$Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = "Scan", tint = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:MainScreen.kt$Icon(painter = painterResource(id = R.drawable.ic_settings), contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:MainScreen.kt$composable(Screen.Settings.route) { SettingsScreen(contentPadding = innerPadding, onOpenLogs = { navController.navigate("logs") }) }</ID>
+    <ID>MaxLineLength:MainScreen.kt$modifier = Modifier.semantics { this[SemanticsProperties.ContentDescription] = listOf(statusText) }</ID>
+    <ID>MaxLineLength:MainScreen.kt$val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:MainScreen.kt$val indicatorColor = if (connectedName != null) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f)</ID>
+    <ID>MaxLineLength:MainScreen.kt$val isEnabled = connected != null || screen == Screen.Pairing || screen == Screen.Settings || settings.debugLogging || settings.offlinePreview</ID>
+    <ID>MaxLineLength:MainScreen.kt$val settings by settingsViewModel.settings.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())</ID>
+    <ID>MaxLineLength:Middleware.kt$KeySenderMiddleware$if</ID>
+    <ID>MaxLineLength:MouseScreen.kt$ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), contentPadding = mouseBtnPadding, enabled = settings.enableMiddleClick, onClick = { if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick) }) { Text("Middle", fontSize = 12.sp, maxLines = 1, softWrap = false) }</ID>
+    <ID>MaxLineLength:MouseScreen.kt$ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), contentPadding = mouseBtnPadding, onClick = { StoreProvider.dispatch(Action.LeftClick) }) { Text("Left", fontSize = 12.sp, maxLines = 1, softWrap = false) }</ID>
+    <ID>MaxLineLength:MouseScreen.kt$ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), contentPadding = mouseBtnPadding, onClick = { StoreProvider.dispatch(Action.RightClick) }) { Text("Right", fontSize = 12.sp, maxLines = 1, softWrap = false) }</ID>
+    <ID>MaxLineLength:MouseScreen.kt$text = "Use this area as a touchpad\n• 1-finger move/tap\n• 2-finger scroll/tap=right\n• 3-finger tap=middle"</ID>
+    <ID>MaxLineLength:NavigationKeysScreen.kt$NavGridCol("Alt", ks.alt, Action.ToggleAlt, NavCell.Key("PGUP"), NavCell.Key("PGDN"), NavCell.Empty)</ID>
+    <ID>MaxLineLength:NavigationKeysScreen.kt$NavGridCol("CAPS", appState.connection.capsLock, Action.ToggleCapsLock, NavCell.Empty, NavCell.Key("→"), NavCell.Empty)</ID>
+    <ID>MaxLineLength:NavigationKeysScreen.kt$NavGridCol("Ctrl", ks.ctrl, Action.ToggleCtrl, NavCell.Empty, NavCell.Key("←"), NavCell.Empty)</ID>
+    <ID>MaxLineLength:NavigationKeysScreen.kt$NavGridCol("Meta", ks.gui, Action.ToggleGui, NavCell.ScrollLock, NavCell.Empty, NavCell.Empty)</ID>
+    <ID>MaxLineLength:NavigationKeysScreen.kt$NavGridCol("Shift", ks.shift, Action.ToggleShift, NavCell.Key("↑"), NavCell.Empty, NavCell.Key("↓"))</ID>
+    <ID>MaxLineLength:NavigationKeysScreen.kt$NavGridCol(null, false, null, NavCell.Empty, NavCell.Empty, NavCell.Empty)</ID>
+    <ID>MaxLineLength:PairingScreen.kt$)</ID>
+    <ID>MaxLineLength:PairingScreen.kt$.</ID>
+    <ID>MaxLineLength:PairingScreen.kt$Icon(painter = painterResource(id = R.drawable.ic_bluetooth), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))</ID>
+    <ID>MaxLineLength:PairingScreen.kt$Icon(painterResource(id = starRes), contentDescription = if (isDef) "Default device" else "Set default device", tint = if (isDef) MaterialTheme.colorScheme.primary else iconTint)</ID>
+    <ID>MaxLineLength:PairingScreen.kt$Text(text = "Discovered Devices", modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.titleMedium)</ID>
+    <ID>MaxLineLength:PairingScreen.kt$Text(text = "Paired Devices", modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.titleMedium)</ID>
+    <ID>MaxLineLength:PairingScreen.kt$modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).semantics { this[SemanticsProperties.ContentDescription] = listOf(cardDesc) }</ID>
+    <ID>MaxLineLength:PairingScreen.kt$modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))</ID>
+    <ID>MaxLineLength:PairingScreen.kt$val</ID>
+    <ID>MaxLineLength:PairingScreen.kt$val cardDesc = "Paired device: $display. ${if (isConn) "Connected." else "Disconnected."} ${if (isDef) "Default device." else ""}"</ID>
+    <ID>MaxLineLength:PairingScreen.kt$val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", context.packageName, null))</ID>
+    <ID>MaxLineLength:PairingScreen.kt$val missing = req.filter { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$assertEquals("Disconnected", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$assertEquals("Failed to connect", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$assertEquals("Scanning for devices...", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$assertEquals(1, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.discoveredDevices.size)</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$assertEquals(1, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.pairedDevices.size)</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$assertEquals(2, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.discoveredDevices.size)</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$assertEquals(2, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.pairedDevices.size)</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$assertEquals(device, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.connectedDevice)</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateDiscoveredDevices(listOf(d1, d3)))</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.KeyDown(0x04.toByte(), 0x02))</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.KeyUp(0x04.toByte()))</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.LeftClick)</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.MiddleClick)</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.MoveMouse(5, -3))</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.RightClick)</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.StartDiscovery)</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.StopDiscovery)</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateConnectedDevice(null))</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateDefaultDevice(null))</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateDiscoveredDevices(emptyList()))</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateIsScanning(false))</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateLocks(false, false))</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateMessage(null))</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdatePairedDevices(emptyList()))</ID>
+    <ID>MaxLineLength:PairingStoreTest.kt$PairingStoreTest.FakeService$override fun pressKey(keyCode: Byte, modifiers: Int)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$assertEquals("Disconnected", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$assertEquals("Failed to connect", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$assertEquals("Scanning for devices...", com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.message)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$assertEquals(1, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.discoveredDevices.size)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$assertEquals(1, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.pairedDevices.size)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$assertEquals(2, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.discoveredDevices.size)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$assertEquals(2, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.pairedDevices.size)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$assertEquals(device, com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().value.connection.connectedDevice)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(Action.UpdateDiscoveredDevices(listOf(d1, d3)))</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.KeyDown(0x04.toByte(), 0x02))</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.KeyUp(0x04.toByte()))</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.LeftClick)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.MiddleClick)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.MoveMouse(5, -3))</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.RightClick)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.StartDiscovery)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.StopDiscovery)</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateConnectedDevice(null))</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateDefaultDevice(null))</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateDiscoveredDevices(emptyList()))</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateIsScanning(false))</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateLocks(false, false))</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdateMessage(null))</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest$com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(com.augustusmachin.android_bt_kbmouse.store.Action.UpdatePairedDevices(emptyList()))</ID>
+    <ID>MaxLineLength:PairingViewModelTest.kt$PairingViewModelTest.FakeService$override fun pressKey(keyCode: Byte, modifiers: Int)</ID>
+    <ID>MaxLineLength:PermissionUxLogic.kt$PermissionUxLogic$/** Determine denied flow: if any permission is permanently denied (rationale = false) go to Settings else show rationale dialog. */</ID>
+    <ID>MaxLineLength:ReconnectLogic.kt$ReconnectLogic$fun</ID>
+    <ID>MaxLineLength:Reducers.kt$if (updated.size == state.ui.previewKeys.size) state else state.copy(ui = state.ui.copy(previewKeys = updated))</ID>
+    <ID>MaxLineLength:Reducers.kt$val updated = (state.ui.previewKeys + PreviewKeyEntry(action.id, action.label, action.decorate)).takeLast(MAX_PREVIEW_KEYS)</ID>
+    <ID>MaxLineLength:ResponsiveText.kt$val result = measurer.measure(AnnotatedString(text), style = style, constraints = Constraints(maxWidth = maxWidthPx))</ID>
+    <ID>MaxLineLength:ServiceNotifications.kt$ServiceNotifications$val disconnectPi = PendingIntent.getBroadcast(service, 2, Intent(disconnectAction).setPackage(pkg), pendingFlags())</ID>
+    <ID>MaxLineLength:ServiceNotifications.kt$ServiceNotifications$val settingsIntent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", context.packageName, null))</ID>
+    <ID>MaxLineLength:SettingsManager.kt$SettingsManager$context.settingsDataStore.edit { it[androidx.datastore.preferences.core.stringPreferencesKey(pk(addr, "keymap"))] = formatKeyMap(map) }</ID>
+    <ID>MaxLineLength:SettingsManager.kt$SettingsManager$fun</ID>
+    <ID>MaxLineLength:SettingsManager.kt$SettingsManager$private fun formatKeyMap(m: Map&lt;Int, Int&gt;): String</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$"Let Android keep the Bluetooth HID service running so the connection isn't dropped when the screen is off or the app is in the background."</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$"Scrolling requires the full HID descriptor. Disable \"Use simplified HID descriptor\" below to enable scroll controls."</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$"Uses Bluetooth Low Energy instead of Classic BT. Restart the app after changing. May improve Windows compatibility."</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Button(onClick = { requestIgnoreBatteryOptimizations(context) }, modifier = Modifier.padding(start = 8.dp)) { Text("Disable") }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Button(onClick = { scope.launch { SettingsManager.setLogLevel(context, 0) } }, modifier = Modifier.padding(end = 4.dp), enabled = sel != 0) { Text("All") }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Button(onClick = { scope.launch { SettingsManager.setLogLevel(context, 1) } }, modifier = Modifier.padding(end = 4.dp), enabled = sel != 1) { Text("Info") }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Button(onClick = { scope.launch { SettingsManager.setLogLevel(context, 2) } }, enabled = sel != 2) { Text("Error") }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Text("Background reliability", style = androidx.compose.material3.MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 24.dp, bottom = 4.dp))</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Text("Compatibility", style = androidx.compose.material3.MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 24.dp, bottom = 4.dp))</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$context.startActivity(android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))</ID>
+    <ID>NestedBlockDepth:BleHogpService.kt$BleHogpService$@Suppress("DEPRECATION") fun notifyKeyboard(report: ByteArray)</ID>
+    <ID>NestedBlockDepth:BleHogpService.kt$BleHogpService$@Suppress("DEPRECATION") fun notifyMouse(report: ByteArray)</ID>
+    <ID>NestedBlockDepth:BluetoothService.kt$BluetoothService$override fun disconnectDevice()</ID>
+    <ID>NestedBlockDepth:BluetoothService.kt$BluetoothService$override fun forgetDevice(device: BluetoothDevice, unpair: Boolean)</ID>
+    <ID>NestedBlockDepth:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;$override fun onReceive(context: Context, intent: Intent)</ID>
+    <ID>NestedBlockDepth:BootReceiver.kt$BootReceiver$override fun onReceive(context: Context, intent: Intent)</ID>
+    <ID>NewLineAtEndOfFile:ExampleUnitTest.kt$com.augustusmachin.android_bt_kbmouse.ExampleUnitTest.kt</ID>
+    <ID>NewLineAtEndOfFile:IBluetoothService.kt$com.augustusmachin.android_bt_kbmouse.IBluetoothService.kt</ID>
+    <ID>PackageNaming:Actions.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:AppState.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:AutoReconnectLogicTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:BackendMode.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:BackendSelectorTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:BleHogpKeySender.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:BleHogpLogic.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:BleHogpLogicTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:BleHogpService.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:BlueDeckSplash.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:BluetoothHidModule.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:BluetoothKeySender.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:BluetoothKeySenderTest.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:BluetoothService.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:BluetoothServiceLogicTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:BootReceiver.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:BtDevicePrefs.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:Color.kt$package com.augustusmachin.android_bt_kbmouse.ui.theme</ID>
+    <ID>PackageNaming:DebugLog.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:DebugLogTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:DescriptorScrollPolicyTest.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:DeviceStateReducerTest.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:DiscoveryReducerTest.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:ExampleUnitTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:ExtendedKeyMappings.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:ExtendedKeyMappingsTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:ExtendedKeysScreen.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:ForegroundServiceLogic.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:ForegroundServiceLogicTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:FunctionKeysScreen.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:GestureLogic.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:GestureLogicTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:HidDescriptorVariants.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:HidDescriptorVariantsTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:HidImeMapper.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:HidImeMapperTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:HidQuickTileService.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:HidQuickTileServiceTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:HidReportBuilder.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:HidReportBuilderTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:HidReportSender.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:IBluetoothService.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:KeyboardScreen.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:LogsScreen.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:MainActivity.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:MainScreen.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:Middleware.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:ModifierMiddlewareTest.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:ModifierReducerTest.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:MouseScreen.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:NavigationKeysScreen.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:PairingScreen.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:PairingStoreTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:PairingViewModelTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:PermissionPolicy.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:PermissionPolicyTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:PermissionUxLogic.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:PermissionUxLogicTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:PreviewMiddleware.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:PreviewMiddlewareTest.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:PreviewReducerTest.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:ReconnectLogic.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:Reducers.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:ResponsiveText.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:Screen.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:ScrollLockReducerTest.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:ServiceAliasHelper.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:ServiceNotifications.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:SettingsManager.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:SettingsManagerTest.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:SettingsScreen.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:SettingsViewModel.kt$package com.augustusmachin.android_bt_kbmouse</ID>
+    <ID>PackageNaming:StoreProvider.kt$package com.augustusmachin.android_bt_kbmouse.store</ID>
+    <ID>PackageNaming:Theme.kt$package com.augustusmachin.android_bt_kbmouse.ui.theme</ID>
+    <ID>PackageNaming:Type.kt$package com.augustusmachin.android_bt_kbmouse.ui.theme</ID>
+    <ID>PrintStackTrace:BluetoothService.kt$BluetoothService$e</ID>
+    <ID>PrintStackTrace:HidReportSender.kt$HidReportSender$e</ID>
+    <ID>ReturnCount:BluetoothService.kt$BluetoothService$private fun connectLast(): Boolean</ID>
+    <ID>ReturnCount:BluetoothService.kt$BluetoothService$private fun scheduleReconnect(delayMs: Long = 0)</ID>
+    <ID>ReturnCount:HidImeMapper.kt$fun charToHid(ch: Char): Pair&lt;Byte, Int&gt;?</ID>
+    <ID>SwallowedException:BluetoothService.kt$BluetoothService$se: SecurityException</ID>
+    <ID>SwallowedException:BootReceiver.kt$BootReceiver$e: Exception</ID>
+    <ID>SwallowedException:MainActivity.kt$MainActivity$e: Exception</ID>
+    <ID>SwallowedException:MainActivity.kt$MainActivity.&lt;no name provided&gt;$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BleHogpService.kt$BleHogpService$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BluetoothService.kt$BluetoothService$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BluetoothService.kt$BluetoothService.&lt;no name provided&gt;.&lt;no name provided&gt;$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:BootReceiver.kt$BootReceiver$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:HidReportSender.kt$HidReportSender$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MainActivity.kt$MainActivity$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MainActivity.kt$MainActivity.&lt;no name provided&gt;$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MainActivity.kt$MainActivity.&lt;no name provided&gt;$t: Throwable</ID>
+    <ID>TooManyFunctions:BleHogpKeySender.kt$BleHogpKeySender : KeySender</ID>
+    <ID>TooManyFunctions:BluetoothKeySender.kt$BluetoothKeySender : KeySender</ID>
+    <ID>TooManyFunctions:BluetoothService.kt$BluetoothService : ServiceIBluetoothService</ID>
+    <ID>TooManyFunctions:HidReportSender.kt$HidReportSender</ID>
+    <ID>TooManyFunctions:IBluetoothService.kt$IBluetoothService</ID>
+    <ID>TooManyFunctions:Middleware.kt$KeySender</ID>
+    <ID>TooManyFunctions:SettingsManager.kt$SettingsManager</ID>
+    <ID>UnusedParameter:BleHogpService.kt$BleHogpService$adapter: BluetoothAdapter</ID>
+    <ID>UnusedParameter:ForegroundServiceLogic.kt$ForegroundServiceLogic$connectedName: String?</ID>
+    <ID>UnusedParameter:KeyboardScreen.kt$navController: NavHostController</ID>
+    <ID>UnusedPrivateClass:PairingStoreTest.kt$PairingStoreTest$FakeService : IBluetoothService</ID>
+    <ID>UnusedPrivateClass:PairingViewModelTest.kt$PairingViewModelTest$FakeService : IBluetoothService</ID>
+    <ID>UnusedPrivateProperty:BluetoothHidModule.kt$BluetoothHidModule$private val bluetoothAdapter: BluetoothAdapter</ID>
+    <ID>UnusedPrivateProperty:BluetoothService.kt$BluetoothService$private var reconnecting = false</ID>
+    <ID>UnusedPrivateProperty:FunctionKeysScreen.kt$val totalCols = 6</ID>
+    <ID>UnusedPrivateProperty:MouseScreen.kt$val down = awaitFirstDown()</ID>
+    <ID>VariableNaming:HidImeMapperTest.kt$HidImeMapperTest$val A = charToHid('A')</ID>
+    <ID>WildcardImport:AutoReconnectLogicTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:BleHogpLogicTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:BleHogpService.kt$import android.bluetooth.*</ID>
+    <ID>WildcardImport:BluetoothServiceLogicTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:DebugLogTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:ExampleUnitTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:ExtendedKeyMappingsTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:ExtendedKeysScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:ExtendedKeysScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:ExtendedKeysScreen.kt$import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:ForegroundServiceLogicTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:FunctionKeysScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:FunctionKeysScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:FunctionKeysScreen.kt$import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:GestureLogicTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:HidDescriptorVariantsTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:HidImeMapperTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:HidQuickTileServiceTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:HidReportBuilderTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:NavigationKeysScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:NavigationKeysScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:NavigationKeysScreen.kt$import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:PermissionUxLogicTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:SettingsManagerTest.kt$import org.junit.Assert.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

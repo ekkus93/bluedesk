@@ -96,14 +96,20 @@ the APK attached.
 # Host JVM unit tests
 ./gradlew :app:testDebugUnitTest
 
-# Lint
+# Lint (Android Lint) + static analysis / style
 ./gradlew :app:lintDebug
+./gradlew :app:ktlintCheck   # style; ./gradlew :app:ktlintFormat to auto-fix
+./gradlew :app:detekt        # static analysis
 
 # Instrumented tests (requires a connected device or emulator)
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
-CI runs lint, build, and unit tests on every push and pull request to `master`.
+ktlint and detekt use baselines (`app/ktlint-baseline.xml`, `app/detekt-baseline.xml`)
+so pre-existing findings are grandfathered and only new ones fail; regenerate with
+`ktlintGenerateBaseline` / `detektBaseline`.
+
+CI runs Android Lint, ktlint, detekt, build, and unit tests on every push and pull request to `master`.
 Physical HID tests are opt-in — see
 [docs/PHYSICAL_HID_TESTING.md](docs/PHYSICAL_HID_TESTING.md).
 

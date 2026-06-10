@@ -37,3 +37,9 @@ jobs:
 
       - name: Lint
         run: ./gradlew :app:lintDebug --stacktrace
+
+      - name: ktlint
+        run: ./gradlew :app:ktlintCheck --stacktrace
+
+      - name: detekt
+        run: ./gradlew :app:detekt --stacktrace

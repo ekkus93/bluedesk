@@ -1,0 +1,8 @@
+root = true
+
+[*.{kt,kts}]
+# @Composable functions are intentionally PascalCase, so disable the
+# function-naming rule that would otherwise flag them as violations.
+ktlint_standard_function-naming = disabled
+# Compose UI builds deeply nested trees; the default max line length fights it.
+max_line_length = off
