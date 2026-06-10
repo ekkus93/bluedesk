@@ -59,9 +59,6 @@ import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.ServiceAliasHelper
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 
-private const val SDK_INT_TIRAMISU = 33
-private const val SDK_INT_S = 31
-
 // Per-row callbacks for a paired device entry, bundled to keep composable parameter
 // lists small.
 private data class PairedDeviceCallbacks(
@@ -115,10 +112,13 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
     val ui = remember { PairingUiState() }
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
-            if (granted.values.all { it }) {
+            // Only scan-required permissions gate discovery; unrelated grants/denials are ignored.
+            val missingScan =
+                PermissionPolicy.missingRequired(granted, PermissionPolicy.requiredForScan(Build.VERSION.SDK_INT))
+            if (missingScan.isEmpty()) {
                 StoreProvider.dispatch(Action.StartDiscovery)
             } else {
-                val denied = granted.filterValues { !it }.keys.toTypedArray()
+                val denied = missingScan.toTypedArray()
                 ui.pendingPermissions.value = denied
                 val permanentlyDenied =
                     activity != null &&
@@ -139,7 +139,7 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
             view.playSoundEffect(SoundEffectConstants.CLICK)
             view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
             val missing =
-                requiredBluetoothPermissions().filter {
+                requiredScanPermissions().filter {
                     ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
                 }
             if (missing.isEmpty()) {
@@ -190,23 +190,10 @@ private fun resolveDeviceRows(
     return PairingDeviceState(discovered, paired, connection.connectedDevice != null)
 }
 
-private fun requiredBluetoothPermissions(): Array<String> =
-    if (Build.VERSION.SDK_INT >= SDK_INT_TIRAMISU) {
-        arrayOf(
-            Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_CONNECT,
-            Manifest.permission.BLUETOOTH_ADVERTISE,
-            Manifest.permission.POST_NOTIFICATIONS,
-        )
-    } else if (Build.VERSION.SDK_INT >= SDK_INT_S) {
-        arrayOf(
-            Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_CONNECT,
-            Manifest.permission.BLUETOOTH_ADVERTISE,
-        )
-    } else {
-        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
-    }
+// Scanning needs only scan permission (BLUETOOTH_SCAN on API 31+, location below). CONNECT
+// is obtained at app startup; advertise/notifications are unrelated to discovery.
+private fun requiredScanPermissions(): Array<String> =
+    PermissionPolicy.requiredForScan(Build.VERSION.SDK_INT).toTypedArray()
 
 @Composable
 private fun PairingContent(
@@ -290,7 +277,7 @@ private fun PermissionDialogs(
                 Button(onClick = {
                     ui.showRationale.value = false
                     val pending = ui.pendingPermissions.value
-                    launcher.launch(if (pending.isNotEmpty()) pending else requiredBluetoothPermissions())
+                    launcher.launch(if (pending.isNotEmpty()) pending else requiredScanPermissions())
                 }) { Text("Try again") }
             },
             dismissButton = { Button(onClick = { ui.showRationale.value = false }) { Text("Cancel") } },

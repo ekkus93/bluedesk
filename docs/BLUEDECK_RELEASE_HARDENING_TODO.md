@@ -120,26 +120,26 @@ Acceptance criteria:
 
 ### Task 3.1 — Request scan-only permissions
 
-- [ ] Locate `PairingScreen` permission launcher/helper.
-- [ ] Replace broad permission list with `PermissionPolicy.requiredForScan(...)`.
-- [ ] Remove `BLUETOOTH_ADVERTISE` from scan request.
-- [ ] Remove `POST_NOTIFICATIONS` from scan request.
-- [ ] Avoid requesting `BLUETOOTH_CONNECT` for scan unless specifically required by a code path and justified.
+- [x] Locate `PairingScreen` permission launcher/helper.
+- [x] Replace broad permission list with `PermissionPolicy.requiredForScan(...)`.
+- [x] Remove `BLUETOOTH_ADVERTISE` from scan request.
+- [x] Remove `POST_NOTIFICATIONS` from scan request.
+- [x] Avoid requesting `BLUETOOTH_CONNECT` for scan unless specifically required by a code path and justified.
 
 Acceptance criteria:
 
-- [ ] Scan request is scan-specific.
+- [x] Scan request is scan-specific.
 
 ### Task 3.2 — Fix scan permission callback
 
-- [ ] Replace `granted.values.all { it }`.
-- [ ] Check only scan-required permissions.
-- [ ] If scan permission denied, show scan-specific message.
-- [ ] Do not block scan due to unrelated permission denial.
+- [x] Replace `granted.values.all { it }`.
+- [x] Check only scan-required permissions.
+- [x] If scan permission denied, show scan-specific message.
+- [x] Do not block scan due to unrelated permission denial.
 
 Acceptance criteria:
 
-- [ ] Discovery starts when scan-required permissions are granted.
+- [x] Discovery starts when scan-required permissions are granted.
 
 ---
 
