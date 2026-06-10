@@ -70,49 +70,49 @@ Acceptance criteria:
 
 ### Task 2.1 — Rename/fix `PermissionPolicy`
 
-- [ ] Open `PermissionPolicy.kt`.
-- [ ] Add/use explicit methods:
-  - [ ] `requiredForClassicStartup(sdkInt)`,
-  - [ ] `requiredForScan(sdkInt)`,
-  - [ ] `requiredForBleStartup(sdkInt)`,
-  - [ ] `optionalForStartup(sdkInt)`,
-  - [ ] `missingRequired(...)`.
-- [ ] Classic startup on Android 12+ requires `BLUETOOTH_CONNECT` only.
-- [ ] Classic startup does not require `BLUETOOTH_SCAN`.
-- [ ] Classic startup does not require `BLUETOOTH_ADVERTISE`.
-- [ ] Scan on Android 12+ requires `BLUETOOTH_SCAN`.
-- [ ] BLE startup on Android 12+ requires `BLUETOOTH_CONNECT` and `BLUETOOTH_ADVERTISE`.
-- [ ] Notification permission on Android 13+ is optional.
+- [x] Open `PermissionPolicy.kt`.
+- [x] Add/use explicit methods:
+  - [x] `requiredForClassicStartup(sdkInt)`,
+  - [x] `requiredForScan(sdkInt)`,
+  - [x] `requiredForBleStartup(sdkInt)`,
+  - [x] `optionalForStartup(sdkInt)`,
+  - [x] `missingRequired(...)`.
+- [x] Classic startup on Android 12+ requires `BLUETOOTH_CONNECT` only.
+- [x] Classic startup does not require `BLUETOOTH_SCAN`.
+- [x] Classic startup does not require `BLUETOOTH_ADVERTISE`.
+- [x] Scan on Android 12+ requires `BLUETOOTH_SCAN`.
+- [x] BLE startup on Android 12+ requires `BLUETOOTH_CONNECT` and `BLUETOOTH_ADVERTISE`.
+- [x] Notification permission on Android 13+ is optional.
 
 Acceptance criteria:
 
-- [ ] Permission helpers represent actual operations, not broad buckets.
+- [x] Permission helpers represent actual operations, not broad buckets.
 
 ### Task 2.2 — Fix permission tests
 
-- [ ] Remove/update tests expecting Classic startup to require scan.
-- [ ] Add test: Classic startup API 31+ includes connect only.
-- [ ] Add test: Classic startup excludes scan.
-- [ ] Add test: scan includes scan only.
-- [ ] Add test: BLE includes connect + advertise.
-- [ ] Add test: notification permission is optional/non-fatal.
+- [x] Remove/update tests expecting Classic startup to require scan.
+- [x] Add test: Classic startup API 31+ includes connect only.
+- [x] Add test: Classic startup excludes scan.
+- [x] Add test: scan includes scan only.
+- [x] Add test: BLE includes connect + advertise.
+- [x] Add test: notification permission is optional/non-fatal.
 
 Acceptance criteria:
 
-- [ ] Tests no longer protect the wrong permission model.
+- [x] Tests no longer protect the wrong permission model.
 
 ### Task 2.3 — Fix startup permission request
 
-- [ ] Update `MainActivity` startup permission flow.
-- [ ] Classic mode requests Classic startup permissions only.
-- [ ] BLE mode requests BLE startup permissions only.
-- [ ] Notification permission is not in the fatal startup permission launcher.
-- [ ] Do not gate startup on unrelated optional permission denial.
+- [x] Update `MainActivity` startup permission flow.
+- [x] Classic mode requests Classic startup permissions only.
+- [x] BLE mode requests BLE startup permissions only.
+- [x] Notification permission is not in the fatal startup permission launcher.
+- [x] Do not gate startup on unrelated optional permission denial.
 
 Acceptance criteria:
 
-- [ ] Denying scan does not block Classic startup.
-- [ ] Denying notification does not block startup.
+- [x] Denying scan does not block Classic startup.
+- [x] Denying notification does not block startup.
 
 ---
 

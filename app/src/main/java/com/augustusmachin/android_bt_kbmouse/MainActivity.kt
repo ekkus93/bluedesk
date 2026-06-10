@@ -257,9 +257,10 @@ class MainActivity : ComponentActivity() {
         // Defer starting/binding services until required runtime permissions are granted.
         val permissionLauncher: ActivityResultLauncher<Array<String>> =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-                // Only block startup if a REQUIRED Classic HID permission was denied.
-                // POST_NOTIFICATIONS and BLUETOOTH_ADVERTISE denials are non-fatal.
-                if (PermissionPolicy.isClassicStartupBlocked(result, android.os.Build.VERSION.SDK_INT)) {
+                // Only block startup if a REQUIRED Classic HID permission (connect) was denied.
+                // Scan, advertise, and notification denials are non-fatal for Classic startup.
+                val required = PermissionPolicy.requiredForClassicStartup(android.os.Build.VERSION.SDK_INT)
+                if (PermissionPolicy.missingRequired(result, required).isNotEmpty()) {
                     showPermissionNeededDialog()
                 } else {
                     startServicesAndBind()
@@ -339,7 +340,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requiredStartupPermissions(): Array<String> =
-        PermissionPolicy.startupPermissions(android.os.Build.VERSION.SDK_INT).toTypedArray()
+        PermissionPolicy.requiredForClassicStartup(android.os.Build.VERSION.SDK_INT).toTypedArray()
 
     private fun startServicesAndBind() {
         lifecycleScope.launch {
