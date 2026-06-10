@@ -1,5 +1,7 @@
 package com.augustusmachin.android_bt_kbmouse
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -331,8 +333,33 @@ private fun CompatibilitySection(
             scope.launch { SettingsManager.setHidSimplified(context, it) }
         })
     }
+    BleHogpToggle(settings, context, scope)
+}
+
+// BLE HOGP requires BLUETOOTH_CONNECT + BLUETOOTH_ADVERTISE. Enabling persists the setting
+// only after those are granted; if denied, the toggle stays off (avoids a non-advertising
+// "on" state). Turning it off always persists immediately.
+@Composable
+private fun BleHogpToggle(
+    settings: Settings,
+    context: android.content.Context,
+    scope: kotlinx.coroutines.CoroutineScope,
+) {
+    val sdk = android.os.Build.VERSION.SDK_INT
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
+            if (PermissionPolicy.missingRequired(granted, PermissionPolicy.requiredForBleStartup(sdk)).isEmpty()) {
+                scope.launch { SettingsManager.setUseBleHogp(context, true) }
+            } else {
+                com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
+                    com.augustusmachin.android_bt_kbmouse.store.Action.UpdateMessage(
+                        "BLE HOGP needs the Bluetooth advertise permission; staying on Classic.",
+                    ),
+                )
+            }
+        }
     Row(Modifier.padding(top = 8.dp)) {
-        androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
+        Column(Modifier.weight(1f)) {
             Text("Use BLE HOGP (experimental)")
             Text(
                 "Uses Bluetooth Low Energy instead of Classic BT. Restart the app after changing. " +
@@ -342,9 +369,25 @@ private fun CompatibilitySection(
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
-        Switch(checked = settings.useBleHogp, onCheckedChange = {
-            scope.launch { SettingsManager.setUseBleHogp(context, it) }
-        })
+        Switch(
+            checked = settings.useBleHogp,
+            onCheckedChange = { enabled ->
+                if (!enabled) {
+                    scope.launch { SettingsManager.setUseBleHogp(context, false) }
+                } else {
+                    val missing =
+                        PermissionPolicy.requiredForBleStartup(sdk).filter {
+                            androidx.core.content.ContextCompat.checkSelfPermission(context, it) !=
+                                android.content.pm.PackageManager.PERMISSION_GRANTED
+                        }
+                    if (missing.isEmpty()) {
+                        scope.launch { SettingsManager.setUseBleHogp(context, true) }
+                    } else {
+                        launcher.launch(missing.toTypedArray())
+                    }
+                }
+            },
+        )
     }
 }
 

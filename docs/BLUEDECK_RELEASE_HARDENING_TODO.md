@@ -147,40 +147,40 @@ Acceptance criteria:
 
 ### Task 4.1 — Check BLE permissions before enabling
 
-- [ ] Open `SettingsScreen.kt`.
-- [ ] Before saving `useBleHogp = true`, compute missing BLE permissions.
-- [ ] Required BLE permissions:
-  - [ ] `BLUETOOTH_CONNECT`,
-  - [ ] `BLUETOOTH_ADVERTISE`.
-- [ ] Request missing permissions.
-- [ ] Persist `useBleHogp = true` only after grant.
-- [ ] If denied, leave `useBleHogp = false`.
-- [ ] Show Snackbar/dialog explaining BLE HOGP requires Bluetooth advertising permission.
+- [x] Open `SettingsScreen.kt`.
+- [x] Before saving `useBleHogp = true`, compute missing BLE permissions.
+- [x] Required BLE permissions:
+  - [x] `BLUETOOTH_CONNECT`,
+  - [x] `BLUETOOTH_ADVERTISE`.
+- [x] Request missing permissions.
+- [x] Persist `useBleHogp = true` only after grant.
+- [x] If denied, leave `useBleHogp = false`.
+- [x] Show Snackbar/dialog explaining BLE HOGP requires Bluetooth advertising permission.
 
 Acceptance criteria:
 
-- [ ] User cannot enable BLE mode into a broken non-advertising state.
+- [x] User cannot enable BLE mode into a broken non-advertising state.
 
 ### Task 4.2 — BLE off path
 
-- [ ] Toggling BLE off always saves `useBleHogp = false`.
-- [ ] Switching off BLE transitions back to Classic safely.
-- [ ] Inactive BLE service is stopped.
+- [x] Toggling BLE off always saves `useBleHogp = false`.
+- [x] Switching off BLE transitions back to Classic safely.
+- [x] Inactive BLE service is stopped.
 
 Acceptance criteria:
 
-- [ ] BLE setting and backend service state stay consistent.
+- [x] BLE setting and backend service state stay consistent.
 
 ### Task 4.3 — Add BLE permission tests/helpers
 
-- [ ] Add pure helper if useful.
-- [ ] Test BLE enable allowed when connect+advertise granted.
-- [ ] Test BLE enable blocked when advertise missing.
-- [ ] Test BLE enable blocked when connect missing.
+- [x] Add pure helper if useful.
+- [x] Test BLE enable allowed when connect+advertise granted.
+- [x] Test BLE enable blocked when advertise missing.
+- [x] Test BLE enable blocked when connect missing.
 
 Acceptance criteria:
 
-- [ ] BLE gating behavior is testable.
+- [x] BLE gating behavior is testable.
 
 ---
 

@@ -111,4 +111,34 @@ class PermissionPolicyTest {
             )
         assertTrue(PermissionPolicy.missingRequired(grants, PermissionPolicy.requiredForClassicStartup(31)).isEmpty())
     }
+
+    // ── BLE HOGP toggle gating (Phase 4) ────────────────────────────────────
+
+    @Test
+    fun bleEnable_allowedWhenConnectAndAdvertiseGranted() {
+        val grants =
+            mapOf(
+                Manifest.permission.BLUETOOTH_CONNECT to true,
+                Manifest.permission.BLUETOOTH_ADVERTISE to true,
+            )
+        assertTrue(PermissionPolicy.missingRequired(grants, PermissionPolicy.requiredForBleStartup(31)).isEmpty())
+    }
+
+    @Test
+    fun bleEnable_blockedWhenAdvertiseMissing() {
+        val grants = mapOf(Manifest.permission.BLUETOOTH_CONNECT to true)
+        assertTrue(
+            PermissionPolicy.missingRequired(grants, PermissionPolicy.requiredForBleStartup(31))
+                .contains(Manifest.permission.BLUETOOTH_ADVERTISE),
+        )
+    }
+
+    @Test
+    fun bleEnable_blockedWhenConnectMissing() {
+        val grants = mapOf(Manifest.permission.BLUETOOTH_ADVERTISE to true)
+        assertTrue(
+            PermissionPolicy.missingRequired(grants, PermissionPolicy.requiredForBleStartup(31))
+                .contains(Manifest.permission.BLUETOOTH_CONNECT),
+        )
+    }
 }
