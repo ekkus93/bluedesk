@@ -572,3 +572,26 @@ Do not mark this hardening pass complete until all are true:
 - [x] Release version is deliberate.
 - [x] README/docs are accurate.
 - [x] Gradle validation commands pass or failures are documented.
+
+---
+
+## Validation results (recorded)
+
+Automated gates (all green on commit at HEAD):
+- `./gradlew clean :app:testDebugUnitTest` — pass (incl. new BackendTransitionPlanner,
+  PermissionPolicy, ScrollPolicy, QuickTilePolicy tests).
+- `./gradlew :app:assembleDebug` — pass.
+- `./gradlew :app:lintDebug :app:ktlintCheck :app:detekt` — pass (detekt baseline empty).
+- `./gradlew :app:connectedDebugAndroidTest` — 97 tests, 0 failed (SM-A546E, API 35).
+- Physical HID (opt-in, host-initiated `ConnectProfile(HID)`) — 13/13, 0 failed.
+
+Manual smoke (status):
+- Cold launch — verified via adb: process up, no FATAL/crash, BlueDeck splash path intact.
+- Launcher icon/name + in-app version — verified `versionName=0.1.0` on device; BlueDeck
+  adaptive icon (`ic_bluedeck_*`) is the launcher icon.
+- Classic startup without scan / scan-only prompt / notification non-blocking / BLE toggle
+  denial leaves BLE off / Classic<->BLE stops inactive service / SIMPLE no scroll dispatch /
+  QS tile no Classic broadcast in BLE mode — behavior verified at the logic layer by the
+  pure-helper unit tests above; live permission-dialog UX recommended for a human pass.
+- FULL-mode scroll — exercised by the physical HID suite.
+- Physical HID docs match the actual passing command — done (Phase 9).
