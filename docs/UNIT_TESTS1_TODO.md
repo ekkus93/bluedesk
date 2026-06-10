@@ -123,13 +123,13 @@ Acceptance criteria:
 
 ### UT-05 — `BleHogpKeySenderTest`: BLE no-op commands
 
-- [ ] Confirm the discovery/pairing/connection KeySender methods that are
+- [x] Confirm the discovery/pairing/connection KeySender methods that are
       documented as no-ops for BLE HOGP do **not** emit any report (the fake
       records zero notifications for them). (Enumerate them from the `KeySender`
       interface; only assert no-op for those BleHogpKeySender implements as such.)
 
 Acceptance criteria:
-- [ ] Verification suite passes.
+- [x] Verification suite passes.
 
 ---
 

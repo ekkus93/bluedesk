@@ -163,4 +163,21 @@ class BleHogpKeySenderTest {
         // reports: [0]=setModifiers, [1]=caps down (modifier preserved), [2]=caps up
         assertArrayEquals(byteArrayOf(0x02, 0x00, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00), fake.keyboardReports[1])
     }
+
+    // ── Phase 1 / UT-05: BLE no-op commands emit no report ──────────────────
+
+    @Test
+    fun `discovery, connection and scroll commands emit no report`() {
+        val fake = FakeHogpNotifier()
+        val s = BleHogpKeySender(fake)
+        // BLE HOGP is advertising-based (host initiates); these are no-ops, and the
+        // SIMPLE mouse report has no scroll wheels, so scroll is a no-op too.
+        s.startDiscovery()
+        s.stopDiscovery()
+        s.disconnectDevice()
+        s.scrollVertical(5)
+        s.scrollHorizontal(-5)
+        assertEquals(0, fake.keyboardReports.size)
+        assertEquals(0, fake.mouseReports.size)
+    }
 }
