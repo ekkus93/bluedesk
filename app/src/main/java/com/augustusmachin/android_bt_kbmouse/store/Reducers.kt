@@ -60,13 +60,14 @@ val appReducer: Reducer<AppState> = { state, action ->
                     state.connection.copy(
                         connectedDevice = action.device,
                         connectedDeviceLabel = if (action.device == null) null else state.connection.connectedDeviceLabel,
+                        connectedDeviceAddress = if (action.device == null) null else state.connection.connectedDeviceAddress,
                     ),
             )
         is Action.UpdateConnectedDeviceLabel -> state.copy(connection = state.connection.copy(connectedDeviceLabel = action.label))
+        is Action.UpdateConnectedDeviceAddress -> state.copy(connection = state.connection.copy(connectedDeviceAddress = action.address))
         is Action.UpdateMessage -> state.copy(connection = state.connection.copy(message = action.message))
         is Action.UpdateDefaultDevice -> state.copy(connection = state.connection.copy(defaultDeviceAddress = action.address))
-        is Action.UpdateLocks ->
-            state.copy(connection = state.connection.copy(capsLock = action.caps, scrollLock = action.scroll))
+        is Action.UpdateLocks -> state.copy(connection = state.connection.copy(capsLock = action.caps, scrollLock = action.scroll))
         is Action.UpdateIsScanning -> state.copy(connection = state.connection.copy(isScanning = action.scanning))
         is Action.UpdateSelectedBackend -> state.copy(backend = state.backend.copy(selectedBackend = action.backend))
         is Action.UpdateBackendRuntime -> state.copy(backend = state.backend.copy(runtime = action.runtime))
