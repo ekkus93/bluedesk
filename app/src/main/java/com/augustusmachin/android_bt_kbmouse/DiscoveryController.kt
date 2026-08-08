@@ -13,23 +13,23 @@ class DiscoveryController(
     private val context: Context,
     private val adapter: () -> BluetoothAdapter?,
     private val sdkInt: Int = Build.VERSION.SDK_INT,
+    private val hasPermissions: (Set<String>) -> Boolean = { required ->
+        PermissionGrantChecker.hasAll(context, required)
+    },
 ) {
     private val discoveredDevices = CopyOnWriteArrayList<BluetoothDevice>()
 
     fun startDiscovery(): Boolean {
         val currentAdapter = adapter()
-        if (currentAdapter == null) {
-            return failStart("Bluetooth adapter is unavailable")
-        }
-        if (!PermissionGrantChecker.hasAll(context, PermissionPolicy.requiredForScan(sdkInt))) {
-            return failStart("Scan permission not granted")
-        }
+        if (currentAdapter == null) return failStart("Bluetooth adapter is unavailable")
+        if (!hasPermissions(PermissionPolicy.requiredForScan(sdkInt))) return failStart("Scan permission not granted")
 
         if (isDiscovering(currentAdapter)) {
             DebugLog.log(TAG, "cancelDiscovery (was discovering)")
             try {
                 currentAdapter.cancelDiscovery()
             } catch (se: SecurityException) {
+                StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
                 return failStart("Scan permission was revoked: ${se.message}")
             }
         }
@@ -63,7 +63,7 @@ class DiscoveryController(
             StoreProvider.dispatch(Action.UpdateMessage("Bluetooth adapter is unavailable"))
             return false
         }
-        if (!PermissionGrantChecker.hasAll(context, PermissionPolicy.requiredForScan(sdkInt))) {
+        if (!hasPermissions(PermissionPolicy.requiredForScan(sdkInt))) {
             StoreProvider.dispatch(Action.UpdateIsScanning(false))
             StoreProvider.dispatch(Action.UpdateMessage("Scan permission not granted"))
             return false
@@ -85,7 +85,7 @@ class DiscoveryController(
 
     fun getPairedDevices(): List<BluetoothDevice> {
         val required = PermissionPolicy.requiredForClassicStartup(sdkInt)
-        if (!PermissionGrantChecker.hasAll(context, required)) {
+        if (!hasPermissions(required)) {
             DebugLog.e(TAG, "Bluetooth connect permission not granted; paired list unavailable")
             return emptyList()
         }
@@ -117,6 +117,7 @@ class DiscoveryController(
             adapter.isDiscovering
         } catch (se: SecurityException) {
             DebugLog.e(TAG, "isDiscovering SecurityException: ${se.message}")
+            StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
             false
         }
 
