@@ -1,0 +1,44 @@
+name: One-shot post-Fix3 silent-failure cleanup
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.event.head_commit.message == 'Run silent-failure cleanup once'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Apply bounded cleanup
+        run: python3 .github/scripts/post_fix3_silent_failure_cleanup.py
+
+      - name: Format Kotlin sources
+        run: ./gradlew :app:ktlintFormat --stacktrace
+
+      - name: Verify unit and static gates
+        run: ./gradlew :app:testDebugUnitTest :app:ktlintCheck :app:detekt --stacktrace
+
+      - name: Commit bounded fixes
+        run: |
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java
+          git diff --cached --quiet && { echo 'No changes produced'; exit 1; }
+          git commit -m 'Close remaining silent runtime failures'
+          git push origin HEAD:master
