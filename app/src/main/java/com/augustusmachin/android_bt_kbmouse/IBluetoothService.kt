@@ -9,6 +9,8 @@ interface IBluetoothService {
 
     fun getConnectedDeviceLabel(): String?
 
+    fun getStartupState(): ClassicHidStartupState
+
     fun setEventListener(l: BluetoothService.ServiceEventListener?)
 
     fun startDiscovery(): Boolean
