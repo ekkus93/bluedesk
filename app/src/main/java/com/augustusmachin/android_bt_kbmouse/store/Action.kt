@@ -41,6 +41,7 @@ sealed class Action {
     data class UpdatePairedDevices(val devices: List<BluetoothDevice>) : Action()
     data class UpdateConnectedDevice(val device: BluetoothDevice?) : Action()
     data class UpdateConnectedDeviceLabel(val label: String?) : Action()
+    data class UpdateConnectedDeviceAddress(val address: String?) : Action()
     data class UpdateMessage(val message: String?) : Action()
     data class UpdateDefaultDevice(val address: String?) : Action()
     data class UpdateLocks(val caps: Boolean, val scroll: Boolean) : Action()
