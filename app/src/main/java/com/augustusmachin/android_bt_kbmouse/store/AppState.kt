@@ -56,8 +56,11 @@ data class AppState(
     val backend: BackendState = BackendState(),
 )
 
+/** Safe UI/runtime host-presence bit. BluetoothDevice remains a transport object, not UI truth. */
+fun AppState.hasConnectedHost(): Boolean = connection.connectedDeviceAddress != null
+
 fun AppState.isInputUsable(): Boolean =
     backend.runtime is BackendRuntimeState.Ready &&
         backend.senderAvailable &&
         backend.permissionsValid &&
-        connection.connectedDevice != null
+        hasConnectedHost()
