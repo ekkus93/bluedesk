@@ -1,11 +1,13 @@
 package com.augustusmachin.android_bt_kbmouse
 
 import android.bluetooth.BluetoothHidDevice
+import android.bluetooth.BluetoothHidDeviceAppSdpSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito
+import java.util.concurrent.Executor
 
 class BluetoothHidModuleTest {
     @Test
@@ -13,11 +15,11 @@ class BluetoothHidModuleTest {
         val proxy = Mockito.mock(BluetoothHidDevice::class.java)
         Mockito.`when`(
             proxy.registerApp(
-                ArgumentMatchers.any(),
+                ArgumentMatchers.any(BluetoothHidDeviceAppSdpSettings::class.java),
                 ArgumentMatchers.isNull(),
                 ArgumentMatchers.isNull(),
-                ArgumentMatchers.any(),
-                ArgumentMatchers.any(),
+                ArgumentMatchers.any(Executor::class.java),
+                ArgumentMatchers.any(BluetoothHidDevice.Callback::class.java),
             ),
         ).thenReturn(false)
         val errors = mutableListOf<String>()
@@ -35,11 +37,11 @@ class BluetoothHidModuleTest {
         val proxy = Mockito.mock(BluetoothHidDevice::class.java)
         Mockito.`when`(
             proxy.registerApp(
-                ArgumentMatchers.any(),
+                ArgumentMatchers.any(BluetoothHidDeviceAppSdpSettings::class.java),
                 ArgumentMatchers.isNull(),
                 ArgumentMatchers.isNull(),
-                ArgumentMatchers.any(),
-                ArgumentMatchers.any(),
+                ArgumentMatchers.any(Executor::class.java),
+                ArgumentMatchers.any(BluetoothHidDevice.Callback::class.java),
             ),
         ).thenReturn(true)
         val module = BluetoothHidModule()
