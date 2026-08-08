@@ -24,15 +24,8 @@ private const val KEY_PRESS_HOLD_MS = 40L
 private val MODIFIER_TOGGLE_ACTIONS =
     setOf(Action.ToggleCtrl, Action.ToggleShift, Action.ToggleAlt, Action.ToggleGui)
 
-/**
- * Middleware that forwards HID and connection intent actions to an explicit [KeySender].
- * Missing senders and unsupported operations are state-visible failures, never nullable no-ops.
- */
 class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)) {
-    @Volatile
-    private var sender: KeySender? = null
-
-    // Serializes press/release sequences so rapid identical keys and clicks cannot interleave.
+    @Volatile private var sender: KeySender? = null
     private val inputSequenceMutex = Mutex()
 
     fun installSender(sender: KeySender?) {
@@ -163,8 +156,7 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
         store: Store<AppState>,
         command: KeyCommand,
     ): CommandResult {
-        val current = sender
-        val result = current?.execute(command) ?: missingSender()
+        val result = sender?.execute(command) ?: missingSender()
         report(store, result)
         return result
     }
@@ -175,9 +167,7 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
     ) {
         when (result) {
             CommandResult.Success -> {
-                if (store.state.backend.lastCommandResult != null) {
-                    store.dispatch(Action.ClearCommandResult)
-                }
+                if (store.state.backend.lastCommandResult != null) store.dispatch(Action.ClearCommandResult)
             }
             is CommandResult.Unsupported -> {
                 store.dispatch(Action.ReportCommandResult(result))
@@ -186,8 +176,12 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
             is CommandResult.Failure -> {
                 store.dispatch(Action.ReportCommandResult(result))
                 store.dispatch(Action.UpdateMessage(result.error.message))
-                if (result.error.code == CommandErrorCode.SENDER_UNAVAILABLE) {
-                    store.dispatch(Action.UpdateSenderAvailable(false))
+                when (result.error.code) {
+                    CommandErrorCode.SENDER_UNAVAILABLE,
+                    CommandErrorCode.SERVICE_UNAVAILABLE,
+                    -> store.dispatch(Action.UpdateSenderAvailable(false))
+                    CommandErrorCode.PERMISSION_DENIED -> store.dispatch(Action.UpdatePermissionsValid(false))
+                    else -> Unit
                 }
             }
         }
