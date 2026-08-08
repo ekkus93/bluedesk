@@ -25,6 +25,7 @@ jobs:
           cache: gradle
 
       - name: Apply ktlint formatter
+        continue-on-error: true
         run: ./gradlew :app:ktlintFormat --stacktrace
 
       - name: Commit formatter output
