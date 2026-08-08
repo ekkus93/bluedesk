@@ -101,6 +101,20 @@ class BackendLifecycleControllerTest {
     }
 
     @Test
+    fun `source cleanup failure blocks target start`() {
+        val ops = FakeOps()
+        val fixture = Fixture(ops)
+        ready(fixture, BackendMode.CLASSIC_HID)
+        ops.events.clear()
+        ops.failStop = true
+
+        assertFalse(fixture.controller.switchTo(BackendMode.BLE_HOGP))
+
+        assertFalse(ops.events.contains("start:BLE_HOGP"))
+        assertEquals(BackendFailureCode.SWITCH_FAILED, fixture.failedState().failure.code)
+    }
+
+    @Test
     fun `repeated target switch while starting does not start duplicate service`() {
         val ops = FakeOps()
         val fixture = Fixture(ops)
@@ -155,6 +169,8 @@ class BackendLifecycleControllerTest {
         val events = mutableListOf<String>()
         val liveServices = mutableSetOf<BackendMode>()
         var failNextStart = false
+        var failStop = false
+        var failUnbind = false
 
         override fun startService(mode: BackendMode): LifecycleOperationResult {
             events += "start:$mode"
@@ -179,13 +195,16 @@ class BackendLifecycleControllerTest {
             events += "clear:$mode"
         }
 
-        override fun unbindService(mode: BackendMode) {
+        override fun unbindService(mode: BackendMode): LifecycleOperationResult {
             events += "unbind:$mode"
+            return if (failUnbind) LifecycleOperationResult.Failure("unbind failed") else LifecycleOperationResult.Success
         }
 
-        override fun stopService(mode: BackendMode) {
+        override fun stopService(mode: BackendMode): LifecycleOperationResult {
             events += "stop:$mode"
+            if (failStop) return LifecycleOperationResult.Failure("stop failed")
             liveServices -= mode
+            return LifecycleOperationResult.Success
         }
 
         override fun resetLocalState() {
