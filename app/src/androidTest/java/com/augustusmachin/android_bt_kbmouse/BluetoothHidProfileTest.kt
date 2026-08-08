@@ -11,31 +11,21 @@ import android.content.Context
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import org.junit.Assert.assertNotNull
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 /**
  * Layer 2 instrumented tests: verify the BluetoothHidDevice profile can be obtained
  * and that our HID descriptors are accepted by the Android Bluetooth stack.
  *
- * Prerequisites:
- *  - Bluetooth must be enabled on the device.
- *  - The app under test must NOT already have BluetoothService running and registered,
- *    because Android only allows one HID app registration at a time. In practice this
- *    is satisfied when tests are run via `./gradlew connectedDebugAndroidTest` (the
- *    main app is not started by the test runner).
- *  - If tests fail with a stale registration (e.g. after running with the app open),
- *    toggle Bluetooth off/on once: `adb shell svc bluetooth disable && adb shell svc bluetooth enable`.
- *
- * These tests verify real stack behaviour that pure unit tests cannot: a malformed
- * HID descriptor silently rejected here would produce "Driver error" on Windows.
+ * These are hardware/stack-dependent tests. Emulators without a Bluetooth adapter skip
+ * the relevant cases rather than failing the non-physical UI matrix.
  */
 @SuppressLint("NewApi", "MissingPermission")
 @RunWith(AndroidJUnit4::class)
@@ -43,8 +33,6 @@ class BluetoothHidProfileTest {
     companion object {
         @BeforeClass @JvmStatic
         fun clearStaleRegistration() {
-            // Clears any stale HID registration left by a previous test run so the
-            // first registerApp test doesn't get registered=false immediately.
             if (Build.VERSION.SDK_INT < 28) return
             val context = InstrumentationRegistry.getInstrumentation().targetContext
             val adapter =
@@ -81,7 +69,6 @@ class BluetoothHidProfileTest {
 
     @Before
     fun grantBluetoothPermissions() {
-        // Runtime permissions (API 31+); shell grant works without UIAutomator interaction.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val pkg = InstrumentationRegistry.getInstrumentation().targetContext.packageName
             val auto = InstrumentationRegistry.getInstrumentation().uiAutomation
@@ -96,16 +83,12 @@ class BluetoothHidProfileTest {
     private val btAdapter: BluetoothAdapter?
         get() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
 
-    // ── Precondition / smoke tests ────────────────────────────────────────────
-
     @Test
     fun bluetooth_adapterIsAvailableAndEnabled() {
         val adapter = btAdapter
-        assertNotNull("This device has no Bluetooth adapter", adapter)
-        assertTrue(
-            "Bluetooth is disabled — enable it before running these tests",
-            adapter!!.isEnabled,
-        )
+        assumeTrue("No Bluetooth adapter on this device", adapter != null)
+        assumeTrue("Bluetooth is disabled on this device", adapter!!.isEnabled)
+        assertTrue(adapter.isEnabled)
     }
 
     @Test
@@ -137,29 +120,16 @@ class BluetoothHidProfileTest {
         assertTrue("HID_DEVICE profile not supported on this device", obtained)
     }
 
-    // ── Descriptor registration tests ─────────────────────────────────────────
-
-    /**
-     * Registers the SIMPLE descriptor (3-byte mouse, no scroll wheels) and
-     * asserts that the Android BT stack accepts it (registered=true callback).
-     */
     @Test
     fun registerApp_simpleDescriptor_stackAcceptsIt() {
         assertRegisters(simplified = true)
     }
 
-    /**
-     * Registers the FULL descriptor (5-byte mouse with scroll) and asserts acceptance.
-     */
     @Test
     fun registerApp_fullDescriptor_stackAcceptsIt() {
         assertRegisters(simplified = false)
     }
 
-    /**
-     * Registers then explicitly unregisters, and checks the stack sends
-     * onAppStatusChanged(registered=false) in response.
-     */
     @Test
     fun unregisterApp_receivesRegisteredFalseCallback() {
         assumeApi28()
@@ -167,13 +137,11 @@ class BluetoothHidProfileTest {
         val hid = obtainHidProxy(adapter) ?: return
         val module = BluetoothHidModule()
 
-        // Register first
         val registerLatch = CountDownLatch(1)
         module.listener = makeListener(onStatus = { registerLatch.countDown() })
         module.registerApp(hid, simplified = true)
         assertTrue("register callback not received within 8 s", registerLatch.await(8, TimeUnit.SECONDS))
 
-        // Now unregister and assert the callback fires with registered=false
         val unregisterLatch = CountDownLatch(1)
         var unregisteredValue: Boolean? = null
         module.listener =
@@ -190,10 +158,6 @@ class BluetoothHidProfileTest {
         adapter.closeProfileProxy(BluetoothProfile.HID_DEVICE, hid)
     }
 
-    /**
-     * Registers SIMPLE, verifies registered=true, then re-registers FULL on the
-     * same proxy session. Verifies the stack replaces the registration cleanly.
-     */
     @Test
     fun reregisterApp_switchDescriptorVariant_stackAcceptsBoth() {
         assumeApi28()
@@ -202,7 +166,6 @@ class BluetoothHidProfileTest {
         val module = BluetoothHidModule()
 
         try {
-            // Register SIMPLE
             var registered = false
             val latch1 = CountDownLatch(1)
             module.listener =
@@ -214,7 +177,6 @@ class BluetoothHidProfileTest {
             assertTrue("SIMPLE register callback not received", latch1.await(8, TimeUnit.SECONDS))
             assertTrue("SIMPLE registration rejected by stack", registered)
 
-            // Unregister before re-registering
             val unregLatch = CountDownLatch(1)
             module.listener =
                 makeListener(
@@ -223,9 +185,8 @@ class BluetoothHidProfileTest {
                 )
             hid.unregisterApp()
             unregLatch.await(5, TimeUnit.SECONDS)
-            Thread.sleep(1000) // give the BT stack time to release the slot
+            Thread.sleep(1000)
 
-            // Register FULL
             registered = false
             val latch2 = CountDownLatch(1)
             module.listener =
@@ -242,8 +203,6 @@ class BluetoothHidProfileTest {
             adapter.closeProfileProxy(BluetoothProfile.HID_DEVICE, hid)
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun assumeApi28() =
         assumeTrue("API 28+ required for BluetoothProfile.HID_DEVICE", Build.VERSION.SDK_INT >= 28)
@@ -283,8 +242,6 @@ class BluetoothHidProfileTest {
         val hid = obtainHidProxy(adapter) ?: return
         val module = BluetoothHidModule()
 
-        // Pre-clear any stale registration left by the previous test (e.g.
-        // unregisterApp_receivesRegisteredFalseCallback, which has no post-close sleep).
         val preLatch = CountDownLatch(1)
         module.listener =
             makeListener(
@@ -292,7 +249,7 @@ class BluetoothHidProfileTest {
                 onError = { preLatch.countDown() },
             )
         runCatching { hid.unregisterApp() }
-        preLatch.await(1, TimeUnit.SECONDS) // times out quickly if nothing was registered
+        preLatch.await(1, TimeUnit.SECONDS)
         Thread.sleep(500)
 
         val latch = CountDownLatch(1)
@@ -318,7 +275,6 @@ class BluetoothHidProfileTest {
                 registered,
             )
         } finally {
-            // Always clean up so the next test can register
             val cleanupLatch = CountDownLatch(1)
             module.listener =
                 makeListener(
