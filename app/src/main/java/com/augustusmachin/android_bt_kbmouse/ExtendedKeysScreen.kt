@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import com.augustusmachin.android_bt_kbmouse.store.isInputUsable
 
 private const val COLS_PER_PAGE = 3
 private const val MAX_PAGE_INDEX = 1
@@ -62,7 +63,7 @@ private data class GridCol(
 @Composable
 fun ExtendedKeysScreen() {
     val appState by StoreProvider.asStateFlow().collectAsState()
-    val connected = appState.connection.connectedDevice != null
+    val connected = appState.isInputUsable()
     val ks = appState.keyboard
 
     val colsPerPage = COLS_PER_PAGE
@@ -185,7 +186,7 @@ private fun ExtGridColumn(
     if (col.key1 != null) {
         KeyCellButton(col.key1, style) { dispatchKey(col.key1, labelToHid(col.key1)) }
     } else {
-        Spacer(Modifier.height(48.dp)) // match button height
+        Spacer(Modifier.height(KEY_CELL_HEIGHT_DP.dp)) // match shared key-cell height
     }
 }
 

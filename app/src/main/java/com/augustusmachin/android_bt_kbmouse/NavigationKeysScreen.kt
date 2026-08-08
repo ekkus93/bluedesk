@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import com.augustusmachin.android_bt_kbmouse.store.isInputUsable
 
 private const val COLS_PER_PAGE = 3
 private const val MAX_PAGE_INDEX = 1
@@ -93,7 +94,7 @@ private fun navGridColumns(
 @Composable
 fun NavigationKeysScreen(contentPadding: PaddingValues = PaddingValues()) {
     val appState by StoreProvider.asStateFlow().collectAsState()
-    val connected = appState.connection.connectedDevice != null
+    val connected = appState.isInputUsable()
     val ks = appState.keyboard
     val scrollLockActive = appState.connection.scrollLock
 
@@ -197,7 +198,7 @@ private fun NavGridColumn(
     if (col.modLabel != null && col.modAction != null) {
         KeyModifierButton(col.modLabel, col.modActive, col.modAction, handlers.connected, style)
     } else {
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(KEY_CELL_HEIGHT_DP.dp))
     }
     // Key rows 0–2 (three rows form the D-pad cross)
     NavKeyCell(col.key0, style, handlers)
@@ -212,12 +213,12 @@ private fun NavKeyCell(
     handlers: NavGridHandlers,
 ) {
     when (cell) {
-        is NavCell.Empty -> Spacer(Modifier.height(48.dp)) // match button height
+        is NavCell.Empty -> Spacer(Modifier.height(KEY_CELL_HEIGHT_DP.dp)) // shared key-cell height
         is NavCell.Key -> KeyCellButton(cell.label, style) { handlers.dispatchKey(cell.label) }
         is NavCell.ScrollLock ->
             Button(
                 onClick = handlers.dispatchScrollLock,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(KEY_CELL_HEIGHT_DP.dp),
                 colors = if (handlers.scrollLockActive) style.activeColors else style.inactiveColors,
             ) {
                 ResponsiveText(

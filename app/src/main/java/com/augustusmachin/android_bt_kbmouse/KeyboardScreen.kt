@@ -48,7 +48,7 @@ import com.augustusmachin.android_bt_kbmouse.store.isInputUsable
 private const val KEY_FONT_SCALE = 4200
 private const val KEY_FONT_MIN_SP = 10f
 private const val KEY_FONT_MAX_SP = 16f
-private const val KEY_CELL_HEIGHT_DP = 48
+internal const val KEY_CELL_HEIGHT_DP = 48
 private const val IME_BUFFER_LIMIT = 64
 val LocalKeyFontSize = staticCompositionLocalOf { 16.sp }
 

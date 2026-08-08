@@ -2,16 +2,20 @@ package com.augustusmachin.android_bt_kbmouse
 
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.CommandResult
 import com.augustusmachin.android_bt_kbmouse.store.KeyCommand
 import com.augustusmachin.android_bt_kbmouse.store.KeySender
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -150,6 +154,16 @@ class UiComposeInstrumentedTest {
     }
 
     @Test
+    fun navigationGridUsesConsistentCellHeightAtNormalFontScale() {
+        assertNavigationGridCellHeights(fontScale = 1.0f)
+    }
+
+    @Test
+    fun navigationGridUsesConsistentCellHeightAtLargeFontScale() {
+        assertNavigationGridCellHeights(fontScale = 1.6f)
+    }
+
+    @Test
     fun dragLockDisposalReleasesMouseButtonOnRealMouseScreen() {
         val sender = installUsableClassicState(label = "Test host")
         val showMouse = mutableStateOf(true)
@@ -170,6 +184,26 @@ class UiComposeInstrumentedTest {
         composeRule.runOnIdle {
             assertTrue(sender.commands.any { it is KeyCommand.MouseButtonUp })
         }
+    }
+
+    private fun assertNavigationGridCellHeights(fontScale: Float) {
+        composeRule.setContent {
+            val baseDensity = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(baseDensity.density, fontScale),
+            ) {
+                NavigationKeysScreen()
+            }
+        }
+
+        val ctrlHeight = composeRule.onNodeWithText("Ctrl").fetchSemanticsNode().boundsInRoot.height
+        val upHeight = composeRule.onNodeWithText("↑").fetchSemanticsNode().boundsInRoot.height
+        assertEquals(ctrlHeight, upHeight, 1.0f)
+
+        composeRule.onNodeWithText("❯").performClick()
+        composeRule.waitForIdle()
+        val scrollLockHeight = composeRule.onNodeWithText("Scrl Lk").fetchSemanticsNode().boundsInRoot.height
+        assertEquals(ctrlHeight, scrollLockHeight, 1.0f)
     }
 
     private fun installUsableClassicState(label: String?): RecordingSender {

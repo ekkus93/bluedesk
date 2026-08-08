@@ -73,10 +73,10 @@ private fun requestIgnoreBatteryOptimizations(context: android.content.Context):
             val message =
                 "Could not open battery optimization settings: " +
                     (second.message ?: second.javaClass.simpleName)
-            DebugLog.e(
-                "SettingsScreen",
-                "$message (app-specific request also failed: ${first.message ?: first.javaClass.simpleName})",
-            )
+            val diagnostic =
+                "$message (app-specific request also failed: ${first.message ?: first.javaClass.simpleName})"
+            DebugLog.e("SettingsScreen", diagnostic)
+            android.util.Log.e("SettingsScreen", diagnostic, second)
             message
         }
     }

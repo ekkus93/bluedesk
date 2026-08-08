@@ -25,6 +25,7 @@ import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.ParcelUuid
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
@@ -121,7 +122,9 @@ class BleHogpService : Service(), HogpNotifier {
         } catch (
             @Suppress("TooGenericExceptionCaught") e: Exception,
         ) {
+            // Device-name customization is cosmetic; continue advertising under the existing name.
             DebugLog.e(TAG, "Could not change BLE adapter name: ${e.message}")
+            Log.w(TAG, "BLE adapter-name customization failed; continuing with existing name", e)
         }
 
         readiness.advance(BleHogpStartupStage.OPENING_GATT_SERVER)
@@ -361,20 +364,29 @@ class BleHogpService : Service(), HogpNotifier {
         value: ByteArray?,
     ) {
         if (!PermissionGrantChecker.hasAll(this, PermissionPolicy.requiredForClassicStartup(Build.VERSION.SDK_INT))) {
-            DebugLog.e(TAG, "Bluetooth connect permission unavailable; cannot send GATT response")
+            val message = "Bluetooth connect permission unavailable; cannot send GATT response"
+            DebugLog.e(TAG, message)
             StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
+            StoreProvider.dispatch(Action.UpdateMessage(message))
+            eventListener?.onError(message)
             return
         }
         val server = gattServer
         if (server == null) {
-            DebugLog.e(TAG, "Cannot send GATT response: GATT server is unavailable")
+            val message = "Cannot send GATT response: GATT server is unavailable"
+            DebugLog.e(TAG, message)
+            StoreProvider.dispatch(Action.UpdateMessage(message))
+            eventListener?.onError(message)
             return
         }
         try {
             server.sendResponse(device, requestId, status, offset, value)
         } catch (e: SecurityException) {
-            DebugLog.e(TAG, "GATT response permission failure: ${e.message}")
+            val message = "GATT response permission failure: ${e.message}"
+            DebugLog.e(TAG, message)
             StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
+            StoreProvider.dispatch(Action.UpdateMessage(message))
+            eventListener?.onError(message)
         }
     }
 
@@ -475,9 +487,28 @@ class BleHogpService : Service(), HogpNotifier {
         readiness.fail(message)
         val persisted = (readiness.state as? BleHogpStartupState.Failed)?.message ?: message
         DebugLog.e(TAG, persisted)
+        Log.e(TAG, persisted)
+        BtDevicePrefs(this).setLastRuntimeFailure(persisted)
+        StoreProvider.dispatch(Action.UpdateMessage(persisted))
         eventListener?.onError(persisted)
+        postStartupFailureNotification(persisted)
         cleanupBleResources()
         stopSelf()
+    }
+
+    private fun postStartupFailureNotification(message: String) {
+        try {
+            ServiceNotifications.postRuntimeFailure(
+                this,
+                title = "BlueDeck BLE could not start",
+                message = message,
+            )
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception,
+        ) {
+            // Durable preferences, store state, and system log already retain the failure.
+            Log.e(TAG, "Could not post BLE startup-failure notification", e)
+        }
     }
 
     @SuppressLint("MissingPermission")

@@ -15,6 +15,7 @@ class NoSilentFailureSourceContractTest {
             "com/augustusmachin/android_bt_kbmouse/MainActivity.kt",
             "com/augustusmachin/android_bt_kbmouse/BootReceiver.kt",
             "com/augustusmachin/android_bt_kbmouse/ServiceForegroundController.kt",
+            "com/augustusmachin/android_bt_kbmouse/DiscoveryController.kt",
             "com/augustusmachin/android_bt_kbmouse/BluetoothService.kt",
             "com/augustusmachin/android_bt_kbmouse/BleHogpService.kt",
             "com/augustusmachin/android_bt_kbmouse/BluetoothHidTransport.kt",
@@ -63,6 +64,14 @@ class NoSilentFailureSourceContractTest {
         assertTrue(foreground.contains("ClassicHidStartupRegistry.publish(ClassicHidStartupState.Failed(message))"))
         assertTrue(foreground.contains("StoreProvider.dispatch(Action.UpdateMessage(message))"))
         assertTrue(foreground.contains("ServiceNotifications.postRuntimeFailure("))
+    }
+
+    @Test
+    fun `BLE startup failure remains durable and user visible`() {
+        val ble = source("com/augustusmachin/android_bt_kbmouse/BleHogpService.kt")
+        assertTrue(ble.contains("BtDevicePrefs(this).setLastRuntimeFailure(persisted)"))
+        assertTrue(ble.contains("StoreProvider.dispatch(Action.UpdateMessage(persisted))"))
+        assertTrue(ble.contains("ServiceNotifications.postRuntimeFailure("))
     }
 
     @Test

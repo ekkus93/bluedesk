@@ -437,7 +437,15 @@ class BluetoothService : Service(), IBluetoothService {
                 } catch (
                     @Suppress("TooGenericExceptionCaught") e: Exception,
                 ) {
-                    DebugLog.e("BluetoothService", "Remembered Bluetooth address is invalid: ${e.message}")
+                    val message = "Remembered Bluetooth address is invalid: ${e.message ?: e.javaClass.simpleName}"
+                    DebugLog.e("BluetoothService", message)
+                    devicePrefs.setLastRuntimeFailure(message)
+                    devicePrefs.setLastDevice(null)
+                    lastDeviceAddress = null
+                    lastTargetDevice = null
+                    StoreProvider.dispatch(Action.UpdateDefaultDevice(null))
+                    StoreProvider.dispatch(Action.UpdateMessage(message))
+                    eventListener?.onError(message)
                     null
                 }
             } ?: return
@@ -476,6 +484,12 @@ class BluetoothService : Service(), IBluetoothService {
                 val detail = e.message ?: e.javaClass.simpleName
                 val message = "Remembered Bluetooth device could not be resolved: $detail"
                 DebugLog.e("BluetoothService", message)
+                devicePrefs.setLastRuntimeFailure(message)
+                devicePrefs.setLastDevice(null)
+                lastDeviceAddress = null
+                lastTargetDevice = null
+                StoreProvider.dispatch(Action.UpdateDefaultDevice(null))
+                StoreProvider.dispatch(Action.UpdateMessage(message))
                 eventListener?.onError(message)
                 null
             } ?: return

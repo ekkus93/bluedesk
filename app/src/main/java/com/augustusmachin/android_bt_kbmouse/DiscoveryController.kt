@@ -102,18 +102,19 @@ class DiscoveryController(
 
     fun getPairedDevices(): List<BluetoothDevice> {
         val required = PermissionPolicy.requiredForClassicStartup(sdkInt)
-        if (!hasPermissions(required)) {
+        return if (!hasPermissions(required)) {
             StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
-            return failPairedList("Bluetooth connect permission is unavailable; paired devices cannot be read")
-        }
-        val currentAdapter = adapter()
-            ?: return failPairedList("Bluetooth adapter is unavailable; paired devices cannot be read")
-        return try {
-            currentAdapter.bondedDevices.toList()
-        } catch (se: SecurityException) {
-            DebugLog.e(TAG, "getPairedDevices SecurityException: ${se.message}")
-            StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
-            failPairedList("Bluetooth connect permission was revoked; paired devices cannot be read")
+            failPairedList("Bluetooth connect permission is unavailable; paired devices cannot be read")
+        } else {
+            adapter()?.let { currentAdapter ->
+                try {
+                    currentAdapter.bondedDevices.toList()
+                } catch (se: SecurityException) {
+                    DebugLog.e(TAG, "getPairedDevices SecurityException: ${se.message}")
+                    StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
+                    failPairedList("Bluetooth connect permission was revoked; paired devices cannot be read")
+                }
+            } ?: failPairedList("Bluetooth adapter is unavailable; paired devices cannot be read")
         }
     }
 

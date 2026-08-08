@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import com.augustusmachin.android_bt_kbmouse.store.isInputUsable
 
 private const val COLS_PER_PAGE = 3
 private const val MAX_PAGE_INDEX = 1
@@ -51,7 +52,7 @@ private data class FnGridCol(
 @Composable
 fun FunctionKeysScreen() {
     val appState by StoreProvider.asStateFlow().collectAsState()
-    val connected = appState.connection.connectedDevice != null
+    val connected = appState.isInputUsable()
     val ks = appState.keyboard
 
     val colsPerPage = COLS_PER_PAGE
@@ -154,7 +155,7 @@ private fun FnGridColumn(
     if (col.modLabel != null && col.modAction != null) {
         KeyModifierButton(col.modLabel, col.modActive, col.modAction, connected, style)
     } else {
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(KEY_CELL_HEIGHT_DP.dp))
     }
     // F1–F6
     KeyCellButton(col.fnKey0, style) { dispatchKey(col.fnKey0) }
