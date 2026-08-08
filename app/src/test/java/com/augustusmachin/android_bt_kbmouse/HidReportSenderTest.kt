@@ -2,19 +2,22 @@ package com.augustusmachin.android_bt_kbmouse
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Records the (reportId, bytes) handed to the transport so we can assert exact output. */
-private class FakeHidReportTransport : HidReportTransport {
+private class FakeHidReportTransport(
+    private val result: HidDeliveryResult = HidDeliveryResult.Sent,
+) : HidReportTransport {
     val reportIds = mutableListOf<Int>()
     val reports = mutableListOf<ByteArray>()
 
     override fun send(
         reportId: Int,
         report: ByteArray,
-    ) {
+    ): HidDeliveryResult {
         reportIds.add(reportId)
         reports.add(report.copyOf())
+        return result
     }
 
     val lastReport: ByteArray get() = reports.last()
@@ -25,13 +28,11 @@ private val KEYBOARD_ID = HidDescriptorVariants.REPORT_ID_KEYBOARD.toInt()
 private val MOUSE_ID = HidDescriptorVariants.REPORT_ID_MOUSE.toInt()
 
 class HidReportSenderTest {
-    // ── UT-07: keyboard + modifier state ────────────────────────────────────
-
     @Test
     fun `setModifiers emits a keyboard report with the new modifier byte`() {
         val t = FakeHidReportTransport()
         val s = HidReportSender(isSimplified = { true }, transport = t)
-        s.setModifiers(0x02)
+        assertEquals(HidDeliveryResult.Sent, s.setModifiers(0x02))
         assertEquals(KEYBOARD_ID, t.lastReportId)
         assertArrayEquals(byteArrayOf(0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), t.lastReport)
     }
@@ -59,22 +60,19 @@ class HidReportSenderTest {
     fun `pressKey past the cap rolls off the oldest key`() {
         val t = FakeHidReportTransport()
         val s = HidReportSender(isSimplified = { true }, transport = t)
-        // 0x04..0x09 fill the 6 slots; 0x0A evicts the oldest (0x04).
         listOf<Byte>(0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A).forEach { s.pressKey(it, 0x00) }
         assertArrayEquals(byteArrayOf(0x00, 0x00, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A), t.lastReport)
     }
 
     @Test
-    fun `sendKeyPress emits key-down then key-up`() {
+    fun `sendKeyPress emits key-down then key-up without blocking sleep`() {
         val t = FakeHidReportTransport()
         val s = HidReportSender(isSimplified = { true }, transport = t)
-        s.sendKeyPress(0x04, 0x02)
+        assertEquals(HidDeliveryResult.Sent, s.sendKeyPress(0x04, 0x02))
         assertEquals(2, t.reports.size)
         assertArrayEquals(byteArrayOf(0x02, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00), t.reports[0])
         assertArrayEquals(byteArrayOf(0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), t.reports[1])
     }
-
-    // ── UT-08: mouse state ──────────────────────────────────────────────────
 
     @Test
     fun `sendMouseMove emits a SIMPLE 3-byte report with current mask`() {
@@ -129,18 +127,26 @@ class HidReportSenderTest {
         val s = HidReportSender(isSimplified = { false }, transport = t)
         s.sendMouseMove(1, 2)
         assertArrayEquals(byteArrayOf(0x00, 1, 2, 0x00, 0x00), t.lastReport)
-        s.sendScroll(3)
+        assertEquals(HidDeliveryResult.Sent, s.sendScroll(3))
         assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00, 3, 0x00), t.lastReport)
-        s.sendScrollH(-4)
+        assertEquals(HidDeliveryResult.Sent, s.sendScrollH(-4))
         assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00, 0x00, -4), t.lastReport)
     }
 
     @Test
-    fun `scroll is a no-op under the SIMPLE descriptor`() {
+    fun `scroll is explicit unsupported under SIMPLE descriptor`() {
         val t = FakeHidReportTransport()
         val s = HidReportSender(isSimplified = { true }, transport = t)
-        s.sendScroll(3)
-        s.sendScrollH(3)
+        assertTrue(s.sendScroll(3) is HidDeliveryResult.Unsupported)
+        assertTrue(s.sendScrollH(3) is HidDeliveryResult.Unsupported)
         assertEquals(0, t.reports.size)
+    }
+
+    @Test
+    fun `transport failure is returned to caller`() {
+        val failure = HidDeliveryResult.Failure(HidDeliveryFailureCode.REPORT_REJECTED, "rejected")
+        val s = HidReportSender(isSimplified = { true }, transport = FakeHidReportTransport(failure))
+
+        assertEquals(failure, s.sendMouseMove(1, 1))
     }
 }
