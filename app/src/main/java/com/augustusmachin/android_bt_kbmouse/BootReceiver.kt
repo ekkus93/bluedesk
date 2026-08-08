@@ -98,7 +98,7 @@ class BootReceiver : BroadcastReceiver() {
         context: Context,
         message: String,
     ) {
-        BtDevicePrefs(context).setLastBootFailure(message)
+        BtDevicePrefs(context).setLastRuntimeFailure(message)
         DebugLog.e("BootReceiver", message)
         Log.e("BootReceiver", message)
         try {
