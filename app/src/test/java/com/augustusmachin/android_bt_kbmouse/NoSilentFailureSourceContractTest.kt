@@ -1,9 +1,9 @@
 package com.augustusmachin.android_bt_kbmouse
 
+import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
 /**
  * Guardrails for the exact silent-failure patterns removed by the post-Fix3 hardening pass.
@@ -32,7 +32,10 @@ class NoSilentFailureSourceContractTest {
     @Test
     fun `critical runtime does not use runCatchingLogged to swallow state changes`() {
         criticalSources.forEach { path ->
-            assertFalse("runCatchingLogged is prohibited in critical runtime: $path", source(path).contains("runCatchingLogged("))
+            assertFalse(
+                "runCatchingLogged is prohibited in critical runtime: $path",
+                source(path).contains("runCatchingLogged("),
+            )
         }
     }
 
