@@ -76,12 +76,8 @@ class BluetoothHidTransport(
         code: HidDeliveryFailureCode,
         message: String,
     ): HidDeliveryResult.Failure {
-        DebugLog.e(TAG, message)
+        DebugLog.e("BluetoothService", message)
         onError(message)
         return HidDeliveryResult.Failure(code, message)
-    }
-
-    private companion object {
-        const val TAG = "BluetoothService"
     }
 }
