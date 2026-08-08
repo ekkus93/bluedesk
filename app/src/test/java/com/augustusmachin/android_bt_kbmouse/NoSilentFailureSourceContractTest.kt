@@ -51,7 +51,7 @@ class NoSilentFailureSourceContractTest {
     @Test
     fun `boot failures remain durable and user visible`() {
         val bootReceiver = source("com/augustusmachin/android_bt_kbmouse/BootReceiver.kt")
-        assertTrue(bootReceiver.contains("setLastBootFailure(message)"))
+        assertTrue(bootReceiver.contains("setLastRuntimeFailure(message)"))
         assertTrue(bootReceiver.contains("ServiceNotifications.postRuntimeFailure("))
         assertTrue(bootReceiver.contains("Log.e(\"BootReceiver\", message)"))
     }
@@ -59,6 +59,7 @@ class NoSilentFailureSourceContractTest {
     @Test
     fun `Classic foreground startup failure publishes failed state and visible error`() {
         val foreground = source("com/augustusmachin/android_bt_kbmouse/ServiceForegroundController.kt")
+        assertTrue(foreground.contains("BtDevicePrefs(service).setLastRuntimeFailure(message)"))
         assertTrue(foreground.contains("ClassicHidStartupRegistry.publish(ClassicHidStartupState.Failed(message))"))
         assertTrue(foreground.contains("StoreProvider.dispatch(Action.UpdateMessage(message))"))
         assertTrue(foreground.contains("ServiceNotifications.postRuntimeFailure("))
