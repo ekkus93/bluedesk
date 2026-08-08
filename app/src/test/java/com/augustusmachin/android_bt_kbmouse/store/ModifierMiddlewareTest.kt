@@ -84,20 +84,31 @@ class ModifierMiddlewareTest {
     }
 
     @Test
-    fun inputUsabilityRequiresReadySenderAndConnection() {
-        val disconnected = AppState()
-        assertFalse(disconnected.isInputUsable())
+    fun inputUsabilityRequiresReadySenderPermissionsAndSafeHostAddress() {
+        val base = AppState()
+        assertFalse(base.isInputUsable())
 
-        val readyWithoutDevice =
-            disconnected.copy(
+        val readyWithoutAddress =
+            base.copy(
                 backend =
                     BackendState(
                         selectedBackend = BackendMode.CLASSIC_HID,
                         runtime = BackendRuntimeState.Ready(BackendMode.CLASSIC_HID, BackendCapabilitySets.classic),
                         senderAvailable = true,
+                        permissionsValid = true,
                     ),
             )
-        assertFalse(readyWithoutDevice.isInputUsable())
+        assertFalse(readyWithoutAddress.isInputUsable())
+
+        val usable =
+            readyWithoutAddress.copy(
+                connection = readyWithoutAddress.connection.copy(connectedDeviceAddress = "AA:BB:CC:DD:EE:FF"),
+            )
+        assertTrue(usable.isInputUsable())
+
+        assertFalse(usable.copy(backend = usable.backend.copy(senderAvailable = false)).isInputUsable())
+        assertFalse(usable.copy(backend = usable.backend.copy(permissionsValid = false)).isInputUsable())
+        assertFalse(usable.copy(backend = usable.backend.copy(runtime = BackendRuntimeState.Stopped)).isInputUsable())
     }
 
     private class RecordingSender : KeySender {
