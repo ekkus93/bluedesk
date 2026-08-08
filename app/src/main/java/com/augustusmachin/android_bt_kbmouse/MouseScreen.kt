@@ -22,10 +22,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import com.augustusmachin.android_bt_kbmouse.store.isInputUsable
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -52,35 +55,66 @@ private const val MIN_SCROLL_SPEED = 0.1f
 private const val TAP_TIMEOUT_MS = 220
 private const val THREE_FINGER_TAP = 3
 
+internal data class MouseFeatureAvailability(
+    val middleClick: Boolean,
+    val verticalScroll: Boolean,
+    val horizontalScroll: Boolean,
+)
+
+internal fun mouseFeatureAvailability(
+    settings: Settings,
+    capabilities: BackendCapabilities,
+): MouseFeatureAvailability =
+    MouseFeatureAvailability(
+        middleClick = settings.enableMiddleClick && capabilities.middleClick,
+        verticalScroll = ScrollPolicy.verticalAvailable(settings) && capabilities.verticalScroll,
+        horizontalScroll = ScrollPolicy.horizontalAvailable(settings) && capabilities.horizontalScroll,
+    )
+
 @Composable
 fun MouseScreen(contentPadding: PaddingValues = PaddingValues()) {
     val context = LocalContext.current
     val appState by StoreProvider.asStateFlow().collectAsState()
-    val connected = appState.connection.connectedDevice
-    val settingsFlow = remember(connected) { SettingsManager.flowForDevice(context, connected?.address) }
-    val settings by settingsFlow.collectAsState(initial = com.augustusmachin.android_bt_kbmouse.Settings())
+    val inputUsable = appState.isInputUsable()
+    val deviceAddress = appState.connection.connectedDeviceAddress
+    val settingsFlow = remember(deviceAddress) { SettingsManager.flowForDevice(context, deviceAddress) }
+    val settings by settingsFlow.collectAsState(initial = Settings())
+    val capabilities =
+        (appState.backend.runtime as? BackendRuntimeState.Ready)?.capabilities
+            ?: BackendCapabilitySets.forMode(appState.backend.selectedBackend)
+    val features = mouseFeatureAvailability(settings, capabilities)
     var dragLock by remember { mutableStateOf(false) }
+    val latestDragLock by rememberUpdatedState(dragLock)
 
     DisposableEffect(Unit) {
-        onDispose { if (dragLock) StoreProvider.dispatch(Action.MouseButtonUp) }
+        onDispose {
+            if (latestDragLock) StoreProvider.dispatch(Action.MouseButtonUp)
+        }
+    }
+
+    LaunchedEffect(inputUsable) {
+        if (!inputUsable && dragLock) {
+            StoreProvider.dispatch(Action.MouseButtonUp)
+            dragLock = false
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(16.dp).navigationBarsPadding()) {
         TouchpadArea(
             settings = settings,
+            features = features,
             dragLock = dragLock,
             onDragLockChange = { dragLock = it },
             modifier = Modifier.weight(1f),
         )
         MouseButtonRow(
-            settings = settings,
+            features = features,
             dragLock = dragLock,
             onDragLockChange = { dragLock = it },
         )
     }
 }
 
-// Mutable accumulator threaded through a single touchpad gesture.
 private class GestureState {
     var maxPointers = 1
     var moved = false
@@ -91,11 +125,11 @@ private class GestureState {
 @Composable
 private fun TouchpadArea(
     settings: Settings,
+    features: MouseFeatureAvailability,
     dragLock: Boolean,
     onDragLockChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Touchpad area
     Box(
         modifier =
             modifier
@@ -104,9 +138,9 @@ private fun TouchpadArea(
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), RoundedCornerShape(12.dp))
                 .semantics { this[SemanticsProperties.Role] = Role.Button }
-                .pointerInput(settings) {
+                .pointerInput(settings, features) {
                     awaitEachGesture {
-                        awaitFirstDown() // wait for the gesture to start
+                        awaitFirstDown()
                         val state = GestureState()
                         val startTime = System.currentTimeMillis()
                         do {
@@ -115,27 +149,27 @@ private fun TouchpadArea(
                             if (pressed > state.maxPointers) state.maxPointers = pressed
                             when {
                                 pressed == 1 -> handleMove(event, settings, state)
-                                pressed == 2 -> handleScroll(event, settings, state)
+                                pressed == 2 -> handleScroll(event, settings, features, state)
                                 pressed > 2 ->
                                     if (event.changes.any { it.positionChange() != Offset.Zero }) state.moved = true
                             }
                         } while (event.changes.any { it.pressed })
                         val duration = System.currentTimeMillis() - startTime
                         if (!state.moved && duration < TAP_TIMEOUT_MS) {
-                            resolveTap(state.maxPointers, settings, dragLock, onDragLockChange)
+                            resolveTap(state.maxPointers, features, dragLock, onDragLockChange)
                         }
                     }
                 },
     ) {
         Text(
             text =
-                if (ScrollPolicy.verticalAvailable(settings)) {
+                if (features.verticalScroll) {
                     "Use this area as a touchpad\n• 1-finger move/tap\n" +
                         "• 2-finger scroll/tap=right\n• 3-finger tap=middle"
                 } else {
                     "Use this area as a touchpad\n• 1-finger move/tap\n" +
                         "• 2-finger tap=right\n• 3-finger tap=middle\n" +
-                        "Scroll requires Full HID descriptor mode."
+                        "Scrolling is unavailable for the active backend/descriptor."
                 },
             modifier = Modifier.align(Alignment.Center),
             style = MaterialTheme.typography.bodyMedium,
@@ -164,6 +198,7 @@ private fun handleMove(
 private fun handleScroll(
     event: androidx.compose.ui.input.pointer.PointerEvent,
     settings: Settings,
+    features: MouseFeatureAvailability,
     state: GestureState,
 ) {
     var dySum = 0f
@@ -174,8 +209,8 @@ private fun handleScroll(
         dxSum += d.x
     }
     state.moved = state.moved || (abs(dySum) > SCROLL_MOVE_THRESHOLD_PX || abs(dxSum) > SCROLL_MOVE_THRESHOLD_PX)
-    val stepPx = (SCROLL_STEP_BASE_PX / settings.scrollSpeed.coerceAtLeast(MIN_SCROLL_SPEED))
-    if (ScrollPolicy.verticalAvailable(settings)) {
+    val stepPx = SCROLL_STEP_BASE_PX / settings.scrollSpeed.coerceAtLeast(MIN_SCROLL_SPEED)
+    if (features.verticalScroll) {
         state.scrollAccumV += dySum
         while (abs(state.scrollAccumV) >= stepPx) {
             val step = if (state.scrollAccumV > 0) 1 else -1
@@ -183,7 +218,7 @@ private fun handleScroll(
             state.scrollAccumV -= stepPx * step
         }
     }
-    if (ScrollPolicy.horizontalAvailable(settings)) {
+    if (features.horizontalScroll) {
         state.scrollAccumH += dxSum
         while (abs(state.scrollAccumH) >= stepPx) {
             val step = if (state.scrollAccumH > 0) 1 else -1
@@ -196,7 +231,7 @@ private fun handleScroll(
 
 private fun resolveTap(
     maxPointers: Int,
-    settings: Settings,
+    features: MouseFeatureAvailability,
     dragLock: Boolean,
     onDragLockChange: (Boolean) -> Unit,
 ) {
@@ -207,51 +242,45 @@ private fun resolveTap(
         when (maxPointers) {
             1 -> StoreProvider.dispatch(Action.LeftClick)
             2 -> StoreProvider.dispatch(Action.RightClick)
-            THREE_FINGER_TAP -> if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick)
+            THREE_FINGER_TAP -> if (features.middleClick) StoreProvider.dispatch(Action.MiddleClick)
         }
     }
 }
 
 @Composable
 private fun MouseButtonRow(
-    settings: Settings,
+    features: MouseFeatureAvailability,
     dragLock: Boolean,
     onDragLockChange: (Boolean) -> Unit,
 ) {
-    // Quick mouse buttons
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         val mouseBtnPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
-        ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), contentPadding = mouseBtnPadding, onClick = {
-            StoreProvider.dispatch(Action.LeftClick)
-        }) { Text("Left", fontSize = 12.sp, maxLines = 1, softWrap = false) }
         ElevatedButton(
-            modifier =
-                Modifier.weight(
-                    1f,
-                ).height(44.dp),
+            modifier = Modifier.weight(1f).height(44.dp),
             contentPadding = mouseBtnPadding,
-            enabled = settings.enableMiddleClick,
-            onClick = {
-                if (settings.enableMiddleClick) StoreProvider.dispatch(Action.MiddleClick)
-            },
+            onClick = { StoreProvider.dispatch(Action.LeftClick) },
+        ) { Text("Left", fontSize = 12.sp, maxLines = 1, softWrap = false) }
+        ElevatedButton(
+            modifier = Modifier.weight(1f).height(44.dp),
+            contentPadding = mouseBtnPadding,
+            enabled = features.middleClick,
+            onClick = { if (features.middleClick) StoreProvider.dispatch(Action.MiddleClick) },
         ) { Text("Middle", fontSize = 12.sp, maxLines = 1, softWrap = false) }
-        ElevatedButton(modifier = Modifier.weight(1f).height(44.dp), contentPadding = mouseBtnPadding, onClick = {
-            StoreProvider.dispatch(Action.RightClick)
-        }) { Text("Right", fontSize = 12.sp, maxLines = 1, softWrap = false) }
+        ElevatedButton(
+            modifier = Modifier.weight(1f).height(44.dp),
+            contentPadding = mouseBtnPadding,
+            onClick = { StoreProvider.dispatch(Action.RightClick) },
+        ) { Text("Right", fontSize = 12.sp, maxLines = 1, softWrap = false) }
         ElevatedButton(
             modifier = Modifier.weight(1f).height(44.dp),
             contentPadding = mouseBtnPadding,
             onClick = {
                 val newLock = !dragLock
                 onDragLockChange(newLock)
-                if (newLock) {
-                    StoreProvider.dispatch(Action.MouseButtonDown(0x01))
-                } else {
-                    StoreProvider.dispatch(Action.MouseButtonUp)
-                }
+                if (newLock) StoreProvider.dispatch(Action.MouseButtonDown(0x01)) else StoreProvider.dispatch(Action.MouseButtonUp)
             },
             colors =
                 if (dragLock) {
