@@ -15,7 +15,6 @@ import android.bluetooth.BluetoothGattServerCallback
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
-import android.bluetooth.BluetoothStatusCodes
 import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
@@ -32,7 +31,6 @@ import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 import java.util.Collections
 import java.util.UUID
 
-private const val HID_INFO_BCD_HID_LSB: Byte = 0x11
 private const val SDK_INT_OREO = 26
 private const val SDK_INT_MARSHMALLOW = 23
 
@@ -40,27 +38,21 @@ class BleHogpService : Service(), HogpNotifier {
     companion object {
         private const val TAG = "BleHogpService"
         private val UUID_HID_SERVICE = UUID.fromString("00001812-0000-1000-8000-00805f9b34fb")
-        private val UUID_BATTERY_SERVICE = UUID.fromString("0000180F-0000-1000-8000-00805f9b34fb")
-        private val UUID_DEVINFO_SERVICE = UUID.fromString("0000180A-0000-1000-8000-00805f9b34fb")
-        private val UUID_HID_INFORMATION = UUID.fromString("00002A4A-0000-1000-8000-00805f9b34fb")
-        private val UUID_REPORT_MAP = UUID.fromString("00002A4B-0000-1000-8000-00805f9b34fb")
         private val UUID_HID_CONTROL_POINT = UUID.fromString("00002A4C-0000-1000-8000-00805f9b34fb")
         private val UUID_PROTOCOL_MODE = UUID.fromString("00002A4E-0000-1000-8000-00805f9b34fb")
-        private val UUID_BOOT_KB_INPUT = UUID.fromString("00002A22-0000-1000-8000-00805f9b34fb")
         private val UUID_BOOT_KB_OUTPUT = UUID.fromString("00002A32-0000-1000-8000-00805f9b34fb")
-        private val UUID_BOOT_MOUSE_INPUT = UUID.fromString("00002A33-0000-1000-8000-00805f9b34fb")
-        private val UUID_REPORT = UUID.fromString("00002A4D-0000-1000-8000-00805f9b34fb")
-        private val UUID_CCC = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
-        private val UUID_REPORT_REF = UUID.fromString("00002908-0000-1000-8000-00805f9b34fb")
-        private val UUID_BATTERY_LEVEL = UUID.fromString("00002A19-0000-1000-8000-00805f9b34fb")
         const val READY_MESSAGE = "BLE advertising started"
     }
 
     interface ServiceEventListener {
         fun onConnected(device: BluetoothDevice)
+
         fun onDisconnected(device: BluetoothDevice?)
+
         fun onInfo(message: String)
+
         fun onError(message: String)
+
         fun onLeds(leds: Int)
     }
 
@@ -152,18 +144,14 @@ class BleHogpService : Service(), HogpNotifier {
     }
 
     private fun beginGattRegistration() {
-        val hidService = BluetoothGattService(UUID_HID_SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY)
-        addHidMetadata(hidService)
-        addKeyboardCharacteristics(hidService)
-        addMouseCharacteristics(hidService)
-        val services =
-            listOf(
-                hidService,
-                buildBatteryService(),
-                BluetoothGattService(UUID_DEVINFO_SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY),
-            )
-        mandatoryServices = services.associateBy { it.uuid.toString() }
-        readiness.beginGattRegistration(services.map { it.uuid.toString() })
+        val profile = BleHogpGattProfileBuilder.build(protocolMode)
+        kbInputChar = profile.keyboardBootInput
+        mouseInputChar = profile.mouseBootInput
+        kbInputReportChar = profile.keyboardInputReport
+        mouseInputReportChar = profile.mouseInputReport
+        batteryLevelChar = profile.batteryLevel
+        mandatoryServices = profile.services.associateBy { it.uuid.toString() }
+        readiness.beginGattRegistration(profile.services.map { it.uuid.toString() })
         registerNextGattService()
     }
 
@@ -201,143 +189,6 @@ class BleHogpService : Service(), HogpNotifier {
         if (!readiness.onAddServiceImmediate(serviceId, accepted)) {
             failStartup((readiness.state as BleHogpStartupState.Failed).message)
         }
-    }
-
-    private fun addHidMetadata(hidService: BluetoothGattService) {
-        val proto =
-            BluetoothGattCharacteristic(
-                UUID_PROTOCOL_MODE,
-                BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,
-                BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
-            ).also { it.setValueCompat(byteArrayOf(protocolMode)) }
-        hidService.addCharacteristic(proto)
-
-        val hidInfo =
-            BluetoothGattCharacteristic(
-                UUID_HID_INFORMATION,
-                BluetoothGattCharacteristic.PROPERTY_READ,
-                BluetoothGattCharacteristic.PERMISSION_READ,
-            ).also { it.setValueCompat(byteArrayOf(HID_INFO_BCD_HID_LSB, 0x01, 0x00, 0x02)) }
-        hidService.addCharacteristic(hidInfo)
-
-        hidService.addCharacteristic(
-            BluetoothGattCharacteristic(
-                UUID_HID_CONTROL_POINT,
-                BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,
-                BluetoothGattCharacteristic.PERMISSION_WRITE,
-            ),
-        )
-
-        hidService.addCharacteristic(
-            BluetoothGattCharacteristic(
-                UUID_REPORT_MAP,
-                BluetoothGattCharacteristic.PROPERTY_READ,
-                BluetoothGattCharacteristic.PERMISSION_READ,
-            ).also { it.setValueCompat(HidDescriptorVariants.SIMPLE) },
-        )
-    }
-
-    private fun addKeyboardCharacteristics(hidService: BluetoothGattService) {
-        kbInputChar =
-            BluetoothGattCharacteristic(
-                UUID_BOOT_KB_INPUT,
-                BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
-                BluetoothGattCharacteristic.PERMISSION_READ,
-            ).also {
-                it.addDescriptor(
-                    BluetoothGattDescriptor(
-                        UUID_CCC,
-                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
-                    ),
-                )
-            }
-        hidService.addCharacteristic(kbInputChar)
-
-        kbInputReportChar =
-            BluetoothGattCharacteristic(
-                UUID_REPORT,
-                BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
-                BluetoothGattCharacteristic.PERMISSION_READ,
-            ).also {
-                it.addDescriptor(
-                    BluetoothGattDescriptor(UUID_REPORT_REF, BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED).also { descriptor ->
-                        descriptor.setValueCompat(byteArrayOf(0x01, 0x01))
-                    },
-                )
-                it.addDescriptor(
-                    BluetoothGattDescriptor(
-                        UUID_CCC,
-                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
-                    ),
-                )
-            }
-        hidService.addCharacteristic(kbInputReportChar)
-
-        hidService.addCharacteristic(
-            BluetoothGattCharacteristic(
-                UUID_BOOT_KB_OUTPUT,
-                BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE or
-                    BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,
-                BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
-            ),
-        )
-    }
-
-    private fun addMouseCharacteristics(hidService: BluetoothGattService) {
-        mouseInputChar =
-            BluetoothGattCharacteristic(
-                UUID_BOOT_MOUSE_INPUT,
-                BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
-                BluetoothGattCharacteristic.PERMISSION_READ,
-            ).also {
-                it.addDescriptor(
-                    BluetoothGattDescriptor(
-                        UUID_CCC,
-                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
-                    ),
-                )
-            }
-        hidService.addCharacteristic(mouseInputChar)
-
-        mouseInputReportChar =
-            BluetoothGattCharacteristic(
-                UUID_REPORT,
-                BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
-                BluetoothGattCharacteristic.PERMISSION_READ,
-            ).also {
-                it.addDescriptor(
-                    BluetoothGattDescriptor(UUID_REPORT_REF, BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED).also { descriptor ->
-                        descriptor.setValueCompat(byteArrayOf(0x02, 0x01))
-                    },
-                )
-                it.addDescriptor(
-                    BluetoothGattDescriptor(
-                        UUID_CCC,
-                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
-                    ),
-                )
-            }
-        hidService.addCharacteristic(mouseInputReportChar)
-    }
-
-    private fun buildBatteryService(): BluetoothGattService {
-        val service = BluetoothGattService(UUID_BATTERY_SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY)
-        batteryLevelChar =
-            BluetoothGattCharacteristic(
-                UUID_BATTERY_LEVEL,
-                BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
-                BluetoothGattCharacteristic.PERMISSION_READ,
-            ).also {
-                it.setValueCompat(byteArrayOf(100.toByte()))
-                it.addDescriptor(
-                    BluetoothGattDescriptor(
-                        UUID_CCC,
-                        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
-                    ),
-                )
-            }
-        service.addCharacteristic(batteryLevelChar)
-        return service
     }
 
     @SuppressLint("MissingPermission")
@@ -410,14 +261,18 @@ class BleHogpService : Service(), HogpNotifier {
                 }
             }
 
-            override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
-                val address = safeAddress(device)
+            override fun onConnectionStateChange(
+                device: BluetoothDevice,
+                status: Int,
+                newState: Int,
+            ) {
+                val address = safeBleDeviceAddress(device)
                 DebugLog.log(TAG, "GATT state=$newState status=$status")
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                     connected.add(device)
                     StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
                     StoreProvider.dispatch(Action.UpdateConnectedDeviceAddress(address))
-                    StoreProvider.dispatch(Action.UpdateConnectedDeviceLabel(safeDeviceLabel(device, address)))
+                    StoreProvider.dispatch(Action.UpdateConnectedDeviceLabel(safeBleDeviceLabel(device, address)))
                     eventListener?.onConnected(device)
                     eventListener?.onInfo("BLE HOGP host connected")
                 } else {
@@ -525,20 +380,36 @@ class BleHogpService : Service(), HogpNotifier {
         kind: String,
     ): HidDeliveryResult {
         if (readiness.state !is BleHogpStartupState.Ready) {
-            return deliveryFailure(HidDeliveryFailureCode.HID_PROXY_MISSING, "BLE $kind report rejected: backend is not ready")
+            return deliveryFailure(
+                HidDeliveryFailureCode.HID_PROXY_MISSING,
+                "BLE $kind report rejected: backend is not ready",
+            )
         }
         if (!PermissionGrantChecker.hasAll(this, PermissionPolicy.requiredForClassicStartup(Build.VERSION.SDK_INT))) {
             StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
-            return deliveryFailure(HidDeliveryFailureCode.PERMISSION_DENIED, "BLE $kind report rejected: connect permission is unavailable")
+            return deliveryFailure(
+                HidDeliveryFailureCode.PERMISSION_DENIED,
+                "BLE $kind report rejected: connect permission is unavailable",
+            )
         }
-        val server = gattServer
-            ?: return deliveryFailure(HidDeliveryFailureCode.HID_PROXY_MISSING, "BLE $kind report rejected: GATT server is unavailable")
+        val server =
+            gattServer
+                ?: return deliveryFailure(
+                    HidDeliveryFailureCode.HID_PROXY_MISSING,
+                    "BLE $kind report rejected: GATT server is unavailable",
+                )
         val devices = synchronized(connected) { connected.toList() }
         if (devices.isEmpty()) {
-            return deliveryFailure(HidDeliveryFailureCode.DEVICE_MISSING, "BLE $kind report rejected: no host is connected")
+            return deliveryFailure(
+                HidDeliveryFailureCode.DEVICE_MISSING,
+                "BLE $kind report rejected: no host is connected",
+            )
         }
         if (characteristics.isEmpty()) {
-            return deliveryFailure(HidDeliveryFailureCode.HID_PROXY_MISSING, "BLE $kind report rejected: GATT input characteristic is unavailable")
+            return deliveryFailure(
+                HidDeliveryFailureCode.HID_PROXY_MISSING,
+                "BLE $kind report rejected: GATT input characteristic is unavailable",
+            )
         }
 
         return try {
@@ -547,28 +418,41 @@ class BleHogpService : Service(), HogpNotifier {
                 for (device in devices) {
                     val accepted =
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            server.notifyCharacteristicChanged(device, characteristic, false, report) == BluetoothStatusCodes.SUCCESS
+                            server.notifyCharacteristicChanged(device, characteristic, false, report) ==
+                                android.bluetooth.BluetoothStatusCodes.SUCCESS
                         } else {
                             @Suppress("DEPRECATION")
                             server.notifyCharacteristicChanged(device, characteristic, false)
                         }
                     if (!accepted) {
-                        return deliveryFailure(HidDeliveryFailureCode.REPORT_REJECTED, "BLE $kind notification was rejected")
+                        return deliveryFailure(
+                            HidDeliveryFailureCode.REPORT_REJECTED,
+                            "BLE $kind notification was rejected",
+                        )
                     }
                 }
             }
             HidDeliveryResult.Sent
         } catch (e: SecurityException) {
             StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
-            deliveryFailure(HidDeliveryFailureCode.PERMISSION_DENIED, "BLE $kind notification permission failure: ${e.message}")
+            deliveryFailure(
+                HidDeliveryFailureCode.PERMISSION_DENIED,
+                "BLE $kind notification permission failure: ${e.message}",
+            )
         } catch (
             @Suppress("TooGenericExceptionCaught") e: Exception,
         ) {
-            deliveryFailure(HidDeliveryFailureCode.TRANSPORT_EXCEPTION, "BLE $kind notification failed: ${e.message}")
+            deliveryFailure(
+                HidDeliveryFailureCode.TRANSPORT_EXCEPTION,
+                "BLE $kind notification failed: ${e.message}",
+            )
         }
     }
 
-    private fun deliveryFailure(code: HidDeliveryFailureCode, message: String): HidDeliveryResult.Failure {
+    private fun deliveryFailure(
+        code: HidDeliveryFailureCode,
+        message: String,
+    ): HidDeliveryResult.Failure {
         DebugLog.e(TAG, message)
         eventListener?.onError(message)
         return HidDeliveryResult.Failure(code, message)
@@ -588,7 +472,8 @@ class BleHogpService : Service(), HogpNotifier {
     private fun cleanupBleResources() {
         if (cleanupComplete) return
         cleanupComplete = true
-        val hasBlePermissions = PermissionGrantChecker.hasAll(this, PermissionPolicy.requiredForBleStartup(Build.VERSION.SDK_INT))
+        val hasBlePermissions =
+            PermissionGrantChecker.hasAll(this, PermissionPolicy.requiredForBleStartup(Build.VERSION.SDK_INT))
         if (advertisingRequested && hasBlePermissions) {
             try {
                 advertiser?.stopAdvertising(adCb)
@@ -630,22 +515,6 @@ class BleHogpService : Service(), HogpNotifier {
         batteryLevelChar = null
         mandatoryServices = emptyMap()
     }
-
-    private fun safeAddress(device: BluetoothDevice): String? =
-        try {
-            device.address
-        } catch (e: SecurityException) {
-            DebugLog.e(TAG, "Connected device address unavailable: ${e.message}")
-            null
-        }
-
-    private fun safeDeviceLabel(device: BluetoothDevice, address: String?): String =
-        try {
-            device.name?.takeIf { it.isNotBlank() } ?: address ?: "Bluetooth host"
-        } catch (e: SecurityException) {
-            DebugLog.e(TAG, "Connected device name unavailable: ${e.message}")
-            address ?: "Bluetooth host"
-        }
 
     private fun startInForeground(): Boolean {
         val channelId = "ble_hogp_service"
