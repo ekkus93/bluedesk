@@ -54,15 +54,15 @@ class PermissionPolicyMatrixTest {
     }
 
     @Test
-    fun `selected-backend startup policy stays consistent across supported matrix`() {
+    fun `selected-backend startup planner stays consistent across supported matrix`() {
         listOf(28, 30, 31, 34, 36).forEach { api ->
             assertEquals(
                 PermissionPolicy.requiredForClassicStartup(api),
-                PermissionPolicy.requiredForStartup(api, useBleHogp = false),
+                StartupPermissionPlanner.plan(Settings(useBleHogp = false), api).requiredPermissions,
             )
             assertEquals(
                 PermissionPolicy.requiredForBleStartup(api),
-                PermissionPolicy.requiredForStartup(api, useBleHogp = true),
+                StartupPermissionPlanner.plan(Settings(useBleHogp = true), api).requiredPermissions,
             )
         }
     }
