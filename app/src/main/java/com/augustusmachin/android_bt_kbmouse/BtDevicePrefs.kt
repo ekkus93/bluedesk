@@ -5,8 +5,8 @@ import android.content.Context
 /**
  * Typed wrapper around the "bt_hid" SharedPreferences used by [BluetoothService]
  * to persist the last/default device, the connected device name (for the Quick
- * Settings tile), and per-device aliases. Centralizes the storage keys that were
- * previously duplicated as string literals throughout the service.
+ * Settings tile), per-device aliases, and the most recent boot-start failure.
+ * Centralizes storage keys that would otherwise be duplicated as string literals.
  */
 class BtDevicePrefs(context: Context) {
     private val prefs = context.getSharedPreferences("bt_hid", Context.MODE_PRIVATE)
@@ -41,6 +41,17 @@ class BtDevicePrefs(context: Context) {
         prefs.edit().putBoolean(KEY_USE_BLE, useBle).apply()
     }
 
+    /** Durable diagnostic for a boot-start failure that occurred before the main UI existed. */
+    fun setLastBootFailure(message: String) {
+        prefs.edit().putString(KEY_LAST_BOOT_FAILURE, message).apply()
+    }
+
+    fun getLastBootFailure(): String? = prefs.getString(KEY_LAST_BOOT_FAILURE, null)
+
+    fun clearLastBootFailure() {
+        prefs.edit().remove(KEY_LAST_BOOT_FAILURE).apply()
+    }
+
     fun getAlias(address: String): String? = prefs.getString(aliasKey(address), null)
 
     fun setAlias(
@@ -60,6 +71,7 @@ class BtDevicePrefs(context: Context) {
         const val KEY_LAST_DEVICE = "last_device"
         const val KEY_CONNECTED_NAME = "connected_name"
         const val KEY_USE_BLE = "use_ble"
+        const val KEY_LAST_BOOT_FAILURE = "last_boot_failure"
         const val KEY_ALIAS_PREFIX = "alias_"
     }
 }
