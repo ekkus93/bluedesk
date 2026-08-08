@@ -17,6 +17,8 @@ class DiscoveryController(
         PermissionGrantChecker.hasAll(context, required)
     },
 ) {
+    constructor(context: Context, adapter: BluetoothAdapter) : this(context, { adapter })
+
     private val discoveredDevices = CopyOnWriteArrayList<BluetoothDevice>()
 
     fun startDiscovery(): Boolean {
