@@ -17,6 +17,17 @@ class DiscoveryController(
         PermissionGrantChecker.hasAll(context, required)
     },
 ) {
+    /**
+     * Keeps the production `DiscoveryController(context) { adapter }` call unambiguous even
+     * though the primary constructor has parameters with defaults after the provider lambda.
+     */
+    constructor(context: Context, adapter: () -> BluetoothAdapter?) : this(
+        context = context,
+        adapter = adapter,
+        sdkInt = Build.VERSION.SDK_INT,
+        hasPermissions = { required -> PermissionGrantChecker.hasAll(context, required) },
+    )
+
     constructor(context: Context, adapter: BluetoothAdapter) : this(context, { adapter })
 
     private val discoveredDevices = CopyOnWriteArrayList<BluetoothDevice>()
