@@ -5,7 +5,11 @@ import android.bluetooth.BluetoothDevice
 interface IBluetoothService {
     fun getLastDeviceAddress(): String?
 
-    fun setEventListener(l: BluetoothService.ServiceEventListener)
+    fun getConnectedDevice(): BluetoothDevice?
+
+    fun getConnectedDeviceLabel(): String?
+
+    fun setEventListener(l: BluetoothService.ServiceEventListener?)
 
     fun startDiscovery(): Boolean
 
