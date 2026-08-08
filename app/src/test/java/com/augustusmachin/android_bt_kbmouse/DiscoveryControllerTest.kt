@@ -64,7 +64,7 @@ class DiscoveryControllerTest {
         val controller = controller(granted = false)
 
         assertTrue(controller.getPairedDevices().isEmpty())
-        assertFalse(StoreProvider.asStateFlow().value.connection.permissionsValid)
+        assertFalse(StoreProvider.asStateFlow().value.backend.permissionsValid)
         assertTrue(
             StoreProvider.asStateFlow().value.connection.message!!
                 .contains("paired devices cannot be read"),
