@@ -13,7 +13,7 @@ class BluetoothHidTransport(
     private val currentHid: () -> BluetoothHidDevice?,
     private val onError: (String) -> Unit,
     private val sdkInt: Int = Build.VERSION.SDK_INT,
-    private val hasPermissions: (Set<String>) -> Boolean = { required ->
+    private val hasPermissions: (List<String>) -> Boolean = { required ->
         PermissionGrantChecker.hasAll(context, required)
     },
 ) : HidReportTransport {
