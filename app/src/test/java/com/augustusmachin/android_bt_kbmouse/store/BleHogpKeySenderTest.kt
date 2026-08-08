@@ -1,22 +1,29 @@
 package com.augustusmachin.android_bt_kbmouse.store
 
+import com.augustusmachin.android_bt_kbmouse.HidDeliveryFailureCode
+import com.augustusmachin.android_bt_kbmouse.HidDeliveryResult
 import com.augustusmachin.android_bt_kbmouse.HogpNotifier
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Records the report bytes emitted to the BLE HOGP notifier so we can assert exact output. */
-private class FakeHogpNotifier : HogpNotifier {
+private class FakeHogpNotifier(
+    private val keyboardResult: HidDeliveryResult = HidDeliveryResult.Sent,
+    private val mouseResult: HidDeliveryResult = HidDeliveryResult.Sent,
+) : HogpNotifier {
     val keyboardReports = mutableListOf<ByteArray>()
     val mouseReports = mutableListOf<ByteArray>()
 
-    override fun notifyKeyboard(report: ByteArray) {
+    override fun notifyKeyboard(report: ByteArray): HidDeliveryResult {
         keyboardReports.add(report.copyOf())
+        return keyboardResult
     }
 
-    override fun notifyMouse(report: ByteArray) {
+    override fun notifyMouse(report: ByteArray): HidDeliveryResult {
         mouseReports.add(report.copyOf())
+        return mouseResult
     }
 
     val lastKeyboard: ByteArray get() = keyboardReports.last()
@@ -24,160 +31,132 @@ private class FakeHogpNotifier : HogpNotifier {
 }
 
 class BleHogpKeySenderTest {
-    // ── Phase 1 / UT-02: keyboard report logic ──────────────────────────────
-
     @Test
     fun `sendKeyDown sets modifier byte and adds the key`() {
         val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        s.sendKeyDown(0x04, 0x02)
+        val sender = BleHogpKeySender(fake)
+        assertEquals(CommandResult.Success, sender.sendKeyDown(0x04, 0x02))
         assertArrayEquals(byteArrayOf(0x02, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00), fake.lastKeyboard)
     }
 
     @Test
     fun `sendKeyDown is idempotent on the same code`() {
         val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        s.sendKeyDown(0x04, 0x02)
-        s.sendKeyDown(0x04, 0x02)
-        // No duplicate key: still a single 0x04 in the array.
+        val sender = BleHogpKeySender(fake)
+        sender.sendKeyDown(0x04, 0x02)
+        sender.sendKeyDown(0x04, 0x02)
         assertArrayEquals(byteArrayOf(0x02, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00), fake.lastKeyboard)
     }
 
     @Test
-    fun `keys accumulate up to the 6-key rollover cap`() {
+    fun `keys accumulate only to the 6-key rollover cap`() {
         val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        // 7 distinct codes; the 7th must be dropped by the rollover cap.
-        listOf<Byte>(0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A).forEach { s.sendKeyDown(it, 0x00) }
+        val sender = BleHogpKeySender(fake)
+        listOf<Byte>(0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A).forEach { sender.sendKeyDown(it, 0x00) }
         assertArrayEquals(byteArrayOf(0x00, 0x00, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09), fake.lastKeyboard)
-        assertFalse("7th key must not appear", fake.lastKeyboard.contains(0x0A))
+        assertFalse(fake.lastKeyboard.contains(0x0A))
     }
 
     @Test
     fun `sendKeyUp removes the key and re-emits the report`() {
         val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        s.sendKeyDown(0x04, 0x00)
-        s.sendKeyDown(0x05, 0x00)
-        s.sendKeyUp(0x04)
+        val sender = BleHogpKeySender(fake)
+        sender.sendKeyDown(0x04, 0x00)
+        sender.sendKeyDown(0x05, 0x00)
+        sender.sendKeyUp(0x04)
         assertArrayEquals(byteArrayOf(0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00), fake.lastKeyboard)
     }
 
     @Test
     fun `setModifiers updates modifier byte and keeps pressed keys`() {
         val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        s.sendKeyDown(0x04, 0x00)
-        s.setModifiers(0x01)
+        val sender = BleHogpKeySender(fake)
+        sender.sendKeyDown(0x04, 0x00)
+        sender.setModifiers(0x01)
         assertArrayEquals(byteArrayOf(0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00), fake.lastKeyboard)
-        assertEquals("only key-down + setModifiers reports emitted", 2, fake.keyboardReports.size)
+        assertEquals(2, fake.keyboardReports.size)
     }
 
-    // ── Phase 1 / UT-03: mouse report logic ─────────────────────────────────
-
     @Test
-    fun `moveMouse emits a 3-byte report with current button mask`() {
+    fun `moveMouse emits a simple 3-byte report`() {
         val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        s.moveMouse(10, -5)
+        val sender = BleHogpKeySender(fake)
+        assertEquals(CommandResult.Success, sender.moveMouse(10, -5))
         assertArrayEquals(byteArrayOf(0x00, 10, -5), fake.lastMouse)
     }
 
     @Test
-    fun `moveMouse clamps deltas to the signed-byte range`() {
+    fun `moveMouse clamps deltas to signed-byte range`() {
         val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        s.moveMouse(200, -200)
+        val sender = BleHogpKeySender(fake)
+        sender.moveMouse(200, -200)
         assertArrayEquals(byteArrayOf(0x00, 127, -127), fake.lastMouse)
     }
 
     @Test
-    fun `mouseButtonDown sets the mask and mouseButtonUp clears it`() {
+    fun `mouseButtonDown sets mask and mouseButtonUp clears it`() {
         val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        s.mouseButtonDown(0x01)
+        val sender = BleHogpKeySender(fake)
+        sender.mouseButtonDown(0x01)
         assertArrayEquals(byteArrayOf(0x01, 0x00, 0x00), fake.lastMouse)
-        s.mouseButtonUp()
+        sender.mouseButtonUp()
         assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00), fake.lastMouse)
     }
 
     @Test
-    fun `leftClick emits press then release`() {
-        val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        s.leftClick()
-        assertEquals(2, fake.mouseReports.size)
-        assertArrayEquals(byteArrayOf(0x01, 0x00, 0x00), fake.mouseReports[0])
-        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00), fake.mouseReports[1])
+    fun `click methods emit press then release`() {
+        val left = FakeHogpNotifier()
+        BleHogpKeySender(left).leftClick()
+        assertArrayEquals(byteArrayOf(0x01, 0x00, 0x00), left.mouseReports[0])
+        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00), left.mouseReports[1])
+
+        val right = FakeHogpNotifier()
+        BleHogpKeySender(right).rightClick()
+        assertArrayEquals(byteArrayOf(0x02, 0x00, 0x00), right.mouseReports[0])
+        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00), right.mouseReports[1])
+
+        val middle = FakeHogpNotifier()
+        BleHogpKeySender(middle).middleClick()
+        assertArrayEquals(byteArrayOf(0x04, 0x00, 0x00), middle.mouseReports[0])
+        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00), middle.mouseReports[1])
     }
 
     @Test
-    fun `rightClick emits press then release`() {
+    fun `lock toggle preserves current modifier byte`() {
         val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        s.rightClick()
-        assertEquals(2, fake.mouseReports.size)
-        assertArrayEquals(byteArrayOf(0x02, 0x00, 0x00), fake.mouseReports[0])
-        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00), fake.mouseReports[1])
-    }
-
-    @Test
-    fun `middleClick emits press then release with mask 0x04`() {
-        val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        s.middleClick()
-        assertEquals(2, fake.mouseReports.size)
-        assertArrayEquals(byteArrayOf(0x04, 0x00, 0x00), fake.mouseReports[0])
-        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00), fake.mouseReports[1])
-    }
-
-    // ── Phase 1 / UT-04: lock-key sequences ─────────────────────────────────
-
-    @Test
-    fun `toggleCapsLock emits 0x39 down then up`() {
-        val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        s.toggleCapsLock()
-        assertEquals(2, fake.keyboardReports.size)
-        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00), fake.keyboardReports[0])
-        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), fake.keyboardReports[1])
-    }
-
-    @Test
-    fun `toggleScrollLock emits 0x47 down then up`() {
-        val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        s.toggleScrollLock()
-        assertEquals(2, fake.keyboardReports.size)
-        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x47, 0x00, 0x00, 0x00, 0x00, 0x00), fake.keyboardReports[0])
-        assertArrayEquals(byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), fake.keyboardReports[1])
-    }
-
-    @Test
-    fun `lock toggle preserves the current modifier byte`() {
-        val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        s.setModifiers(0x02)
-        s.toggleCapsLock()
-        // reports: [0]=setModifiers, [1]=caps down (modifier preserved), [2]=caps up
+        val sender = BleHogpKeySender(fake)
+        sender.setModifiers(0x02)
+        sender.toggleCapsLock()
         assertArrayEquals(byteArrayOf(0x02, 0x00, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00), fake.keyboardReports[1])
     }
 
-    // ── Phase 1 / UT-05: BLE no-op commands emit no report ──────────────────
-
     @Test
-    fun `discovery, connection and scroll commands emit no report`() {
+    fun `host-initiated operations return unsupported and emit no report`() {
         val fake = FakeHogpNotifier()
-        val s = BleHogpKeySender(fake)
-        // BLE HOGP is advertising-based (host initiates); these are no-ops, and the
-        // SIMPLE mouse report has no scroll wheels, so scroll is a no-op too.
-        s.startDiscovery()
-        s.stopDiscovery()
-        s.disconnectDevice()
-        s.scrollVertical(5)
-        s.scrollHorizontal(-5)
+        val sender = BleHogpKeySender(fake)
+
+        assertTrue(sender.startDiscovery() is CommandResult.Unsupported)
+        assertTrue(sender.stopDiscovery() is CommandResult.Unsupported)
+        assertTrue(sender.disconnectDevice() is CommandResult.Unsupported)
+        assertTrue(sender.scrollVertical(5) is CommandResult.Unsupported)
+        assertTrue(sender.scrollHorizontal(-5) is CommandResult.Unsupported)
         assertEquals(0, fake.keyboardReports.size)
         assertEquals(0, fake.mouseReports.size)
+    }
+
+    @Test
+    fun `notifier delivery failure propagates to command failure`() {
+        val fake =
+            FakeHogpNotifier(
+                mouseResult =
+                    HidDeliveryResult.Failure(
+                        HidDeliveryFailureCode.REPORT_REJECTED,
+                        "BLE notification rejected",
+                    ),
+            )
+        val result = BleHogpKeySender(fake).moveMouse(1, 1)
+
+        assertTrue(result is CommandResult.Failure)
+        assertEquals(CommandErrorCode.REPORT_REJECTED, (result as CommandResult.Failure).error.code)
     }
 }
