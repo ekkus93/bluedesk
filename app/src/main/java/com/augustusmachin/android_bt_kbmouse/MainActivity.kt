@@ -60,16 +60,16 @@ class MainActivity : ComponentActivity() {
                             androidx.appcompat.app.AlertDialog.Builder(this@MainActivity)
                                 .setTitle("Missing permission")
                                 .setMessage(
-                                    "This app requires the BLUETOOTH_CONNECT permission. " +
+                                    "This app requires Bluetooth connection permission. " +
                                         "Please grant it in Settings. The app will now exit.",
                                 )
                                 .setPositiveButton("Open Settings") { _, _ ->
-                                    val i =
+                                    val settingsIntent =
                                         Intent(
                                             Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                                             Uri.fromParts("package", packageName, null),
                                         )
-                                    startActivity(i)
+                                    startActivity(settingsIntent)
                                     finish()
                                 }
                                 .setNegativeButton("Close") { _, _ -> finish() }
@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() {
                         } catch (
                             @Suppress("TooGenericExceptionCaught") e: Exception,
                         ) {
-                            DebugLog.e("MainActivity", "missing-perm dialog failed: ${e.message}")
+                            DebugLog.e("MainActivity", "missing-permission dialog failed: ${e.message}")
                             finish()
                         }
                     }
@@ -144,7 +144,6 @@ class MainActivity : ComponentActivity() {
                     backendLifecycle.failInitialization(BackendMode.CLASSIC_HID, "Classic sender stage was rejected")
                     return
                 }
-
                 try {
                     StoreProvider.setKeySender(BluetoothKeySender(svc))
                 } catch (
@@ -156,8 +155,12 @@ class MainActivity : ComponentActivity() {
                     )
                     return
                 }
-                backendLifecycle.senderInstalled(BackendMode.CLASSIC_HID)
-                // Ready is published by the listener only after the HID app registration callback.
+                if (!backendLifecycle.senderInstalled(BackendMode.CLASSIC_HID)) {
+                    backendLifecycle.failInitialization(BackendMode.CLASSIC_HID, "Classic backend-init stage was rejected")
+                    return
+                }
+                restoreClassicHostSnapshot(svc)
+                reconcileClassicReadiness()
             }
 
             override fun onServiceDisconnected(name: ComponentName) {
@@ -165,6 +168,18 @@ class MainActivity : ComponentActivity() {
                 classicService = null
                 ServiceAliasHelper.setService(null)
                 backendLifecycle.unexpectedServiceLoss(BackendMode.CLASSIC_HID)
+            }
+
+            override fun onBindingDied(name: ComponentName) {
+                serviceBound = false
+                classicService = null
+                ServiceAliasHelper.setService(null)
+                backendLifecycle.unexpectedServiceLoss(BackendMode.CLASSIC_HID)
+            }
+
+            override fun onNullBinding(name: ComponentName) {
+                serviceBound = false
+                backendLifecycle.failInitialization(BackendMode.CLASSIC_HID, "Classic service returned a null binding")
             }
         }
 
@@ -204,14 +219,28 @@ class MainActivity : ComponentActivity() {
                     )
                     return
                 }
-                backendLifecycle.senderInstalled(BackendMode.BLE_HOGP)
-                // Ready is published by the advertising-success callback, not by bind success.
+                if (!backendLifecycle.senderInstalled(BackendMode.BLE_HOGP)) {
+                    backendLifecycle.failInitialization(BackendMode.BLE_HOGP, "BLE backend-init stage was rejected")
+                    return
+                }
+                reconcileBleReadiness(svc.currentStartupState())
             }
 
             override fun onServiceDisconnected(name: ComponentName) {
                 bleHogpBound = false
                 bleService = null
                 backendLifecycle.unexpectedServiceLoss(BackendMode.BLE_HOGP)
+            }
+
+            override fun onBindingDied(name: ComponentName) {
+                bleHogpBound = false
+                bleService = null
+                backendLifecycle.unexpectedServiceLoss(BackendMode.BLE_HOGP)
+            }
+
+            override fun onNullBinding(name: ComponentName) {
+                bleHogpBound = false
+                backendLifecycle.failInitialization(BackendMode.BLE_HOGP, "BLE service returned a null binding")
             }
         }
 
@@ -239,8 +268,7 @@ class MainActivity : ComponentActivity() {
             }
         lifecycleScope.launch {
             settingsViewModel.isLoaded.first { it }
-            val plan =
-                StartupPermissionPlanner.plan(settingsViewModel.settings.value, android.os.Build.VERSION.SDK_INT)
+            val plan = StartupPermissionPlanner.plan(settingsViewModel.settings.value, android.os.Build.VERSION.SDK_INT)
             startupPlan = plan
             val missing = PermissionGrantChecker.missing(this@MainActivity, plan.requiredPermissions)
             if (missing.isEmpty()) {
@@ -279,8 +307,8 @@ class MainActivity : ComponentActivity() {
     private fun observeBackendChanges() {
         lifecycleScope.launch {
             var prevUseBle: Boolean? = null
-            settingsViewModel.settings.collect { s ->
-                val useBle = s.useBleHogp
+            settingsViewModel.settings.collect { settings ->
+                val useBle = settings.useBleHogp
                 BtDevicePrefs(this@MainActivity).setUseBle(useBle)
                 if (prevUseBle != null && useBle != prevUseBle) switchBackend(useBle)
                 prevUseBle = useBle
@@ -289,13 +317,51 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        backendLifecycle.forceStoppedAfterOwnerTeardown()
+        detachActivityFromBackend()
         try {
             unregisterReceiver(permReceiver)
         } catch (e: IllegalArgumentException) {
             DebugLog.e("MainActivity", "Permission receiver was already unregistered: ${e.message}")
         }
         super.onDestroy()
+    }
+
+    private fun detachActivityFromBackend() {
+        StoreProvider.currentKeySender()?.let {
+            StoreProvider.dispatch(Action.MouseButtonUp)
+            StoreProvider.dispatch(Action.ReleaseLockedModifiers)
+        }
+        StoreProvider.setKeySender(null)
+        try {
+            classicService?.setEventListener(null)
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception,
+        ) {
+            DebugLog.e("MainActivity", "Detaching Classic listener failed: ${e.message}")
+        }
+        bleService?.eventListener = null
+        ServiceAliasHelper.setService(null)
+
+        if (serviceBound) {
+            try {
+                unbindService(connection)
+            } catch (e: IllegalArgumentException) {
+                DebugLog.e("MainActivity", "Classic Activity binding was already detached: ${e.message}")
+            }
+            serviceBound = false
+        }
+        if (bleHogpBound) {
+            try {
+                unbindService(bleHogpConnection)
+            } catch (e: IllegalArgumentException) {
+                DebugLog.e("MainActivity", "BLE Activity binding was already detached: ${e.message}")
+            }
+            bleHogpBound = false
+        }
+        classicService = null
+        bleService = null
+        // Intentionally do not stop the foreground service and do not clear connected-host state.
+        // A recreated Activity starts a fresh transaction, rebinds, and reconciles durable readiness.
     }
 
     private fun startPlannedBackend(plan: StartupPermissionPlan) {
@@ -326,7 +392,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleBleStartupDenied() {
-        DebugLog.e("MainActivity", "BLE startup permissions denied; falling back to Classic")
+        DebugLog.e("MainActivity", "BLE startup permissions denied; staying on Classic")
         StoreProvider.dispatch(
             Action.UpdateMessage("BLE HOGP needs Bluetooth connect/advertise permissions; staying on Classic."),
         )
@@ -348,6 +414,26 @@ class MainActivity : ComponentActivity() {
     private fun switchBackend(useBle: Boolean) {
         val target = BackendSelector.fromSettings(useBle)
         if (currentBackend() == target && runtimeCoordinator.state is BackendRuntimeState.Ready) return
+        val required =
+            when (target) {
+                BackendMode.CLASSIC_HID -> PermissionPolicy.requiredForClassicStartup(android.os.Build.VERSION.SDK_INT)
+                BackendMode.BLE_HOGP -> PermissionPolicy.requiredForBleStartup(android.os.Build.VERSION.SDK_INT)
+            }
+        val missing = PermissionGrantChecker.missing(this, required)
+        if (missing.isNotEmpty()) {
+            val source = currentBackend()
+            val message = "Cannot switch to $target because required Bluetooth permission is unavailable"
+            DebugLog.e("MainActivity", message)
+            StoreProvider.dispatch(Action.UpdateMessage(message))
+            // Keep the working source backend and restore the persisted toggle to match it.
+            if (source != null) {
+                lifecycleScope.launch {
+                    SettingsManager.setUseBleHogp(this@MainActivity, source == BackendMode.BLE_HOGP)
+                }
+            }
+            return
+        }
+
         DebugLog.log("MainActivity", "switchBackend → $target")
         StoreProvider.dispatch(Action.UpdateMessage("Switching HID backend…"))
         StoreProvider.dispatch(Action.UpdateSelectedBackend(target))
@@ -359,6 +445,7 @@ class MainActivity : ComponentActivity() {
             runtimeCoordinator,
             object : BackendLifecycleOperations {
                 override fun startService(mode: BackendMode): LifecycleOperationResult {
+                    if (mode == BackendMode.CLASSIC_HID) ClassicHidStartupRegistry.beginActivation()
                     val intent = serviceIntent(mode)
                     return try {
                         val component =
@@ -415,6 +502,13 @@ class MainActivity : ComponentActivity() {
                     if (StoreProvider.currentKeySender()?.backend == mode) StoreProvider.setKeySender(null)
                     when (mode) {
                         BackendMode.CLASSIC_HID -> {
+                            try {
+                                classicService?.setEventListener(null)
+                            } catch (
+                                @Suppress("TooGenericExceptionCaught") e: Exception,
+                            ) {
+                                DebugLog.e("MainActivity", "Clearing Classic listener failed: ${e.message}")
+                            }
                             ServiceAliasHelper.setService(null)
                             classicService = null
                         }
@@ -442,19 +536,23 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                override fun stopService(mode: BackendMode): LifecycleOperationResult {
-                    return try {
-                        stopService(serviceIntent(mode))
-                        LifecycleOperationResult.Success
+                override fun stopService(mode: BackendMode): LifecycleOperationResult =
+                    try {
+                        if (stopService(serviceIntent(mode))) {
+                            LifecycleOperationResult.Success
+                        } else {
+                            LifecycleOperationResult.Failure("Android reported that the $mode service was not running")
+                        }
                     } catch (
                         @Suppress("TooGenericExceptionCaught") e: Exception,
                     ) {
                         LifecycleOperationResult.Failure("Stopping $mode failed: ${e.message}")
                     }
-                }
 
                 override fun resetLocalState() {
                     StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
+                    StoreProvider.dispatch(Action.UpdateConnectedDeviceAddress(null))
+                    StoreProvider.dispatch(Action.UpdateConnectedDeviceLabel(null))
                     StoreProvider.dispatch(Action.UpdateIsScanning(false))
                     StoreProvider.dispatch(Action.UpdateLocks(false, false))
                 }
@@ -472,17 +570,60 @@ class MainActivity : ComponentActivity() {
             BackendMode.BLE_HOGP -> Intent(this, BleHogpService::class.java)
         }
 
+    private fun restoreClassicHostSnapshot(service: BluetoothService) {
+        val device =
+            try {
+                service.getConnectedDevice()
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                DebugLog.e("MainActivity", "Reading Classic host snapshot failed: ${e.message}")
+                null
+            }
+        StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
+        val label =
+            try {
+                service.getConnectedDeviceLabel()
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                DebugLog.e("MainActivity", "Reading Classic host label failed: ${e.message}")
+                null
+            }
+        StoreProvider.dispatch(Action.UpdateConnectedDeviceLabel(label))
+    }
+
+    private fun reconcileClassicReadiness() {
+        when (val state = ClassicHidStartupRegistry.state) {
+            ClassicHidStartupState.Ready -> backendLifecycle.markReady(BackendMode.CLASSIC_HID)
+            is ClassicHidStartupState.Failed -> backendLifecycle.failInitialization(BackendMode.CLASSIC_HID, state.message)
+            ClassicHidStartupState.WaitingForRegisterRequest,
+            ClassicHidStartupState.WaitingForRegistrationCallback,
+            -> Unit
+        }
+    }
+
+    private fun reconcileBleReadiness(state: BleHogpStartupState) {
+        when (state) {
+            BleHogpStartupState.Ready -> backendLifecycle.markReady(BackendMode.BLE_HOGP)
+            is BleHogpStartupState.Failed -> backendLifecycle.failInitialization(BackendMode.BLE_HOGP, state.message)
+            is BleHogpStartupState.Starting -> Unit
+        }
+    }
+
     private fun classicEventListener(): BluetoothService.ServiceEventListener =
         object : BluetoothService.ServiceEventListener {
             override fun onConnected(device: BluetoothDevice) {
-                DebugLog.log("MainActivity", "onConnected ${device.address}")
+                DebugLog.log("MainActivity", "Classic host connected")
                 StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
-                StoreProvider.dispatch(Action.UpdateMessage("Connected to ${device.address}"))
+                StoreProvider.dispatch(Action.UpdateMessage("Classic Bluetooth host connected"))
             }
 
             override fun onDisconnected(device: BluetoothDevice?) {
-                DebugLog.log("MainActivity", "onDisconnected")
+                DebugLog.log("MainActivity", "Classic host disconnected")
                 StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
+                StoreProvider.dispatch(Action.UpdateConnectedDeviceAddress(null))
+                StoreProvider.dispatch(Action.UpdateConnectedDeviceLabel(null))
                 StoreProvider.dispatch(Action.UpdateMessage("Disconnected"))
             }
 
@@ -492,7 +633,7 @@ class MainActivity : ComponentActivity() {
                     runtimeCoordinator.state is BackendRuntimeState.Starting &&
                     runtimeCoordinator.currentLiveBackend == BackendMode.CLASSIC_HID
                 ) {
-                    backendLifecycle.markReady(BackendMode.CLASSIC_HID)
+                    reconcileClassicReadiness()
                 }
                 StoreProvider.dispatch(Action.UpdateMessage(message))
             }
@@ -512,30 +653,32 @@ class MainActivity : ComponentActivity() {
     private fun bleEventListener(): BleHogpService.ServiceEventListener =
         object : BleHogpService.ServiceEventListener {
             override fun onConnected(device: BluetoothDevice) {
-                DebugLog.log("MainActivity", "BleHogp onConnected ${device.address}")
+                DebugLog.log("MainActivity", "BLE host connected")
                 StoreProvider.dispatch(Action.UpdateConnectedDevice(device))
-                StoreProvider.dispatch(Action.UpdateMessage("BLE connected to ${device.address}"))
+                StoreProvider.dispatch(Action.UpdateMessage("BLE HOGP host connected"))
             }
 
             override fun onDisconnected(device: BluetoothDevice?) {
-                DebugLog.log("MainActivity", "BleHogp onDisconnected")
+                DebugLog.log("MainActivity", "BLE host disconnected")
                 StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
+                StoreProvider.dispatch(Action.UpdateConnectedDeviceAddress(null))
+                StoreProvider.dispatch(Action.UpdateConnectedDeviceLabel(null))
                 StoreProvider.dispatch(Action.UpdateMessage("BLE disconnected"))
             }
 
             override fun onInfo(message: String) {
-                DebugLog.log("MainActivity", "BleHogp info: $message")
-                if (message.startsWith("BLE advertising started") &&
+                DebugLog.log("MainActivity", "BLE HOGP info: $message")
+                if (message == BleHogpService.READY_MESSAGE &&
                     runtimeCoordinator.state is BackendRuntimeState.Starting &&
                     runtimeCoordinator.currentLiveBackend == BackendMode.BLE_HOGP
                 ) {
-                    backendLifecycle.markReady(BackendMode.BLE_HOGP)
+                    reconcileBleReadiness(bleService?.currentStartupState() ?: BleHogpStartupRegistry.state)
                 }
                 StoreProvider.dispatch(Action.UpdateMessage(message))
             }
 
             override fun onError(message: String) {
-                DebugLog.e("MainActivity", "BleHogp error: $message")
+                DebugLog.e("MainActivity", "BLE HOGP error: $message")
                 handleBackendError(BackendMode.BLE_HOGP, message)
             }
 
@@ -568,12 +711,12 @@ class MainActivity : ComponentActivity() {
                             "Open App Settings to grant permissions or close the app.",
                     )
                     .setPositiveButton("Open Settings") { _, _ ->
-                        val i =
+                        val settingsIntent =
                             Intent(
                                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                                 Uri.fromParts("package", packageName, null),
                             )
-                        startActivity(i)
+                        startActivity(settingsIntent)
                         finish()
                     }
                     .setNegativeButton("Close") { _, _ -> finish() }
