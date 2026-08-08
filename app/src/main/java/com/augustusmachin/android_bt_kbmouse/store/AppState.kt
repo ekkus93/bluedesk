@@ -32,6 +32,7 @@ data class ConnectionState(
     val discoveredDevices: List<BluetoothDevice> = emptyList(),
     val pairedDevices: List<BluetoothDevice> = emptyList(),
     val connectedDevice: BluetoothDevice? = null,
+    val connectedDeviceLabel: String? = null,
     val message: String? = null,
     val defaultDeviceAddress: String? = null,
     val capsLock: Boolean = false,
@@ -43,6 +44,7 @@ data class BackendState(
     val selectedBackend: BackendMode = BackendMode.CLASSIC_HID,
     val runtime: BackendRuntimeState = BackendRuntimeState.Stopped,
     val senderAvailable: Boolean = false,
+    val permissionsValid: Boolean = false,
     val lastCommandResult: CommandResult? = null,
 )
 
@@ -55,10 +57,11 @@ data class AppState(
 
 /**
  * Product-level input availability. A remembered BluetoothDevice alone is insufficient: the
- * selected backend must have completed its startup transaction and a concrete sender must still
- * be installed.
+ * backend must be Ready, its sender must exist, its runtime permissions must still be valid, and
+ * the host connection required by the input reports must still exist.
  */
 fun AppState.isInputUsable(): Boolean =
     backend.runtime is BackendRuntimeState.Ready &&
         backend.senderAvailable &&
+        backend.permissionsValid &&
         connection.connectedDevice != null
