@@ -32,10 +32,18 @@ class UiComposeInstrumentedTest {
     @Test
     fun disconnectedMainScreenBlocksKeyboardNavigationWithVisibleReason() {
         composeRule.setContent { MainScreen() }
-
         composeRule.onNodeWithText("Keyboard").performClick()
-
         composeRule.onNodeWithText("Connect a device first").assertExists()
+    }
+
+    @Test
+    fun classicPairingKeepsClassicDeviceManagementControls() {
+        StoreProvider.dispatch(Action.UpdateSelectedBackend(BackendMode.CLASSIC_HID))
+
+        composeRule.setContent { BackendAwarePairingScreen() }
+
+        composeRule.onNodeWithText("Scan for devices").assertExists()
+        composeRule.onNodeWithText("Paired Devices").assertExists()
     }
 
     @Test
@@ -56,6 +64,24 @@ class UiComposeInstrumentedTest {
     }
 
     @Test
+    fun bleStartupFailureIsVisibleOnPairingScreen() {
+        StoreProvider.dispatch(Action.UpdateSelectedBackend(BackendMode.BLE_HOGP))
+        StoreProvider.dispatch(
+            Action.UpdateBackendRuntime(
+                BackendRuntimeState.Failed(
+                    BackendMode.BLE_HOGP,
+                    BackendFailure(BackendFailureCode.BACKEND_INIT_FAILED, "BLE test startup failure"),
+                ),
+            ),
+        )
+
+        composeRule.setContent { BackendAwarePairingScreen() }
+
+        composeRule.onNodeWithText("BLE test startup failure").assertExists()
+        composeRule.onNodeWithText("Remediation:", substring = true).assertExists()
+    }
+
+    @Test
     fun failedScanMessageIsVisibleOnRealMainScreen() {
         composeRule.setContent { MainScreen() }
         composeRule.runOnIdle {
@@ -67,6 +93,20 @@ class UiComposeInstrumentedTest {
         composeRule.runOnIdle {
             assertTrue(!StoreProvider.asStateFlow().value.connection.isScanning)
         }
+    }
+
+    @Test
+    fun bleMouseScreenExplainsUnsupportedScrolling() {
+        StoreProvider.dispatch(Action.UpdateSelectedBackend(BackendMode.BLE_HOGP))
+        StoreProvider.dispatch(
+            Action.UpdateBackendRuntime(
+                BackendRuntimeState.Ready(BackendMode.BLE_HOGP, BackendCapabilitySets.bleHogp),
+            ),
+        )
+
+        composeRule.setContent { MouseScreen() }
+
+        composeRule.onNodeWithText("Scrolling is unavailable", substring = true).assertExists()
     }
 
     @Test
