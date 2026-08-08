@@ -7,9 +7,9 @@ interface IBluetoothService {
 
     fun setEventListener(l: BluetoothService.ServiceEventListener)
 
-    fun startDiscovery()
+    fun startDiscovery(): Boolean
 
-    fun stopDiscovery()
+    fun stopDiscovery(): Boolean
 
     fun getDiscoveredDevices(): List<BluetoothDevice>
 
@@ -38,33 +38,33 @@ interface IBluetoothService {
     fun sendKeyPress(
         keyCode: Byte,
         modifiers: Int = 0,
-    )
+    ): HidDeliveryResult
 
     fun sendMouseMove(
         dx: Int,
         dy: Int,
-    )
+    ): HidDeliveryResult
 
-    fun sendLeftClick()
+    fun sendLeftClick(): HidDeliveryResult
 
-    fun sendRightClick()
+    fun sendRightClick(): HidDeliveryResult
 
-    fun sendMiddleClick()
+    fun sendMiddleClick(): HidDeliveryResult
 
-    fun sendScroll(delta: Int)
+    fun sendScroll(delta: Int): HidDeliveryResult
 
-    fun sendScrollH(delta: Int)
+    fun sendScrollH(delta: Int): HidDeliveryResult
 
-    fun mouseButtonDown(button: Int)
+    fun mouseButtonDown(button: Int): HidDeliveryResult
 
-    fun mouseButtonUp()
+    fun mouseButtonUp(): HidDeliveryResult
 
     fun pressKey(
         keyCode: Byte,
         modifiers: Int = 0,
-    )
+    ): HidDeliveryResult
 
-    fun releaseKey(keyCode: Byte)
+    fun releaseKey(keyCode: Byte): HidDeliveryResult
 
-    fun setModifiers(mods: Int)
+    fun setModifiers(mods: Int): HidDeliveryResult
 }
