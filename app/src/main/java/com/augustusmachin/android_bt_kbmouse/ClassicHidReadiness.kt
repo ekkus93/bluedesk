@@ -19,6 +19,11 @@ object ClassicHidStartupRegistry {
     internal fun publish(next: ClassicHidStartupState) {
         state = next
     }
+
+    /** Begin a new Classic service activation without inheriting readiness from a prior instance. */
+    fun beginActivation() {
+        publish(ClassicHidStartupState.WaitingForRegisterRequest)
+    }
 }
 
 /** Pure Classic HID registration state machine. */
