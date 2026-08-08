@@ -45,7 +45,7 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
         middleware<AppState> { store: Store<AppState>, next, action ->
             if (action in MODIFIER_TOGGLE_ACTIONS) {
                 val result = next(action)
-                executeCurrent(store, KeyCommand.SetModifiers8modifierMask(store.state.keyboard)))
+                executeCurrent(store, KeyCommand.SetModifiers(modifierMask(store.state.keyboard)))
                 return@middleware result
             }
 
@@ -55,7 +55,7 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
                     val result = next(action)
                     executeCurrent(store, KeyCommand.SetModifiers(modifierMask(store.state.keyboard)))
                     return@middleware result
-              }
+                }
                 is Action.KeyDown -> executeCurrent(store, KeyCommand.KeyDown(action.code, action.mods))
                 is Action.KeyUp -> executeCurrent(store, KeyCommand.KeyUp(action.code))
                 is Action.MoveMouse -> executeCurrent(store, KeyCommand.MoveMouse(action.dx, action.dy))
@@ -153,7 +153,7 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
                     report(store, current.execute(KeyCommand.KeyDown(code, mods)))
                     delay(KEY_PRESS_HOLD_MS)
                 } finally {
-                    report(store, current.execute(KeyCommand.KeyUp(code))
+                    report(store, current.execute(KeyCommand.KeyUp(code)))
                 }
             }
         }
@@ -175,7 +175,9 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
     ) {
         when (result) {
             CommandResult.Success -> {
-                if (store.state.backend.lastCommandResult != null) store.dispatch(Action.ClearCommandResult)
+                if (store.state.backend.lastCommandResult != null) {
+                    store.dispatch(Action.ClearCommandResult)
+                }
             }
             is CommandResult.Unsupported -> {
                 store.dispatch(Action.ReportCommandResult(result))
