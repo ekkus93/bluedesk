@@ -59,7 +59,7 @@ class DiscoveryControllerTest {
 
     @Test
     fun `legacy api permission plan is used instead of Android 12 bluetooth permissions`() {
-        val required = mutableListOf<Set<String>>()
+        val required = mutableListOf<List<String>>()
         Mockito.`when`(adapter.isDiscovering).thenReturn(false)
         Mockito.`when`(adapter.startDiscovery()).thenReturn(true)
         val controller =
