@@ -211,13 +211,16 @@ replace(
     gatt_profile,
     "internal object BleHogpGattProfileBuilder {\n",
     """internal object BleHogpGattProfileBuilder {
+    private const val HID_VERSION_LSB: Byte = 0x11
+    private const val HID_VERSION_MSB: Byte = 0x01
+    private const val HID_COUNTRY_CODE: Byte = 0x00
     private const val HID_INFORMATION_FLAGS: Byte = 0x02
 """,
 )
 replace(
     gatt_profile,
     "byteArrayOf(0x11, 0x01, 0x00, 0x02)",
-    "byteArrayOf(0x11, 0x01, 0x00, HID_INFORMATION_FLAGS)",
+    "byteArrayOf(HID_VERSION_LSB, HID_VERSION_MSB, HID_COUNTRY_CODE, HID_INFORMATION_FLAGS)",
 )
 
 for sender in [
