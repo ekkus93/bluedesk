@@ -139,7 +139,10 @@ class BackendLifecycleControllerTest {
         assertEquals(BackendFailureCode.SERVICE_LOST, fixture.failedState().failure.code)
     }
 
-    private fun ready(fixture: Fixture, mode: BackendMode) {
+    private fun ready(
+        fixture: Fixture,
+        mode: BackendMode,
+    ) {
         fixture.controller.start(mode)
         fixture.controller.beginListenerInstallation(mode)
         fixture.controller.listenerInstalled(mode)
@@ -197,7 +200,11 @@ class BackendLifecycleControllerTest {
 
         override fun unbindService(mode: BackendMode): LifecycleOperationResult {
             events += "unbind:$mode"
-            return if (failUnbind) LifecycleOperationResult.Failure("unbind failed") else LifecycleOperationResult.Success
+            return if (failUnbind) {
+                LifecycleOperationResult.Failure("unbind failed")
+            } else {
+                LifecycleOperationResult.Success
+            }
         }
 
         override fun stopService(mode: BackendMode): LifecycleOperationResult {
