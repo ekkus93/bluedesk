@@ -132,7 +132,12 @@ class BluetoothService : Service(), IBluetoothService {
             BluetoothAdapter.STATE_ON -> {
                 btEnabled = true
                 DebugLog.log("BluetoothService", "Bluetooth ON - reacquiring HID proxy")
-                val requested = bluetoothAdapter?.getProfileProxy(this, profileListener, BluetoothProfile.HID_DEVICE) == true
+                val requested =
+                    bluetoothAdapter?.getProfileProxy(
+                        this,
+                        profileListener,
+                        BluetoothProfile.HID_DEVICE,
+                    ) == true
                 if (!requested) {
                     failClassicStartup("Android rejected the Classic HID profile-proxy request")
                     return
@@ -279,6 +284,8 @@ class BluetoothService : Service(), IBluetoothService {
         if (!manualDisconnect) scheduleReconnect()
     }
 
+    // Fail-fast startup intentionally exits as soon as a required Android primitive is unavailable.
+    @Suppress("ReturnCount")
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
         super.onCreate()
@@ -466,7 +473,8 @@ class BluetoothService : Service(), IBluetoothService {
             } catch (
                 @Suppress("TooGenericExceptionCaught") e: Exception,
             ) {
-                val message = "Remembered Bluetooth device could not be resolved: ${e.message ?: e.javaClass.simpleName}"
+                val detail = e.message ?: e.javaClass.simpleName
+                val message = "Remembered Bluetooth device could not be resolved: $detail"
                 DebugLog.e("BluetoothService", message)
                 eventListener?.onError(message)
                 null
@@ -670,7 +678,8 @@ class BluetoothService : Service(), IBluetoothService {
 
     private fun linuxHostInitiatedGuidance(): String =
         "Linux/BlueZ hosts may need to initiate HID from the host. Use the documented D-Bus " +
-            "ConnectProfile(HID, $HID_PROFILE_UUID) procedure first; use bluetoothctl connect only as a diagnostic fallback."
+            "ConnectProfile(HID, $HID_PROFILE_UUID) procedure first; " +
+            "use bluetoothctl connect only as a diagnostic fallback."
 
     private fun failClassicStartup(message: String) {
         DebugLog.e("BluetoothService", message)
@@ -750,7 +759,8 @@ class BluetoothService : Service(), IBluetoothService {
                 @Suppress("TooGenericExceptionCaught") e: Exception,
             ) {
                 unpairFailed = true
-                val message = "Device was forgotten locally, but system unpair failed: ${e.message ?: e.javaClass.simpleName}"
+                val detail = e.message ?: e.javaClass.simpleName
+                val message = "Device was forgotten locally, but system unpair failed: $detail"
                 DebugLog.e("BluetoothService", message)
                 eventListener?.onError(message)
             }

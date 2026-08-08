@@ -40,6 +40,8 @@ class BackendLifecycleController(
     private val publish: (BackendRuntimeState) -> Unit,
     private val surfaceFailure: (String) -> Unit,
 ) {
+    // Transactional startup exits immediately on any failed stage so partial state is rolled back.
+    @Suppress("ReturnCount")
     @Synchronized
     fun start(mode: BackendMode): Boolean {
         val current = coordinator.state
@@ -102,6 +104,8 @@ class BackendLifecycleController(
         return stopInternal(mode)
     }
 
+    // Switching is intentionally linear: preserve the active backend unless stop succeeds.
+    @Suppress("ReturnCount")
     @Synchronized
     fun switchTo(target: BackendMode): Boolean {
         val state = coordinator.state

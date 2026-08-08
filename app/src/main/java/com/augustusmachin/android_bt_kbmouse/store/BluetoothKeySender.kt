@@ -8,6 +8,10 @@ import com.augustusmachin.android_bt_kbmouse.HidDeliveryFailureCode
 import com.augustusmachin.android_bt_kbmouse.HidDeliveryResult
 import com.augustusmachin.android_bt_kbmouse.IBluetoothService
 
+private const val MOUSE_BUTTON_LEFT = 0x01
+private const val MOUSE_BUTTON_RIGHT = 0x02
+private const val MOUSE_BUTTON_MIDDLE = 0x04
+
 /** Explicit Classic HID command bridge. */
 class BluetoothKeySender(private val svc: IBluetoothService) : KeySender {
     override val backend: BackendMode = BackendMode.CLASSIC_HID
@@ -73,11 +77,11 @@ class BluetoothKeySender(private val svc: IBluetoothService) : KeySender {
         dy: Int,
     ): CommandResult = execute(KeyCommand.MoveMouse(dx, dy))
 
-    fun leftClick(): CommandResult = click(0x01)
+    fun leftClick(): CommandResult = click(MOUSE_BUTTON_LEFT)
 
-    fun rightClick(): CommandResult = click(0x02)
+    fun rightClick(): CommandResult = click(MOUSE_BUTTON_RIGHT)
 
-    fun middleClick(): CommandResult = click(0x04)
+    fun middleClick(): CommandResult = click(MOUSE_BUTTON_MIDDLE)
 
     fun scrollVertical(delta: Int): CommandResult = execute(KeyCommand.ScrollVertical(delta))
 

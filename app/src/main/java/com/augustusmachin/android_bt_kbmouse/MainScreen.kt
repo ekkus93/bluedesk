@@ -59,6 +59,8 @@ import kotlinx.coroutines.launch
 
 private const val SDK_INT_TIRAMISU = 33
 
+// Root Compose orchestration keeps navigation, snackbar, permission, and live backend state in one owner.
+@Suppress("LongMethod")
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
@@ -134,6 +136,8 @@ fun MainScreen() {
     }
 }
 
+// The top bar receives independent navigation and backend-status inputs from the root screen.
+@Suppress("LongParameterList")
 @Composable
 private fun MainTopBar(
     navController: androidx.navigation.NavHostController,
@@ -207,6 +211,8 @@ private fun MainNavigationBar(
     }
 }
 
+// StatusTopBar is a thin Compose adapter over explicit runtime and navigation state.
+@Suppress("LongParameterList")
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun StatusTopBar(

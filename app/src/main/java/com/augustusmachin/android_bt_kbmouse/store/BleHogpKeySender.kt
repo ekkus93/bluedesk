@@ -11,6 +11,10 @@ import com.augustusmachin.android_bt_kbmouse.HogpNotifier
 
 private const val MAX_ROLLOVER_KEYS = 6
 
+private const val MOUSE_BUTTON_LEFT = 0x01
+private const val MOUSE_BUTTON_RIGHT = 0x02
+private const val MOUSE_BUTTON_MIDDLE = 0x04
+
 /** Explicit BLE HOGP command bridge with no Classic-operation no-ops. */
 class BleHogpKeySender(private val notifier: HogpNotifier) : KeySender {
     override val backend: BackendMode = BackendMode.BLE_HOGP
@@ -89,11 +93,11 @@ class BleHogpKeySender(private val notifier: HogpNotifier) : KeySender {
         dy: Int,
     ): CommandResult = execute(KeyCommand.MoveMouse(dx, dy))
 
-    fun leftClick(): CommandResult = click(0x01)
+    fun leftClick(): CommandResult = click(MOUSE_BUTTON_LEFT)
 
-    fun rightClick(): CommandResult = click(0x02)
+    fun rightClick(): CommandResult = click(MOUSE_BUTTON_RIGHT)
 
-    fun middleClick(): CommandResult = click(0x04)
+    fun middleClick(): CommandResult = click(MOUSE_BUTTON_MIDDLE)
 
     fun mouseButtonDown(button: Int): CommandResult = execute(KeyCommand.MouseButtonDown(button))
 

@@ -32,6 +32,8 @@ class DiscoveryController(
 
     private val discoveredDevices = CopyOnWriteArrayList<BluetoothDevice>()
 
+    // Discovery rejects each unavailable prerequisite explicitly instead of publishing fake scan state.
+    @Suppress("ReturnCount")
     fun startDiscovery(): Boolean {
         val currentAdapter = adapter()
         if (currentAdapter == null) return failStart("Bluetooth adapter is unavailable")
@@ -68,6 +70,8 @@ class DiscoveryController(
         }
     }
 
+    // Stop reports adapter/permission failures explicitly and always reconciles scanning state.
+    @Suppress("ReturnCount")
     fun stopDiscovery(): Boolean {
         DebugLog.log(TAG, "stopDiscovery")
         val currentAdapter = adapter()

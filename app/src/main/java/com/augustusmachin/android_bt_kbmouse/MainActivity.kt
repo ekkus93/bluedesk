@@ -98,6 +98,8 @@ class MainActivity : ComponentActivity() {
 
     private val connection =
         object : ServiceConnection {
+            // Binding is a fail-closed startup transaction; each rejected stage stops immediately.
+            @Suppress("LongMethod", "ReturnCount")
             override fun onServiceConnected(
                 name: ComponentName,
                 service: IBinder,
@@ -188,6 +190,8 @@ class MainActivity : ComponentActivity() {
 
     private val bleHogpConnection =
         object : ServiceConnection {
+            // Binding is a fail-closed startup transaction; each rejected stage stops immediately.
+            @Suppress("LongMethod", "ReturnCount")
             override fun onServiceConnected(
                 name: ComponentName,
                 service: IBinder,

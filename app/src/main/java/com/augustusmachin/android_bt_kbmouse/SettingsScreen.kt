@@ -189,6 +189,8 @@ fun SettingsScreen(
     }
 }
 
+// This Compose section keeps tightly related pointer controls and transient slider state together.
+@Suppress("LongMethod")
 @Composable
 private fun PointerSettingsSection(
     settings: Settings,
@@ -259,6 +261,8 @@ private fun PointerSettingsSection(
     }
 }
 
+// This Compose section is declarative UI wiring; splitting it would separate coupled settings controls.
+@Suppress("LongMethod")
 @Composable
 private fun InputBehaviorSection(
     settings: Settings,
@@ -439,6 +443,8 @@ private fun BleHogpToggle(
     }
 }
 
+// Compose state, Android services, and the update callback are distinct UI dependencies here.
+@Suppress("LongParameterList")
 @Composable
 private fun ImeOverridesSection(
     imeOverrides: Map<String, Boolean>,

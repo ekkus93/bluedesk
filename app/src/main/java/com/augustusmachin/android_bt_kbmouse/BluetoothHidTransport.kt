@@ -17,6 +17,8 @@ class BluetoothHidTransport(
         PermissionGrantChecker.hasAll(context, required)
     },
 ) : HidReportTransport {
+    // Report delivery deliberately fails at the first missing prerequisite with a typed result.
+    @Suppress("ReturnCount")
     @SuppressLint("MissingPermission", "NewApi")
     override fun send(
         reportId: Int,

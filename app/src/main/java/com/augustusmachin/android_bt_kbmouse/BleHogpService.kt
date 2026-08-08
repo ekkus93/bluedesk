@@ -81,6 +81,8 @@ class BleHogpService : Service(), HogpNotifier {
 
     override fun onBind(intent: Intent?): IBinder = LocalBinder()
 
+    // Each startup prerequisite fails closed immediately; early exits are the safety contract.
+    @Suppress("ReturnCount")
     @SuppressLint("MissingPermission")
     override fun onCreate() {
         super.onCreate()
@@ -155,6 +157,8 @@ class BleHogpService : Service(), HogpNotifier {
         registerNextGattService()
     }
 
+    // Registration is a fail-fast state-machine step; each invalid prerequisite terminates startup.
+    @Suppress("ReturnCount")
     @SuppressLint("MissingPermission")
     private fun registerNextGattService() {
         val serviceId = readiness.nextServiceToRegister()
@@ -380,6 +384,8 @@ class BleHogpService : Service(), HogpNotifier {
     override fun notifyMouse(report: ByteArray): HidDeliveryResult =
         notifyReport(report, listOfNotNull(mouseInputChar, mouseInputReportChar), "mouse")
 
+    // Explicit guard exits keep every delivery failure typed and prevent fall-through success.
+    @Suppress("LongMethod", "NestedBlockDepth", "ReturnCount")
     @SuppressLint("MissingPermission")
     private fun notifyReport(
         report: ByteArray,

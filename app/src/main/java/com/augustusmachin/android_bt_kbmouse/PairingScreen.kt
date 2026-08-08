@@ -110,7 +110,10 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
                 val denied = missingScan.toTypedArray()
                 ui.pendingPermissions.value = denied
                 val permanentlyDenied =
-                    activity != null && denied.any { !ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }
+                    activity != null &&
+                        denied.any {
+                            !ActivityCompat.shouldShowRequestPermissionRationale(activity, it)
+                        }
                 if (permanentlyDenied) ui.showSettings.value = true else ui.showRationale.value = true
             }
         }
@@ -148,6 +151,8 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
 
 private typealias PermissionLauncher = androidx.activity.result.ActivityResultLauncher<Array<String>>
 
+// One permission-safe mapper intentionally handles both discovered and paired device variants.
+@Suppress("CyclomaticComplexMethod")
 private fun resolveDeviceRows(
     context: android.content.Context,
     connection: com.augustusmachin.android_bt_kbmouse.store.ConnectionState,
