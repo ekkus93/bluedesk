@@ -47,22 +47,17 @@ import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 private const val KEY_FONT_SCALE = 4200
 private const val KEY_FONT_MIN_SP = 10f
 private const val KEY_FONT_MAX_SP = 16f
-
-// Reset the invisible IME buffer once it exceeds this length (avoids unbounded growth
-// while not resetting every keystroke, which would race rapid input).
+private const val KEY_CELL_HEIGHT_DP = 48
 private const val IME_BUFFER_LIMIT = 64
 val LocalKeyFontSize = staticCompositionLocalOf { 16.sp }
 
-// Shared styling for the Extended/Function/Navigation key grids: active/inactive
-// modifier-button colors plus the responsive key font size. Bundled to keep the
-// per-column composable parameter lists small.
 internal data class KeyGridStyle(
     val activeColors: androidx.compose.material3.ButtonColors,
     val inactiveColors: androidx.compose.material3.ButtonColors,
     val keyFontSize: androidx.compose.ui.unit.TextUnit,
 )
 
-@androidx.compose.runtime.Composable
+@Composable
 internal fun rememberKeyGridStyle(): KeyGridStyle =
     KeyGridStyle(
         activeColors =
@@ -78,9 +73,7 @@ internal fun rememberKeyGridStyle(): KeyGridStyle =
         keyFontSize = LocalKeyFontSize.current,
     )
 
-// Shared modifier-toggle button used by all three key grids. Bolded label, active
-// when [active], dispatches the toggle [action] and shows a preview message offline.
-@androidx.compose.runtime.Composable
+@Composable
 internal fun KeyModifierButton(
     label: String,
     active: Boolean,
@@ -96,7 +89,7 @@ internal fun KeyModifierButton(
                 StoreProvider.dispatch(Action.UpdateMessage("Preview: $label toggled"))
             }
         },
-        modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(KEY_CELL_HEIGHT_DP.dp),
         colors = if (active) style.activeColors else style.inactiveColors,
     ) {
         ResponsiveText(
@@ -108,9 +101,7 @@ internal fun KeyModifierButton(
     }
 }
 
-// Shared key button used by all three key grids: enabled only when the label maps
-// to a HID code, dispatches via [onClick].
-@androidx.compose.runtime.Composable
+@Composable
 internal fun KeyCellButton(
     label: String,
     style: KeyGridStyle,
@@ -119,7 +110,7 @@ internal fun KeyCellButton(
     androidx.compose.material3.Button(
         onClick = onClick,
         enabled = labelToHid(label) != null,
-        modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(KEY_CELL_HEIGHT_DP.dp),
     ) {
         ResponsiveText(text = label, minSize = style.keyFontSize, maxSize = style.keyFontSize)
     }
@@ -127,8 +118,6 @@ internal fun KeyCellButton(
 
 @Composable
 fun KeyboardScreen(contentPadding: PaddingValues = PaddingValues()) {
-    // Replace the tiny demo with the full Extended Keys UI by default.
-    // The ExtendedKeysScreen already handles modifier toggles and connected-state gating.
     val tabs = listOf("Extended", "Function", "Navigation")
     var selectedTab by remember { mutableStateOf(0) }
     val appState by StoreProvider.asStateFlow().collectAsState()
@@ -163,13 +152,11 @@ fun KeyboardScreen(contentPadding: PaddingValues = PaddingValues()) {
                 focusRequester = focusRequester,
                 previewTransformation = previewTransformation,
             )
-            // Auto-focus the hidden field and show IME whenever the Keyboard screen is visible
             LaunchedEffect(Unit) {
                 focusRequester.requestFocus()
                 keyboardController?.show()
             }
 
-            // Content area: render the selected tab's screen
             when (selectedTab) {
                 0 -> ExtendedKeysScreen()
                 1 -> FunctionKeysScreen()
@@ -181,8 +168,6 @@ fun KeyboardScreen(contentPadding: PaddingValues = PaddingValues()) {
 
 private typealias PreviewKeyEntry = com.augustusmachin.android_bt_kbmouse.store.PreviewKeyEntry
 
-// Builds the visual preview suffix appended to the hidden IME field, inserting
-// separator spaces only between multi-character/decorated tokens.
 private fun buildPreviewSuffix(previewKeys: List<PreviewKeyEntry>): String {
     if (previewKeys.isEmpty()) return ""
     return buildString {
@@ -194,8 +179,6 @@ private fun buildPreviewSuffix(previewKeys: List<PreviewKeyEntry>): String {
     }
 }
 
-// True when a space must separate [previous] from [entry] (one is multi-char or
-// decorated, and neither is a literal space).
 private fun needsPreviewSeparator(
     entry: PreviewKeyEntry,
     previous: PreviewKeyEntry?,
@@ -215,7 +198,6 @@ private fun KeyboardTabRow(
     onSelectTab: (Int) -> Unit,
     onShowKeyboard: () -> Unit,
 ) {
-    // TabRow with keyboard icon (tap to re-show IME if dismissed)
     Row(verticalAlignment = Alignment.CenterVertically) {
         TabRow(selectedTabIndex = selectedTab, modifier = Modifier.weight(1f)) {
             tabs.forEachIndexed { idx, title ->
@@ -233,42 +215,59 @@ private fun KeyboardTabRow(
 }
 
 /**
- * Forward IME buffer changes as HID keystrokes: newly appended characters become key
- * presses; a shrink (soft-keyboard backspace deletes from the buffer rather than sending
- * KEYCODE_DEL) becomes one DEL per removed character. Accumulating + diffing (instead of
- * resetting the field to "" each keystroke) is what lets repeated keys through.
+ * Forward a deterministic bounded IME edit. Returns false when the local controlled field must
+ * reset because the edit was too large/desynchronized to replay safely.
  */
 private fun forwardImeInput(
     previous: String,
     current: String,
     connected: Boolean,
+): Boolean {
+    return when (val plan = planImeEdit(previous, current)) {
+        ImeEditPlan.NoChange -> true
+        is ImeEditPlan.ResetRequired -> {
+            DebugLog.e("KeyboardScreen", plan.reason)
+            StoreProvider.dispatch(Action.UpdateMessage("System keyboard input changed too far; input buffer was reset."))
+            StoreProvider.dispatch(Action.ReleaseLockedModifiers)
+            false
+        }
+        is ImeEditPlan.Apply -> {
+            repeat(plan.deleteCount) { sendImeDelete(connected) }
+            plan.appendText.forEach { char -> sendImeCharacter(char, connected) }
+            true
+        }
+    }
+}
+
+private fun sendImeDelete(connected: Boolean) {
+    StoreProvider.dispatch(Action.TrackPreviewKey("DEL"))
+    if (connected) {
+        StoreProvider.dispatch(Action.SendKey(0x2A.toByte(), 0))
+    } else {
+        StoreProvider.dispatch(Action.ReleaseLockedModifiers)
+    }
+}
+
+private fun sendImeCharacter(
+    char: Char,
+    connected: Boolean,
 ) {
-    val appended = imeAppendedText(previous, current)
-    if (appended != null) {
-        appended.forEach { char ->
-            val (label, decorate, mapping) =
-                when (char) {
-                    ' ' -> Triple(" ", false, charToHid(char))
-                    '\n' -> Triple("ENTER", false, charToHid(char))
-                    '\t' -> Triple("TAB", false, charToHid(char))
-                    else -> Triple(char.toString(), false, charToHid(char))
-                }
-            StoreProvider.dispatch(Action.TrackPreviewKey(label, decorate = decorate))
-            if (connected && mapping != null) {
-                StoreProvider.dispatch(Action.SendKey(mapping.first, mapping.second))
-            } else {
-                StoreProvider.dispatch(Action.ReleaseLockedModifiers)
-            }
+    val label =
+        when (char) {
+            ' ' -> " "
+            '\n', '\r' -> "ENTER"
+            '\t' -> "TAB"
+            else -> char.toString()
         }
-    } else if (current.length < previous.length) {
-        repeat(previous.length - current.length) {
-            StoreProvider.dispatch(Action.TrackPreviewKey("DEL"))
-            if (connected) {
-                StoreProvider.dispatch(Action.SendKey(0x2A.toByte(), 0))
-            } else {
-                StoreProvider.dispatch(Action.ReleaseLockedModifiers)
-            }
-        }
+    val mapping = charToHid(char)
+    StoreProvider.dispatch(Action.TrackPreviewKey(label))
+    if (connected && mapping != null) {
+        StoreProvider.dispatch(Action.SendKey(mapping.first, mapping.second))
+    } else if (mapping == null) {
+        StoreProvider.dispatch(Action.UpdateMessage("System keyboard character is not supported by the HID mapping."))
+        StoreProvider.dispatch(Action.ReleaseLockedModifiers)
+    } else {
+        StoreProvider.dispatch(Action.ReleaseLockedModifiers)
     }
 }
 
@@ -280,8 +279,6 @@ private fun HiddenImeField(
     focusRequester: FocusRequester,
     previewTransformation: VisualTransformation,
 ) {
-    // Invisible 1dp-tall text field — always present so the IME has an attach point.
-    // graphicsLayer alpha=0 hides it visually while keeping it focusable.
     Box(
         Modifier
             .fillMaxWidth()
@@ -291,10 +288,9 @@ private fun HiddenImeField(
         TextField(
             value = previewText,
             onValueChange = { newValue ->
-                forwardImeInput(previewText, newValue, connected)
-                // Bound the invisible buffer without resetting every keystroke (which races
-                // rapid input); reset only once it grows large.
-                onPreviewTextChange(if (newValue.length > IME_BUFFER_LIMIT) "" else newValue)
+                val keepBuffer = forwardImeInput(previewText, newValue, connected)
+                val bounded = keepBuffer && newValue.length <= IME_BUFFER_LIMIT
+                onPreviewTextChange(if (bounded) newValue else "")
             },
             keyboardOptions =
                 KeyboardOptions(
@@ -310,12 +306,7 @@ private fun HiddenImeField(
                         if (native.keyCode == android.view.KeyEvent.KEYCODE_DEL &&
                             native.action == android.view.KeyEvent.ACTION_DOWN
                         ) {
-                            StoreProvider.dispatch(Action.TrackPreviewKey("DEL"))
-                            if (connected) {
-                                StoreProvider.dispatch(Action.SendKey(0x2A.toByte(), 0))
-                            } else {
-                                StoreProvider.dispatch(Action.ReleaseLockedModifiers)
-                            }
+                            sendImeDelete(connected)
                             true
                         } else {
                             false
