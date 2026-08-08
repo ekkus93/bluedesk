@@ -1,63 +1,84 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothHidDevice
 import android.content.Context
-import androidx.core.content.ContextCompat
+import android.os.Build
 
-/**
- * Production [HidReportTransport]: resolves the current device + HID proxy, checks
- * BLUETOOTH_CONNECT, and sends the report via the platform. Holds the
- * keyboard-vs-mouse error handling that previously lived inside [HidReportSender]
- * (extracted so the sender's report-building state machine is host-testable).
- */
+/** Production Classic HID transport. Every attempted report has an explicit delivery result. */
 class BluetoothHidTransport(
     private val context: Context,
     private val currentDevice: () -> BluetoothDevice?,
     private val currentHid: () -> BluetoothHidDevice?,
     private val onError: (String) -> Unit,
+    private val sdkInt: Int = Build.VERSION.SDK_INT,
+    private val hasPermissions: (Set<String>) -> Boolean = { required ->
+        PermissionGrantChecker.hasAll(context, required)
+    },
 ) : HidReportTransport {
+    @SuppressLint("MissingPermission", "NewApi")
     override fun send(
         reportId: Int,
         report: ByteArray,
-    ) {
-        val device = currentDevice() ?: return
-        val hid = currentHid() ?: return
-        val keyboard = reportId == HidDescriptorVariants.REPORT_ID_KEYBOARD.toInt()
-        val kind = if (keyboard) "keyboard" else "mouse"
-        val hasBtConnect =
-            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-        if (!hasBtConnect) {
-            DebugLog.e(TAG, "BLUETOOTH_CONNECT not granted; cannot send $kind report")
-            return
+    ): HidDeliveryResult {
+        val kind = if (reportId == HidDescriptorVariants.REPORT_ID_KEYBOARD.toInt()) "keyboard" else "mouse"
+        val device =
+            currentDevice()
+                ?: return failure(
+                    HidDeliveryFailureCode.DEVICE_MISSING,
+                    "Cannot send $kind report: no connected HID device",
+                )
+        val hid =
+            currentHid()
+                ?: return failure(
+                    HidDeliveryFailureCode.HID_PROXY_MISSING,
+                    "Cannot send $kind report: HID profile is unavailable",
+                )
+        if (sdkInt < Build.VERSION_CODES.P) {
+            return failure(
+                HidDeliveryFailureCode.UNSUPPORTED_API,
+                "Cannot send $kind report: Classic HID requires Android 9 (API 28) or newer",
+            )
         }
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.P) {
-            DebugLog.e(TAG, "HID sendReport not supported on API < 28; skipping $kind report")
-            return
+        if (!hasPermissions(PermissionPolicy.requiredForClassicStartup(sdkInt))) {
+            return failure(
+                HidDeliveryFailureCode.PERMISSION_DENIED,
+                "Cannot send $kind report: Bluetooth connect permission is not granted",
+            )
         }
-        try {
-            hid.sendReport(device, reportId, report)
-        } catch (se: SecurityException) {
-            if (keyboard) {
-                DebugLog.e(TAG, "sendReport SecurityException: ${se.message}")
-                onError("HID report failed due to missing permission")
+
+        return try {
+            if (hid.sendReport(device, reportId, report)) {
+                HidDeliveryResult.Sent
             } else {
-                DebugLog.e(TAG, "mouse sendReport SecurityException: ${se.message}")
-                onError("Mouse click failed due to missing permission")
+                failure(
+                    HidDeliveryFailureCode.REPORT_REJECTED,
+                    "$kind HID report was rejected by the platform",
+                )
             }
+        } catch (se: SecurityException) {
+            failure(
+                HidDeliveryFailureCode.PERMISSION_DENIED,
+                "$kind HID report failed because Bluetooth permission was revoked: ${se.message}",
+            )
         } catch (
             @Suppress("TooGenericExceptionCaught") e: Exception,
         ) {
-            if (keyboard) {
-                DebugLog.e(TAG, "kbd report error: ${e.message}")
-                onError("HID report failed: ${e.message}")
-            } else {
-                // defensive: mouse path logs only (no onError), matching prior behavior
-                DebugLog.e(TAG, "mouse report error: ${e.message}")
-            }
+            failure(
+                HidDeliveryFailureCode.TRANSPORT_EXCEPTION,
+                "$kind HID report failed: ${e.message ?: e.javaClass.simpleName}",
+            )
         }
+    }
+
+    private fun failure(
+        code: HidDeliveryFailureCode,
+        message: String,
+    ): HidDeliveryResult.Failure {
+        DebugLog.e(TAG, message)
+        onError(message)
+        return HidDeliveryResult.Failure(code, message)
     }
 
     private companion object {
