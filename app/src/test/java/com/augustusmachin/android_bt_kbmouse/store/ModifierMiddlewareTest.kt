@@ -3,8 +3,12 @@ package com.augustusmachin.android_bt_kbmouse.store
 import com.augustusmachin.android_bt_kbmouse.BackendCapabilitySets
 import com.augustusmachin.android_bt_kbmouse.BackendMode
 import com.augustusmachin.android_bt_kbmouse.BackendRuntimeState
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -48,6 +52,78 @@ class ModifierMiddlewareTest {
             advanceUntilIdle()
 
             assertEquals(listOf("down:4", "up:4", "down:4", "up:4"), sender.events)
+        }
+
+    @Test
+    fun rapidMouseClicksRemainDiscreteDownUpPairs() =
+        runTest {
+            val middleware = KeySenderMiddleware(this)
+            val store = createStore(appReducer, AppState(), applyMiddleware(middleware.create()))
+            val sender = RecordingSender()
+            middleware.installSender(sender)
+
+            store.dispatch(Action.LeftClick)
+            store.dispatch(Action.LeftClick)
+            store.dispatch(Action.RightClick)
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf(
+                    "mouse-down:1",
+                    "mouse-up",
+                    "mouse-down:1",
+                    "mouse-up",
+                    "mouse-down:2",
+                    "mouse-up",
+                ),
+                sender.events,
+            )
+        }
+
+    @Test
+    fun lockTogglesPreserveSerializedPressReleaseOrder() =
+        runTest {
+            val middleware = KeySenderMiddleware(this)
+            val store = createStore(appReducer, AppState(), applyMiddleware(middleware.create()))
+            val sender = RecordingSender()
+            middleware.installSender(sender)
+
+            store.dispatch(Action.ToggleCapsLock)
+            store.dispatch(Action.ToggleScrollLock)
+            store.dispatch(Action.ToggleCapsLock)
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf(
+                    "down:57",
+                    "up:57",
+                    "down:71",
+                    "up:71",
+                    "down:57",
+                    "up:57",
+                ),
+                sender.events,
+            )
+        }
+
+    @Test
+    fun cancellingCommandScopeStillReleasesHeldKey() =
+        runTest {
+            val commandJob = Job()
+            val commandScope = CoroutineScope(StandardTestDispatcher(testScheduler) + commandJob)
+            val middleware = KeySenderMiddleware(commandScope)
+            val store = createStore(appReducer, AppState(), applyMiddleware(middleware.create()))
+            val sender = RecordingSender()
+            middleware.installSender(sender)
+
+            store.dispatch(Action.SendKey(0x04.toByte()))
+            runCurrent()
+            assertEquals(listOf("down:4"), sender.events)
+
+            commandJob.cancel()
+            runCurrent()
+
+            assertEquals(listOf("down:4", "up:4"), sender.events)
         }
 
     @Test
@@ -126,6 +202,8 @@ class ModifierMiddlewareTest {
                     events.add("down:${command.code}")
                 }
                 is KeyCommand.KeyUp -> events.add("up:${command.code}")
+                is KeyCommand.MouseButtonDown -> events.add("mouse-down:${command.button}")
+                KeyCommand.MouseButtonUp -> events.add("mouse-up")
                 else -> Unit
             }
             return CommandResult.Success
