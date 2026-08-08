@@ -1,15 +1,20 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import android.bluetooth.BluetoothDevice
 import androidx.activity.ComponentActivity
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.augustusmachin.android_bt_kbmouse.store.Action
+import com.augustusmachin.android_bt_kbmouse.store.CommandResult
+import com.augustusmachin.android_bt_kbmouse.store.KeyCommand
+import com.augustusmachin.android_bt_kbmouse.store.KeySender
+import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import org.junit.After
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
@@ -18,102 +23,94 @@ class UiComposeInstrumentedTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private class FakeService : IBluetoothService {
-        var startCalls = 0
+    @Before
+    fun resetBefore() = resetStore()
 
-        override fun getLastDeviceAddress(): String? = null
+    @After
+    fun resetAfter() = resetStore()
 
-        override fun setEventListener(l: BluetoothService.ServiceEventListener) {}
+    @Test
+    fun disconnectedMainScreenBlocksKeyboardNavigationWithVisibleReason() {
+        composeRule.setContent { MainScreen() }
 
-        override fun startDiscovery() {
-            startCalls++
+        composeRule.onNodeWithText("Keyboard").performClick()
+
+        composeRule.onNodeWithText("Connect a device first").assertExists()
+    }
+
+    @Test
+    fun blePairingUsesHostInitiatedWorkflowWithoutClassicActions() {
+        StoreProvider.dispatch(Action.UpdateSelectedBackend(BackendMode.BLE_HOGP))
+        StoreProvider.dispatch(
+            Action.UpdateBackendRuntime(
+                BackendRuntimeState.Ready(BackendMode.BLE_HOGP, BackendCapabilitySets.bleHogp),
+            ),
+        )
+
+        composeRule.setContent { BackendAwarePairingScreen() }
+
+        composeRule.onNodeWithText("BLE HOGP").assertExists()
+        composeRule.onNodeWithText("host-initiated", substring = true).assertExists()
+        composeRule.onNodeWithText("Scan for devices").assertDoesNotExist()
+        composeRule.onNodeWithText("Paired Devices").assertDoesNotExist()
+    }
+
+    @Test
+    fun failedScanMessageIsVisibleOnRealMainScreen() {
+        composeRule.setContent { MainScreen() }
+        composeRule.runOnIdle {
+            StoreProvider.dispatch(Action.UpdateIsScanning(false))
+            StoreProvider.dispatch(Action.UpdateMessage("Failed to start scan"))
         }
 
-        override fun stopDiscovery() {}
-
-        override fun getDiscoveredDevices(): List<BluetoothDevice> = emptyList()
-
-        override fun getPairedDevices(): List<BluetoothDevice> = emptyList()
-
-        override fun pairDevice(device: BluetoothDevice) {}
-
-        override fun connectDevice(device: BluetoothDevice) {}
-
-        override fun disconnectDevice() {}
-
-        override fun setDefaultDevice(device: BluetoothDevice) {}
-
-        override fun getAlias(device: BluetoothDevice): String? = null
-
-        override fun setAlias(
-            device: BluetoothDevice,
-            alias: String,
-        ) {}
-
-        override fun forgetDevice(
-            device: BluetoothDevice,
-            unpair: Boolean,
-        ) {}
-
-        override fun sendKeyPress(
-            keyCode: Byte,
-            modifiers: Int,
-        ) {}
-
-        override fun sendMouseMove(
-            dx: Int,
-            dy: Int,
-        ) {}
-
-        override fun sendLeftClick() {}
-
-        override fun sendRightClick() {}
-
-        override fun sendMiddleClick() {}
-
-        override fun sendScroll(delta: Int) {}
-
-        override fun sendScrollH(delta: Int) {}
-
-        override fun pressKey(
-            keyCode: Byte,
-            modifiers: Int,
-        ) {}
-
-        override fun releaseKey(keyCode: Byte) {}
-
-        override fun setModifiers(mods: Int) {}
-    }
-
-    @Composable
-    private fun TestScan() {
-        Button(onClick = {
-            com.augustusmachin.android_bt_kbmouse.store.StoreProvider.dispatch(
-                com.augustusmachin.android_bt_kbmouse.store.Action.StartDiscovery,
-            )
-        }) { Text("Scan for devices") }
-        val appState by com.augustusmachin.android_bt_kbmouse.store.StoreProvider.asStateFlow().collectAsState()
-        val msg = appState.connection.message
-        if (msg != null) Text(msg)
+        composeRule.onNodeWithText("Failed to start scan").assertExists()
+        composeRule.runOnIdle {
+            assertTrue(!StoreProvider.asStateFlow().value.connection.isScanning)
+        }
     }
 
     @Test
-    fun scanButtonShowsMessage() {
-        // install a fake KeySender so StartDiscovery actually calls our fake service
-        com.augustusmachin.android_bt_kbmouse.store.StoreProvider.setKeySender(
-            object : com.augustusmachin.android_bt_kbmouse.store.KeySender {
-                override fun startDiscovery() {
-                    FakeService().startDiscovery()
-                }
-            },
+    fun dragLockDisposalReleasesMouseButtonOnRealMouseScreen() {
+        val sender = RecordingSender()
+        StoreProvider.setKeySender(sender)
+        StoreProvider.dispatch(
+            Action.UpdateBackendRuntime(
+                BackendRuntimeState.Ready(BackendMode.CLASSIC_HID, BackendCapabilitySets.classic),
+            ),
         )
-        composeRule.setContent { TestScan() }
-        composeRule.onNodeWithText("Scan for devices").performClick()
-        composeRule.onNodeWithText("Scanning for devices...").assertExists()
+
+        composeRule.setContent { MouseScreen() }
+        composeRule.onNodeWithText("Drag").performClick()
+        composeRule.runOnIdle {
+            assertTrue(sender.commands.any { it is KeyCommand.MouseButtonDown })
+        }
+
+        composeRule.setContent { Text("disposed") }
+        composeRule.runOnIdle {
+            assertTrue(sender.commands.any { it is KeyCommand.MouseButtonUp })
+        }
     }
 
-    @Test
-    fun sanityRuns() {
-        org.junit.Assert.assertTrue(true)
+    private class RecordingSender : KeySender {
+        override val backend = BackendMode.CLASSIC_HID
+        override val capabilities = BackendCapabilitySets.classic
+        val commands = mutableListOf<KeyCommand>()
+
+        override fun execute(command: KeyCommand): CommandResult {
+            commands += command
+            return CommandResult.Success
+        }
+    }
+
+    private fun resetStore() {
+        StoreProvider.setKeySender(null)
+        StoreProvider.dispatch(Action.UpdateSelectedBackend(BackendMode.CLASSIC_HID))
+        StoreProvider.dispatch(Action.UpdateBackendRuntime(BackendRuntimeState.Stopped))
+        StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
+        StoreProvider.dispatch(Action.UpdateConnectedDeviceAddress(null))
+        StoreProvider.dispatch(Action.UpdateConnectedDeviceLabel(null))
+        StoreProvider.dispatch(Action.UpdateMessage(null))
+        StoreProvider.dispatch(Action.UpdateIsScanning(false))
+        StoreProvider.dispatch(Action.UpdateLocks(false, false))
     }
 }
