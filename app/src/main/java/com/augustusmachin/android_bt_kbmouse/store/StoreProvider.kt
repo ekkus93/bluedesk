@@ -18,9 +18,7 @@ object StoreProvider {
     private val _stateFlow = MutableStateFlow(store.state)
 
     init {
-        store.subscribe {
-            _stateFlow.value = store.state
-        }
+        store.subscribe { _stateFlow.value = store.state }
     }
 
     fun dispatch(action: Any) {
@@ -30,13 +28,15 @@ object StoreProvider {
     fun asStateFlow(): StateFlow<AppState> = _stateFlow
 
     /**
-     * Install or clear the only command sender. Sender availability is mirrored into canonical
-     * store state so Compose never has to guess whether a remembered connection can accept input.
+     * Sender installation occurs only after startup permission validation. Mirror both sender and
+     * initial permission validity into canonical state; later SecurityException results explicitly
+     * invalidate permissions again. Clearing the sender clears both facts.
      */
     fun setKeySender(sender: KeySender?) {
         keySenderMiddleware.installSender(sender)
         if (sender != null) dispatch(Action.UpdateSelectedBackend(sender.backend))
         dispatch(Action.UpdateSenderAvailable(sender != null))
+        dispatch(Action.UpdatePermissionsValid(sender != null))
     }
 
     fun currentKeySender(): KeySender? = keySenderMiddleware.currentSender()
