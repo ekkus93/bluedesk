@@ -136,8 +136,8 @@ class HidImeMapperTest {
     }
 
     @Test
-    fun imePlan_compositionLikeReplacement() {
-        assertEquals(ImeEditPlan.Apply(2, "llo"), planImeEdit("hel", "hello"))
+    fun imePlan_compositionLikeAppend() {
+        assertEquals(ImeEditPlan.Apply(0, "lo"), planImeEdit("hel", "hello"))
     }
 
     @Test
