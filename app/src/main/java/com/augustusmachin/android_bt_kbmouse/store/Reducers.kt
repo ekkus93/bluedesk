@@ -42,45 +42,32 @@ val appReducer: Reducer<AppState> = { state, action ->
             if (updated.size == state.ui.previewKeys.size) {
                 state
             } else {
-                state.copy(
-                    ui = state.ui.copy(previewKeys = updated),
-                )
+                state.copy(ui = state.ui.copy(previewKeys = updated))
             }
         }
-        is Action.SendKey -> state
-        is Action.KeyDown -> state
-        is Action.KeyUp -> state
-        is Action.MoveMouse -> state
-        is Action.LeftClick -> state
-        is Action.RightClick -> state
-        is Action.MiddleClick -> state
-        is Action.ScrollVertical -> state
-        is Action.ScrollHorizontal -> state
-        // ToggleCapsLock / ToggleScrollLock are intercepted by middleware which sends the HID
-        // key press. State is driven exclusively by Action.UpdateLocks from the host LED report —
-        // no speculative toggle here.
-        Action.ToggleCapsLock -> state
-        Action.ToggleScrollLock -> state
+        is Action.SendKey,
+        is Action.KeyDown,
+        is Action.KeyUp,
+        is Action.MoveMouse,
+        Action.LeftClick,
+        Action.RightClick,
+        Action.MiddleClick,
+        is Action.ScrollVertical,
+        is Action.ScrollHorizontal,
+        Action.ToggleCapsLock,
+        Action.ToggleScrollLock,
+        -> state
+
         is Action.UpdateDiscoveredDevices ->
-            state.copy(
-                connection = state.connection.copy(discoveredDevices = action.devices),
-            )
+            state.copy(connection = state.connection.copy(discoveredDevices = action.devices))
         is Action.UpdatePairedDevices ->
-            state.copy(
-                connection = state.connection.copy(pairedDevices = action.devices),
-            )
+            state.copy(connection = state.connection.copy(pairedDevices = action.devices))
         is Action.UpdateConnectedDevice ->
-            state.copy(
-                connection = state.connection.copy(connectedDevice = action.device),
-            )
+            state.copy(connection = state.connection.copy(connectedDevice = action.device))
         is Action.UpdateMessage ->
-            state.copy(
-                connection = state.connection.copy(message = action.message),
-            )
+            state.copy(connection = state.connection.copy(message = action.message))
         is Action.UpdateDefaultDevice ->
-            state.copy(
-                connection = state.connection.copy(defaultDeviceAddress = action.address),
-            )
+            state.copy(connection = state.connection.copy(defaultDeviceAddress = action.address))
         is Action.UpdateLocks ->
             state.copy(
                 connection =
@@ -90,9 +77,17 @@ val appReducer: Reducer<AppState> = { state, action ->
                     ),
             )
         is Action.UpdateIsScanning ->
-            state.copy(
-                connection = state.connection.copy(isScanning = action.scanning),
-            )
+            state.copy(connection = state.connection.copy(isScanning = action.scanning))
+        is Action.UpdateSelectedBackend ->
+            state.copy(backend = state.backend.copy(selectedBackend = action.backend))
+        is Action.UpdateBackendRuntime ->
+            state.copy(backend = state.backend.copy(runtime = action.runtime))
+        is Action.UpdateSenderAvailable ->
+            state.copy(backend = state.backend.copy(senderAvailable = action.available))
+        is Action.ReportCommandResult ->
+            state.copy(backend = state.backend.copy(lastCommandResult = action.result))
+        Action.ClearCommandResult ->
+            state.copy(backend = state.backend.copy(lastCommandResult = null))
         Action.StartDiscovery,
         Action.StopDiscovery,
         is Action.PairDevice,
@@ -101,6 +96,8 @@ val appReducer: Reducer<AppState> = { state, action ->
         is Action.ForgetDevice,
         is Action.SetDefaultDevice,
         is Action.RenameDevice,
+        is Action.MouseButtonDown,
+        Action.MouseButtonUp,
         -> state
         else -> state
     }

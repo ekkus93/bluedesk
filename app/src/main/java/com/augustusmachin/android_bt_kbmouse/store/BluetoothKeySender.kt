@@ -1,107 +1,114 @@
 package com.augustusmachin.android_bt_kbmouse.store
 
 import android.bluetooth.BluetoothDevice
+import com.augustusmachin.android_bt_kbmouse.BackendCapabilities
+import com.augustusmachin.android_bt_kbmouse.BackendCapabilitySets
+import com.augustusmachin.android_bt_kbmouse.BackendMode
 import com.augustusmachin.android_bt_kbmouse.IBluetoothService
 
-/**
- * Bridge that implements KeySender and forwards calls to the app's IBluetoothService.
- * This lets Redux middleware call into the platform service without importing Android framework types
- * into reducers or middleware logic.
- */
+/** Explicit Classic HID command bridge. */
 class BluetoothKeySender(private val svc: IBluetoothService) : KeySender {
-    override fun sendKeyDown(
+    override val backend: BackendMode = BackendMode.CLASSIC_HID
+    override val capabilities: BackendCapabilities = BackendCapabilitySets.classic
+
+    override fun execute(command: KeyCommand): CommandResult =
+        try {
+            when (command) {
+                is KeyCommand.KeyDown -> svc.pressKey(command.code, command.mods)
+                is KeyCommand.KeyUp -> svc.releaseKey(command.code)
+                is KeyCommand.MoveMouse -> svc.sendMouseMove(command.dx, command.dy)
+                is KeyCommand.MouseButtonDown -> svc.mouseButtonDown(command.button)
+                KeyCommand.MouseButtonUp -> svc.mouseButtonUp()
+                is KeyCommand.ScrollVertical -> svc.sendScroll(command.delta)
+                is KeyCommand.ScrollHorizontal -> svc.sendScrollH(command.delta)
+                is KeyCommand.SetModifiers -> svc.setModifiers(command.mods)
+                KeyCommand.StartDiscovery -> svc.startDiscovery()
+                KeyCommand.StopDiscovery -> svc.stopDiscovery()
+                is KeyCommand.PairDevice -> svc.pairDevice(command.device)
+                is KeyCommand.ConnectDevice -> svc.connectDevice(command.device)
+                KeyCommand.DisconnectDevice -> svc.disconnectDevice()
+                is KeyCommand.ForgetDevice -> svc.forgetDevice(command.device, command.unpair)
+                is KeyCommand.SetDefaultDevice -> svc.setDefaultDevice(command.device)
+                is KeyCommand.RenameDevice -> svc.setAlias(command.device, command.alias)
+            }
+            CommandResult.Success
+        } catch (e: SecurityException) {
+            CommandResult.Failure(
+                CommandError(CommandErrorCode.PERMISSION_DENIED, e.message ?: "Bluetooth permission denied"),
+            )
+        } catch (e: IllegalStateException) {
+            CommandResult.Failure(
+                CommandError(CommandErrorCode.SERVICE_UNAVAILABLE, e.message ?: "Bluetooth service is unavailable"),
+            )
+        } catch (e: IllegalArgumentException) {
+            CommandResult.Failure(
+                CommandError(CommandErrorCode.INVALID_STATE, e.message ?: "Bluetooth command was rejected"),
+            )
+        }
+
+    fun sendKeyDown(
         code: Byte,
         mods: Int,
-    ) {
-        svc.pressKey(code, mods)
-    }
+    ): CommandResult = execute(KeyCommand.KeyDown(code, mods))
 
-    override fun sendKeyUp(code: Byte) {
-        svc.releaseKey(code)
-    }
+    fun sendKeyUp(code: Byte): CommandResult = execute(KeyCommand.KeyUp(code))
 
-    override fun moveMouse(
+    fun moveMouse(
         dx: Int,
         dy: Int,
-    ) {
-        svc.sendMouseMove(dx, dy)
-    }
+    ): CommandResult = execute(KeyCommand.MoveMouse(dx, dy))
 
-    override fun leftClick() {
-        svc.sendLeftClick()
-    }
+    fun leftClick(): CommandResult = click(0x01)
 
-    override fun rightClick() {
-        svc.sendRightClick()
-    }
+    fun rightClick(): CommandResult = click(0x02)
 
-    override fun middleClick() {
-        svc.sendMiddleClick()
-    }
+    fun middleClick(): CommandResult = click(0x04)
 
-    override fun scrollVertical(delta: Int) {
-        svc.sendScroll(delta)
-    }
+    fun scrollVertical(delta: Int): CommandResult = execute(KeyCommand.ScrollVertical(delta))
 
-    override fun scrollHorizontal(delta: Int) {
-        svc.sendScrollH(delta)
-    }
+    fun scrollHorizontal(delta: Int): CommandResult = execute(KeyCommand.ScrollHorizontal(delta))
 
-    override fun toggleCapsLock() {
-        svc.sendKeyPress(0x39.toByte(), 0)
-    }
+    fun toggleCapsLock(): CommandResult = keyPress(0x39.toByte())
 
-    override fun toggleScrollLock() {
-        svc.sendKeyPress(0x47.toByte(), 0)
-    }
+    fun toggleScrollLock(): CommandResult = keyPress(0x47.toByte())
 
-    override fun mouseButtonDown(button: Int) {
-        svc.mouseButtonDown(button)
-    }
+    fun mouseButtonDown(button: Int): CommandResult = execute(KeyCommand.MouseButtonDown(button))
 
-    override fun mouseButtonUp() {
-        svc.mouseButtonUp()
-    }
+    fun mouseButtonUp(): CommandResult = execute(KeyCommand.MouseButtonUp)
 
-    override fun setModifiers(mods: Int) {
-        svc.setModifiers(mods)
-    }
+    fun setModifiers(mods: Int): CommandResult = execute(KeyCommand.SetModifiers(mods))
 
-    override fun startDiscovery() {
-        svc.startDiscovery()
-    }
+    fun startDiscovery(): CommandResult = execute(KeyCommand.StartDiscovery)
 
-    override fun stopDiscovery() {
-        svc.stopDiscovery()
-    }
+    fun stopDiscovery(): CommandResult = execute(KeyCommand.StopDiscovery)
 
-    override fun pairDevice(device: BluetoothDevice) {
-        svc.pairDevice(device)
-    }
+    fun pairDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.PairDevice(device))
 
-    override fun connectDevice(device: BluetoothDevice) {
-        svc.connectDevice(device)
-    }
+    fun connectDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.ConnectDevice(device))
 
-    override fun disconnectDevice() {
-        svc.disconnectDevice()
-    }
+    fun disconnectDevice(): CommandResult = execute(KeyCommand.DisconnectDevice)
 
-    override fun forgetDevice(
+    fun forgetDevice(
         device: BluetoothDevice,
         unpair: Boolean,
-    ) {
-        svc.forgetDevice(device, unpair)
-    }
+    ): CommandResult = execute(KeyCommand.ForgetDevice(device, unpair))
 
-    override fun setDefaultDevice(device: BluetoothDevice) {
-        svc.setDefaultDevice(device)
-    }
+    fun setDefaultDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.SetDefaultDevice(device))
 
-    override fun renameDevice(
+    fun renameDevice(
         device: BluetoothDevice,
         alias: String,
-    ) {
-        svc.setAlias(device, alias)
+    ): CommandResult = execute(KeyCommand.RenameDevice(device, alias))
+
+    private fun click(button: Int): CommandResult {
+        val down = execute(KeyCommand.MouseButtonDown(button))
+        if (down != CommandResult.Success) return down
+        return execute(KeyCommand.MouseButtonUp)
+    }
+
+    private fun keyPress(code: Byte): CommandResult {
+        val down = execute(KeyCommand.KeyDown(code, 0))
+        if (down != CommandResult.Success) return down
+        return execute(KeyCommand.KeyUp(code))
     }
 }

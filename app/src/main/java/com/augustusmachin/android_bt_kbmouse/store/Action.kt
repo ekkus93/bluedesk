@@ -1,6 +1,8 @@
 package com.augustusmachin.android_bt_kbmouse.store
 
 import android.bluetooth.BluetoothDevice
+import com.augustusmachin.android_bt_kbmouse.BackendMode
+import com.augustusmachin.android_bt_kbmouse.BackendRuntimeState
 
 sealed class Action {
     // Keyboard modifier toggles
@@ -76,6 +78,17 @@ sealed class Action {
     data class UpdateLocks(val caps: Boolean, val scroll: Boolean) : Action()
 
     data class UpdateIsScanning(val scanning: Boolean) : Action()
+
+    // Authoritative backend runtime updates.
+    data class UpdateSelectedBackend(val backend: BackendMode) : Action()
+
+    data class UpdateBackendRuntime(val runtime: BackendRuntimeState) : Action()
+
+    data class UpdateSenderAvailable(val available: Boolean) : Action()
+
+    data class ReportCommandResult(val result: CommandResult) : Action()
+
+    object ClearCommandResult : Action()
 
     // Commands that trigger side-effects via middleware
     object StartDiscovery : Action()

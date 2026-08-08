@@ -1,25 +1,23 @@
 package com.augustusmachin.android_bt_kbmouse.store
 
+import android.bluetooth.BluetoothDevice
+import com.augustusmachin.android_bt_kbmouse.BackendCapabilities
+import com.augustusmachin.android_bt_kbmouse.BackendCapabilitySets
+import com.augustusmachin.android_bt_kbmouse.BackendMode
 import com.augustusmachin.android_bt_kbmouse.HidReportBuilder
 import com.augustusmachin.android_bt_kbmouse.HogpNotifier
 
 private const val MAX_ROLLOVER_KEYS = 6
-private const val MOUSE_BUTTON_MIDDLE = 0x04
-private const val CLICK_HOLD_MS = 10L
-private const val KEY_PRESS_HOLD_MS = 40L
 
 /**
- * KeySender bridge for BLE HOGP. Builds HID reports and delivers them via
- * BleHogpService GATT notifications.
- *
- * Keyboard: 8 bytes [mods, reserved=0, key1..key6] — no report-ID prefix
- *           (the Report Reference descriptor on the characteristic identifies it as report ID 1).
- * Mouse:    3 bytes [buttons, dx, dy] — SIMPLE variant, no scroll wheels.
- *
- * Discovery/connection commands are no-ops: BLE HOGP is advertising-based;
- * the host initiates the connection, not us.
+ * Explicit BLE HOGP command bridge. BLE is host-initiated, so Classic discovery/pair/connect
+ * operations and wheel scrolling return [CommandResult.Unsupported] instead of silently doing
+ * nothing.
  */
 class BleHogpKeySender(private val notifier: HogpNotifier) : KeySender {
+    override val backend: BackendMode = BackendMode.BLE_HOGP
+    override val capabilities: BackendCapabilities = BackendCapabilitySets.bleHogp
+
     @Volatile private var modifierByte: Int = 0
     private val pressedKeys = mutableListOf<Byte>()
 
@@ -36,80 +34,135 @@ class BleHogpKeySender(private val notifier: HogpNotifier) : KeySender {
         dy: Int = 0,
     ): ByteArray = HidReportBuilder.mouseReportSimple(buttonsMask, dx, dy)
 
-    override fun sendKeyDown(
+    override fun execute(command: KeyCommand): CommandResult =
+        try {
+            when (command) {
+                is KeyCommand.KeyDown -> sendKeyDownInternal(command.code, command.mods)
+                is KeyCommand.KeyUp -> sendKeyUpInternal(command.code)
+                is KeyCommand.MoveMouse -> notifier.notifyMouse(buildMouseReport(command.dx, command.dy))
+                is KeyCommand.MouseButtonDown -> {
+                    buttonsMask = buttonsMask or command.button
+                    notifier.notifyMouse(buildMouseReport())
+                }
+                KeyCommand.MouseButtonUp -> {
+                    buttonsMask = 0
+                    notifier.notifyMouse(buildMouseReport())
+                }
+                is KeyCommand.SetModifiers -> {
+                    modifierByte = command.mods
+                    notifier.notifyKeyboard(buildKeyReport())
+                }
+                is KeyCommand.ScrollVertical -> return unsupported("vertical scroll")
+                is KeyCommand.ScrollHorizontal -> return unsupported("horizontal scroll")
+                KeyCommand.StartDiscovery -> return unsupported("device discovery")
+                KeyCommand.StopDiscovery -> return unsupported("device discovery")
+                is KeyCommand.PairDevice -> return unsupported("Classic pairing")
+                is KeyCommand.ConnectDevice -> return unsupported("explicit connect")
+                KeyCommand.DisconnectDevice -> return unsupported("explicit disconnect")
+                is KeyCommand.ForgetDevice -> return unsupported("forget/unpair")
+                is KeyCommand.SetDefaultDevice -> return unsupported("default device")
+                is KeyCommand.RenameDevice -> return unsupported("device rename")
+            }
+            CommandResult.Success
+        } catch (e: SecurityException) {
+            CommandResult.Failure(
+                CommandError(CommandErrorCode.PERMISSION_DENIED, e.message ?: "BLE permission denied"),
+            )
+        } catch (e: IllegalStateException) {
+            CommandResult.Failure(
+                CommandError(CommandErrorCode.SERVICE_UNAVAILABLE, e.message ?: "BLE HOGP is unavailable"),
+            )
+        } catch (e: IllegalArgumentException) {
+            CommandResult.Failure(
+                CommandError(CommandErrorCode.INVALID_STATE, e.message ?: "BLE HOGP command was rejected"),
+            )
+        }
+
+    fun sendKeyDown(
+        code: Byte,
+        mods: Int,
+    ): CommandResult = execute(KeyCommand.KeyDown(code, mods))
+
+    fun sendKeyUp(code: Byte): CommandResult = execute(KeyCommand.KeyUp(code))
+
+    fun moveMouse(
+        dx: Int,
+        dy: Int,
+    ): CommandResult = execute(KeyCommand.MoveMouse(dx, dy))
+
+    fun leftClick(): CommandResult = click(0x01)
+
+    fun rightClick(): CommandResult = click(0x02)
+
+    fun middleClick(): CommandResult = click(0x04)
+
+    fun mouseButtonDown(button: Int): CommandResult = execute(KeyCommand.MouseButtonDown(button))
+
+    fun mouseButtonUp(): CommandResult = execute(KeyCommand.MouseButtonUp)
+
+    fun scrollVertical(delta: Int): CommandResult = execute(KeyCommand.ScrollVertical(delta))
+
+    fun scrollHorizontal(delta: Int): CommandResult = execute(KeyCommand.ScrollHorizontal(delta))
+
+    fun toggleCapsLock(): CommandResult = keyPress(0x39.toByte())
+
+    fun toggleScrollLock(): CommandResult = keyPress(0x47.toByte())
+
+    fun setModifiers(mods: Int): CommandResult = execute(KeyCommand.SetModifiers(mods))
+
+    fun startDiscovery(): CommandResult = execute(KeyCommand.StartDiscovery)
+
+    fun stopDiscovery(): CommandResult = execute(KeyCommand.StopDiscovery)
+
+    fun pairDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.PairDevice(device))
+
+    fun connectDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.ConnectDevice(device))
+
+    fun disconnectDevice(): CommandResult = execute(KeyCommand.DisconnectDevice)
+
+    fun forgetDevice(
+        device: BluetoothDevice,
+        unpair: Boolean,
+    ): CommandResult = execute(KeyCommand.ForgetDevice(device, unpair))
+
+    fun setDefaultDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.SetDefaultDevice(device))
+
+    fun renameDevice(
+        device: BluetoothDevice,
+        alias: String,
+    ): CommandResult = execute(KeyCommand.RenameDevice(device, alias))
+
+    private fun sendKeyDownInternal(
         code: Byte,
         mods: Int,
     ) {
         modifierByte = mods
-        synchronized(pressedKeys) { if (!pressedKeys.contains(code)) pressedKeys.add(code) }
+        synchronized(pressedKeys) {
+            if (!pressedKeys.contains(code)) pressedKeys.add(code)
+        }
         notifier.notifyKeyboard(buildKeyReport())
     }
 
-    override fun sendKeyUp(code: Byte) {
+    private fun sendKeyUpInternal(code: Byte) {
         synchronized(pressedKeys) { pressedKeys.remove(code) }
         notifier.notifyKeyboard(buildKeyReport())
     }
 
-    override fun moveMouse(
-        dx: Int,
-        dy: Int,
-    ) {
-        notifier.notifyMouse(buildMouseReport(dx, dy))
+    private fun click(button: Int): CommandResult {
+        val down = execute(KeyCommand.MouseButtonDown(button))
+        if (down != CommandResult.Success) return down
+        return execute(KeyCommand.MouseButtonUp)
     }
 
-    override fun leftClick() {
-        click(0x01)
+    private fun keyPress(code: Byte): CommandResult {
+        val down = execute(KeyCommand.KeyDown(code, modifierByte))
+        if (down != CommandResult.Success) return down
+        return execute(KeyCommand.KeyUp(code))
     }
 
-    override fun rightClick() {
-        click(0x02)
-    }
-
-    override fun middleClick() {
-        click(MOUSE_BUTTON_MIDDLE)
-    }
-
-    private fun click(mask: Int) {
-        buttonsMask = buttonsMask or mask
-        notifier.notifyMouse(buildMouseReport())
-        try {
-            Thread.sleep(CLICK_HOLD_MS)
-        } catch (_: InterruptedException) {
-        }
-        buttonsMask = buttonsMask and mask.inv()
-        notifier.notifyMouse(buildMouseReport())
-    }
-
-    override fun mouseButtonDown(button: Int) {
-        buttonsMask = buttonsMask or button
-        notifier.notifyMouse(buildMouseReport())
-    }
-
-    override fun mouseButtonUp() {
-        buttonsMask = 0
-        notifier.notifyMouse(buildMouseReport())
-    }
-
-    override fun toggleCapsLock() {
-        sendKeyDown(0x39.toByte(), modifierByte)
-        try {
-            Thread.sleep(KEY_PRESS_HOLD_MS)
-        } catch (_: InterruptedException) {
-        }
-        sendKeyUp(0x39.toByte())
-    }
-
-    override fun toggleScrollLock() {
-        sendKeyDown(0x47.toByte(), modifierByte)
-        try {
-            Thread.sleep(KEY_PRESS_HOLD_MS)
-        } catch (_: InterruptedException) {
-        }
-        sendKeyUp(0x47.toByte())
-    }
-
-    override fun setModifiers(mods: Int) {
-        modifierByte = mods
-        notifier.notifyKeyboard(buildKeyReport())
-    }
+    private fun unsupported(operation: String): CommandResult.Unsupported =
+        CommandResult.Unsupported(
+            operation,
+            "BLE HOGP does not support $operation; connect and pair from the host.",
+        )
 }

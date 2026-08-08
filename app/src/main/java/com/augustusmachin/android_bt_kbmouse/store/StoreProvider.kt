@@ -18,7 +18,6 @@ object StoreProvider {
     private val _stateFlow = MutableStateFlow(store.state)
 
     init {
-        // Subscribe to store updates and push to StateFlow for Compose
         store.subscribe {
             _stateFlow.value = store.state
         }
@@ -30,7 +29,15 @@ object StoreProvider {
 
     fun asStateFlow(): StateFlow<AppState> = _stateFlow
 
+    /**
+     * Install or clear the only command sender. Sender availability is mirrored into canonical
+     * store state so Compose never has to guess whether a remembered connection can accept input.
+     */
     fun setKeySender(sender: KeySender?) {
-        keySenderMiddleware.sender = sender
+        keySenderMiddleware.installSender(sender)
+        if (sender != null) dispatch(Action.UpdateSelectedBackend(sender.backend))
+        dispatch(Action.UpdateSenderAvailable(sender != null))
     }
+
+    fun currentKeySender(): KeySender? = keySenderMiddleware.currentSender()
 }

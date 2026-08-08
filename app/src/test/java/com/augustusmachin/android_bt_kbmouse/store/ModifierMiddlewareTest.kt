@@ -1,5 +1,8 @@
 package com.augustusmachin.android_bt_kbmouse.store
 
+import com.augustusmachin.android_bt_kbmouse.BackendCapabilitySets
+import com.augustusmachin.android_bt_kbmouse.BackendMode
+import com.augustusmachin.android_bt_kbmouse.BackendRuntimeState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -18,7 +21,7 @@ class ModifierMiddlewareTest {
             val middleware = KeySenderMiddleware(this)
             val store = createStore(appReducer, AppState(), applyMiddleware(middleware.create()))
             val sender = RecordingSender()
-            middleware.sender = sender
+            middleware.installSender(sender)
 
             store.dispatch(Action.ToggleShift)
             assertTrue(store.state.keyboard.shift)
@@ -38,38 +41,83 @@ class ModifierMiddlewareTest {
             val middleware = KeySenderMiddleware(this)
             val store = createStore(appReducer, AppState(), applyMiddleware(middleware.create()))
             val sender = RecordingSender()
-            middleware.sender = sender
+            middleware.installSender(sender)
 
-            // Type the same key twice in a row (e.g. "aa").
             store.dispatch(Action.SendKey(0x04.toByte()))
             store.dispatch(Action.SendKey(0x04.toByte()))
             advanceUntilIdle()
 
-            // Each press must be a full down->up before the next starts. Otherwise the two
-            // identical key-down reports have no key-up between them and the host coalesces
-            // them into a single keystroke (the "aa" -> "a" bug).
             assertEquals(listOf("down:4", "up:4", "down:4", "up:4"), sender.events)
         }
 
+    @Test
+    fun missingSenderProducesVisibleFailureInsteadOfNoOp() {
+        val middleware = KeySenderMiddleware()
+        val store = createStore(appReducer, AppState(), applyMiddleware(middleware.create()))
+
+        store.dispatch(Action.MoveMouse(4, 5))
+
+        val failure = store.state.backend.lastCommandResult as CommandResult.Failure
+        assertEquals(CommandErrorCode.SENDER_UNAVAILABLE, failure.error.code)
+        assertEquals(false, store.state.backend.senderAvailable)
+        assertTrue(store.state.connection.message!!.contains("not ready"))
+    }
+
+    @Test
+    fun unsupportedOperationIsNotTreatedAsSuccess() {
+        val middleware = KeySenderMiddleware()
+        val store = createStore(appReducer, AppState(), applyMiddleware(middleware.create()))
+        val sender =
+            object : KeySender {
+                override val backend = BackendMode.BLE_HOGP
+                override val capabilities = BackendCapabilitySets.bleHogp
+
+                override fun execute(command: KeyCommand): CommandResult =
+                    CommandResult.Unsupported("device discovery", "BLE HOGP discovery is host-initiated")
+            }
+        middleware.installSender(sender)
+
+        store.dispatch(Action.StartDiscovery)
+
+        assertTrue(store.state.backend.lastCommandResult is CommandResult.Unsupported)
+        assertEquals("BLE HOGP discovery is host-initiated", store.state.connection.message)
+    }
+
+    @Test
+    fun inputUsabilityRequiresReadySenderAndConnection() {
+        val disconnected = AppState()
+        assertFalse(disconnected.isInputUsable())
+
+        val readyWithoutDevice =
+            disconnected.copy(
+                backend =
+                    BackendState(
+                        selectedBackend = BackendMode.CLASSIC_HID,
+                        runtime = BackendRuntimeState.Ready(BackendMode.CLASSIC_HID, BackendCapabilitySets.classic),
+                        senderAvailable = true,
+                    ),
+            )
+        assertFalse(readyWithoutDevice.isInputUsable())
+    }
+
     private class RecordingSender : KeySender {
+        override val backend = BackendMode.CLASSIC_HID
+        override val capabilities = BackendCapabilitySets.classic
         var lastSetModifiers: Int = -1
         var lastSendKeyDownMods: Int = -1
         val events = mutableListOf<String>()
 
-        override fun setModifiers(mods: Int) {
-            lastSetModifiers = mods
-        }
-
-        override fun sendKeyDown(
-            code: Byte,
-            mods: Int,
-        ) {
-            lastSendKeyDownMods = mods
-            events.add("down:$code")
-        }
-
-        override fun sendKeyUp(code: Byte) {
-            events.add("up:$code")
+        override fun execute(command: KeyCommand): CommandResult {
+            when (command) {
+                is KeyCommand.SetModifiers -> lastSetModifiers = command.mods
+                is KeyCommand.KeyDown -> {
+                    lastSendKeyDownMods = command.mods
+                    events.add("down:${command.code}")
+                }
+                is KeyCommand.KeyUp -> events.add("up:${command.code}")
+                else -> Unit
+            }
+            return CommandResult.Success
         }
     }
 }

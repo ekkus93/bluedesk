@@ -1,6 +1,8 @@
 package com.augustusmachin.android_bt_kbmouse.store
 
 import android.bluetooth.BluetoothDevice
+import com.augustusmachin.android_bt_kbmouse.BackendMode
+import com.augustusmachin.android_bt_kbmouse.BackendRuntimeState
 
 data class KeyboardState(
     val ctrl: Boolean = false,
@@ -37,8 +39,26 @@ data class ConnectionState(
     val isScanning: Boolean = false,
 )
 
+data class BackendState(
+    val selectedBackend: BackendMode = BackendMode.CLASSIC_HID,
+    val runtime: BackendRuntimeState = BackendRuntimeState.Stopped,
+    val senderAvailable: Boolean = false,
+    val lastCommandResult: CommandResult? = null,
+)
+
 data class AppState(
     val keyboard: KeyboardState = KeyboardState(),
     val ui: UiState = UiState(),
     val connection: ConnectionState = ConnectionState(),
+    val backend: BackendState = BackendState(),
 )
+
+/**
+ * Product-level input availability. A remembered BluetoothDevice alone is insufficient: the
+ * selected backend must have completed its startup transaction and a concrete sender must still
+ * be installed.
+ */
+fun AppState.isInputUsable(): Boolean =
+    backend.runtime is BackendRuntimeState.Ready &&
+        backend.senderAvailable &&
+        connection.connectedDevice != null
