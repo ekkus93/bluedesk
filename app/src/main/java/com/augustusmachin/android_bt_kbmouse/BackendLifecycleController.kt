@@ -104,8 +104,9 @@ class BackendLifecycleController(
 
     @Synchronized
     fun switchTo(target: BackendMode): Boolean {
+        val state = coordinator.state
         val live = coordinator.currentLiveBackend
-        if (live == target && coordinator.state is BackendRuntimeState.Ready) return true
+        if (live == target && (state is BackendRuntimeState.Ready || state is BackendRuntimeState.Starting)) return true
         if (live != null && !stopInternal(live)) return false
         return start(target)
     }
