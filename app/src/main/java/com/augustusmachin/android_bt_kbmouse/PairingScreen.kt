@@ -1,6 +1,5 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import android.Manifest
 import android.bluetooth.BluetoothDevice
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -59,16 +58,11 @@ import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.ServiceAliasHelper
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 
-// Per-row callbacks for a paired device entry, bundled to keep composable parameter
-// lists small.
 private data class PairedDeviceCallbacks(
     val onRename: (BluetoothDevice, String) -> Unit,
     val onForget: (BluetoothDevice) -> Unit,
 )
 
-// A pre-resolved device row. name/address are read once in PairingScreen (which performs
-// a permission check) so child composables render plain strings without touching the
-// permission-guarded BluetoothDevice properties.
 private data class DeviceRow(
     val device: BluetoothDevice,
     val name: String,
@@ -77,22 +71,17 @@ private data class DeviceRow(
     val isDefault: Boolean,
 )
 
-// The device collections rendered by the pairing content, bundled to keep the content
-// composable's parameter list small.
 private data class PairingDeviceState(
     val discovered: List<DeviceRow>,
     val paired: List<DeviceRow>,
     val isConnected: Boolean,
 )
 
-// Bound (no-arg) rename/forget callbacks for a single paired-device card.
 private data class PairedDeviceRowActions(
     val onRename: () -> Unit,
     val onForget: () -> Unit,
 )
 
-// Hoisted UI state for the pairing screen's dialogs, held as MutableState so child
-// composables can both read and update it without a long callback list.
 private class PairingUiState {
     val pendingPermissions = mutableStateOf(emptyArray<String>())
     val showRationale = mutableStateOf(false)
@@ -112,17 +101,16 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
     val ui = remember { PairingUiState() }
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
-            // Only scan-required permissions gate discovery; unrelated grants/denials are ignored.
-            val missingScan =
-                PermissionPolicy.missingRequired(granted, PermissionPolicy.requiredForScan(Build.VERSION.SDK_INT))
+            // Callback maps can be partial. Re-read actual OS state before starting discovery.
+            val required = PermissionPolicy.requiredForScan(Build.VERSION.SDK_INT)
+            val missingScan = PermissionGrantChecker.missing(context, required)
             if (missingScan.isEmpty()) {
                 StoreProvider.dispatch(Action.StartDiscovery)
             } else {
                 val denied = missingScan.toTypedArray()
                 ui.pendingPermissions.value = denied
                 val permanentlyDenied =
-                    activity != null &&
-                        denied.any { !ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }
+                    activity != null && denied.any { !ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }
                 if (permanentlyDenied) ui.showSettings.value = true else ui.showRationale.value = true
             }
         }
@@ -130,7 +118,6 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
     PermissionDialogs(ui, context, permissionLauncher)
     DeviceDialogs(ui)
 
-    // Resolve device names/addresses once; child composables receive plain strings.
     PairingContent(
         contentPadding = contentPadding,
         devices = resolveDeviceRows(context, appState.connection),
@@ -159,41 +146,75 @@ fun PairingScreen(contentPadding: PaddingValues = PaddingValues()) {
     )
 }
 
-private typealias PermissionLauncher =
-    androidx.activity.result.ActivityResultLauncher<Array<String>>
+private typealias PermissionLauncher = androidx.activity.result.ActivityResultLauncher<Array<String>>
 
-// Reads device names/addresses once and produces plain-string rows. Performs an explicit
-// BLUETOOTH_CONNECT permission check so the BluetoothDevice property reads are guarded.
 private fun resolveDeviceRows(
     context: android.content.Context,
     connection: com.augustusmachin.android_bt_kbmouse.store.ConnectionState,
 ): PairingDeviceState {
-    val hasConnect =
-        ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) ==
-            PackageManager.PERMISSION_GRANTED
-    val nameOf: (BluetoothDevice) -> String? = { dev -> if (hasConnect) dev.name else null }
-    val connectedAddr = connection.connectedDevice?.address
+    val mayReadDeviceMetadata =
+        PermissionGrantChecker.hasAll(context, PermissionPolicy.requiredForClassicStartup(Build.VERSION.SDK_INT))
+    val connectedAddress = connection.connectedDeviceAddress
+
+    fun addressOf(device: BluetoothDevice): String? =
+        if (!mayReadDeviceMetadata) {
+            null
+        } else {
+            try {
+                device.address
+            } catch (se: SecurityException) {
+                DebugLog.e("PairingScreen", "Bluetooth address permission failure: ${se.message}")
+                null
+            }
+        }
+
+    fun nameOf(device: BluetoothDevice): String? =
+        if (!mayReadDeviceMetadata) {
+            null
+        } else {
+            try {
+                device.name
+            } catch (se: SecurityException) {
+                DebugLog.e("PairingScreen", "Bluetooth name permission failure: ${se.message}")
+                null
+            }
+        }
+
     val discovered =
-        connection.discoveredDevices.map { dev ->
-            DeviceRow(dev, nameOf(dev) ?: "Unknown Device", dev.address, dev.address == connectedAddr, false)
+        connection.discoveredDevices.map { device ->
+            val address = addressOf(device)
+            DeviceRow(
+                device = device,
+                name = nameOf(device) ?: address ?: "Unknown Device",
+                address = address ?: "Address unavailable",
+                isConnected = address != null && address == connectedAddress,
+                isDefault = false,
+            )
         }
     val paired =
-        connection.pairedDevices.map { dev ->
+        connection.pairedDevices.map { device ->
+            val address = addressOf(device)
+            val alias =
+                try {
+                    ServiceAliasHelper.getAlias(device)
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    DebugLog.e("PairingScreen", "Alias lookup failed: ${e.message}")
+                    null
+                }
             DeviceRow(
-                device = dev,
-                name = ServiceAliasHelper.getAlias(dev) ?: (nameOf(dev) ?: dev.address),
-                address = dev.address,
-                isConnected = dev.address == connectedAddr,
-                isDefault = connection.defaultDeviceAddress == dev.address,
+                device = device,
+                name = alias ?: nameOf(device) ?: address ?: "Bluetooth device",
+                address = address ?: "Address unavailable",
+                isConnected = address != null && address == connectedAddress,
+                isDefault = address != null && connection.defaultDeviceAddress == address,
             )
         }
     return PairingDeviceState(discovered, paired, connection.connectedDevice != null)
 }
 
-// Scanning needs only scan permission (BLUETOOTH_SCAN on API 31+, location below). CONNECT
-// is obtained at app startup; advertise/notifications are unrelated to discovery.
-private fun requiredScanPermissions(): Array<String> =
-    PermissionPolicy.requiredForScan(Build.VERSION.SDK_INT).toTypedArray()
+private fun requiredScanPermissions(): Array<String> = PermissionPolicy.requiredForScan(Build.VERSION.SDK_INT).toTypedArray()
 
 @Composable
 private fun PairingContent(
@@ -207,25 +228,17 @@ private fun PairingContent(
         modifier = Modifier.fillMaxSize().padding(contentPadding).navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Action row: Scan always available; Disconnect shown when connected
         Row(
             Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Button(onClick = onScan) { Text(text = "Scan for devices") }
             if (devices.isConnected) {
-                Button(onClick = { StoreProvider.dispatch(Action.DisconnectDevice) }) {
-                    Text(text = "Disconnect")
-                }
+                Button(onClick = { StoreProvider.dispatch(Action.DisconnectDevice) }) { Text(text = "Disconnect") }
             }
         }
 
-        // Discovered devices — collapses to nothing when empty (TASK-10)
-        if (devices.discovered.isNotEmpty()) {
-            DiscoveredDeviceList(devices.discovered, view)
-        }
-
-        // Paired devices — always visible (TASK-13)
+        if (devices.discovered.isNotEmpty()) DiscoveredDeviceList(devices.discovered, view)
         PairedDeviceList(
             pairedRows = devices.paired,
             callbacks = callbacks,
@@ -313,7 +326,9 @@ private fun DeviceDialogs(ui: PairingUiState) {
             text = { TextField(value = ui.renameText.value, onValueChange = { ui.renameText.value = it }) },
             confirmButton = {
                 Button(onClick = {
-                    ui.renaming.value?.let { ServiceAliasHelper.setAlias(it, ui.renameText.value.trim()) }
+                    ui.renaming.value?.let { device ->
+                        StoreProvider.dispatch(Action.RenameDevice(device, ui.renameText.value.trim()))
+                    }
                     ui.renaming.value = null
                 }) { Text("Save") }
             },
@@ -355,10 +370,7 @@ private fun DiscoveredDeviceList(
         style = MaterialTheme.typography.titleMedium,
     )
     LazyColumn(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 0.dp, max = 200.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 0.dp, max = 200.dp),
         contentPadding = PaddingValues(horizontal = 16.dp),
     ) {
         items(discoveredRows) { row ->
@@ -412,11 +424,7 @@ private fun PairedDeviceCard(
         shape = RoundedCornerShape(12.dp),
     ) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-            // Row 1: icon + name + MAC address
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 androidx.compose.foundation.layout.Box(
                     modifier =
                         Modifier
@@ -444,7 +452,6 @@ private fun PairedDeviceCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            // Row 2: action icons
             PairedDeviceActions(row, actions)
         }
     }
@@ -455,10 +462,7 @@ private fun PairedDeviceActions(
     row: DeviceRow,
     actions: PairedDeviceRowActions,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End,
-    ) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
         val iconTint = MaterialTheme.colorScheme.onSurface
         if (row.isConnected) {
             IconButton(
