@@ -1,15 +1,12 @@
 name: CI
 
-# Build, unit-test, and lint on every push/PR to master.
-# No build artifacts are saved here — the APK is only published for tagged
-# releases (see release.yml).
+# Build, unit-test, compile instrumented tests, and lint on every push/PR to master.
 on:
   push:
     branches: [master]
   pull_request:
     branches: [master]
 
-# Cancel an in-progress run when new commits are pushed to the same ref.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -34,6 +31,9 @@ jobs:
 
       - name: Unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      - name: Compile instrumented UI tests
+        run: ./gradlew :app:compileDebugAndroidTestKotlin --stacktrace
 
       - name: Lint
         run: ./gradlew :app:lintDebug --stacktrace
