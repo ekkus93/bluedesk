@@ -2,6 +2,7 @@ package com.augustusmachin.android_bt_kbmouse
 
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -151,14 +152,21 @@ class UiComposeInstrumentedTest {
     @Test
     fun dragLockDisposalReleasesMouseButtonOnRealMouseScreen() {
         val sender = installUsableClassicState(label = "Test host")
+        val showMouse = mutableStateOf(true)
 
-        composeRule.setContent { MouseScreen() }
+        composeRule.setContent {
+            if (showMouse.value) {
+                MouseScreen()
+            } else {
+                Text("disposed")
+            }
+        }
         composeRule.onNodeWithText("Drag").performClick()
         composeRule.runOnIdle {
             assertTrue(sender.commands.any { it is KeyCommand.MouseButtonDown })
+            showMouse.value = false
         }
-
-        composeRule.setContent { Text("disposed") }
+        composeRule.onNodeWithText("disposed").assertExists()
         composeRule.runOnIdle {
             assertTrue(sender.commands.any { it is KeyCommand.MouseButtonUp })
         }
