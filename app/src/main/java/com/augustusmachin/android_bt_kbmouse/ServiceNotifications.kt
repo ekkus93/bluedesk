@@ -14,11 +14,12 @@ import androidx.core.app.NotificationCompat
 private const val SDK_INT_OREO = 26
 private const val SDK_INT_MARSHMALLOW = 23
 private const val REQUEST_CODE_FORGET = 3
+private const val NOTIFICATION_ID_PERMISSION = 2
+private const val NOTIFICATION_ID_RUNTIME_FAILURE = 3
 
 /**
- * Builds the notifications used by [BluetoothService]: the ongoing
- * foreground-service notification and the "missing permission" alert.
- * Kept out of the service class to keep that file focused on HID logic.
+ * Builds the notifications used by the HID runtime: the ongoing foreground
+ * notification and high-priority user-visible failure notifications.
  */
 object ServiceNotifications {
     private const val FGS_CHANNEL_ID = "bt_hid_service"
@@ -72,13 +73,7 @@ object ServiceNotifications {
         context: Context,
         message: String,
     ) {
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= SDK_INT_OREO && nm.getNotificationChannel(ERROR_CHANNEL_ID) == null) {
-            val ch = NotificationChannel(ERROR_CHANNEL_ID, "Bluetooth HID errors", NotificationManager.IMPORTANCE_HIGH)
-            ch.enableLights(true)
-            ch.lightColor = Color.RED
-            nm.createNotificationChannel(ch)
-        }
+        val nm = errorNotificationManager(context)
         val settingsIntent =
             Intent(
                 android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -94,7 +89,42 @@ object ServiceNotifications {
                 .setContentIntent(pi)
                 .setAutoCancel(true)
                 .build()
-        nm.notify(2, notif)
+        nm.notify(NOTIFICATION_ID_PERMISSION, notif)
+    }
+
+    /**
+     * User-visible failure path for startup errors that can occur before MainActivity exists.
+     * The caller also records the failure durably; this notification is the immediate signal.
+     */
+    fun postRuntimeFailure(
+        context: Context,
+        title: String,
+        message: String,
+    ) {
+        val nm = errorNotificationManager(context)
+        val openApp = Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val pi = PendingIntent.getActivity(context, 0, openApp, pendingFlags())
+        val notif =
+            NotificationCompat.Builder(context, ERROR_CHANNEL_ID)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+                .setSmallIcon(R.drawable.ic_bluetooth)
+                .setContentIntent(pi)
+                .setAutoCancel(true)
+                .build()
+        nm.notify(NOTIFICATION_ID_RUNTIME_FAILURE, notif)
+    }
+
+    private fun errorNotificationManager(context: Context): NotificationManager {
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= SDK_INT_OREO && nm.getNotificationChannel(ERROR_CHANNEL_ID) == null) {
+            val ch = NotificationChannel(ERROR_CHANNEL_ID, "Bluetooth HID errors", NotificationManager.IMPORTANCE_HIGH)
+            ch.enableLights(true)
+            ch.lightColor = Color.RED
+            nm.createNotificationChannel(ch)
+        }
+        return nm
     }
 
     private fun pendingFlags(): Int =
