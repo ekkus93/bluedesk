@@ -25,20 +25,26 @@ replace(
 replace(
     service,
     '                val message = "Remembered Bluetooth device could not be resolved: ${e.message ?: e.javaClass.simpleName}"',
-    """                val detail = e.message ?: e.javaClass.simpleName
-                val message = "Remembered Bluetooth device could not be resolved: $detail"""",
+    (
+        "                val detail = e.message ?: e.javaClass.simpleName\n"
+        '                val message = "Remembered Bluetooth device could not be resolved: $detail"'
+    ),
 )
 replace(
     service,
     '            "ConnectProfile(HID, $HID_PROFILE_UUID) procedure first; use bluetoothctl connect only as a diagnostic fallback."',
-    """            "ConnectProfile(HID, $HID_PROFILE_UUID) procedure first; " +
-            "use bluetoothctl connect only as a diagnostic fallback."""",
+    (
+        '            "ConnectProfile(HID, $HID_PROFILE_UUID) procedure first; " +\n'
+        '            "use bluetoothctl connect only as a diagnostic fallback."'
+    ),
 )
 replace(
     service,
     '                val message = "Device was forgotten locally, but system unpair failed: ${e.message ?: e.javaClass.simpleName}"',
-    """                val detail = e.message ?: e.javaClass.simpleName
-                val message = "Device was forgotten locally, but system unpair failed: $detail"""",
+    (
+        "                val detail = e.message ?: e.javaClass.simpleName\n"
+        '                val message = "Device was forgotten locally, but system unpair failed: $detail"'
+    ),
 )
 replace(
     service,
