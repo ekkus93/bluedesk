@@ -52,6 +52,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import com.augustusmachin.android_bt_kbmouse.store.hasConnectedHost
 import com.augustusmachin.android_bt_kbmouse.store.isInputUsable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -65,7 +66,7 @@ fun MainScreen() {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val appState by StoreProvider.asStateFlow().collectAsState()
-    val hostConnected = appState.connection.connectedDevice != null
+    val hostConnected = appState.hasConnectedHost()
     val inputUsable = appState.isInputUsable()
     val connectedName = appState.connection.connectedDeviceLabel
     val readyState = appState.backend.runtime as? BackendRuntimeState.Ready
