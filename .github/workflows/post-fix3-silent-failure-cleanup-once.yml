@@ -1,4 +1,4 @@
-name: One-shot post-Fix3 silent-failure cleanup
+name: One-shot post-Fix3 hardening cleanup
 
 on:
   push:
@@ -24,21 +24,24 @@ jobs:
           java-version: '21'
           cache: gradle
 
-      - name: Apply bounded cleanup
+      - name: Apply bounded correctness cleanup
         run: python3 .github/scripts/post_fix3_silent_failure_cleanup.py
+
+      - name: Apply bounded UI contract cleanup
+        run: python3 .github/scripts/post_fix3_ui_contract_cleanup.py
 
       - name: Format Kotlin sources
         run: ./gradlew :app:ktlintFormat --stacktrace
 
-      - name: Verify unit and static gates
-        run: ./gradlew :app:testDebugUnitTest :app:ktlintCheck :app:detekt --stacktrace
+      - name: Verify unit, instrumented compile, and static gates
+        run: ./gradlew :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:ktlintCheck :app:detekt --stacktrace
 
       - name: Commit bounded fixes
         run: |
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app/src/main/java
+          git add app/src
           git diff --cached --quiet && { echo 'No changes produced'; exit 1; }
-          git commit -m 'Close remaining silent runtime failures'
+          git commit -m 'Close post-Fix3 correctness and UI gaps'
           git push origin HEAD:master
