@@ -167,6 +167,9 @@ class BluetoothService : Service(), IBluetoothService {
 
     override fun getConnectedDeviceLabel(): String? = connectedDevice?.let(::connectedLabel)
 
+    override fun getStartupState(): ClassicHidStartupState =
+        bluetoothHidModule?.currentStartupState() ?: ClassicHidStartupRegistry.state
+
     private val profileListener =
         object : BluetoothProfile.ServiceListener {
             override fun onServiceConnected(
@@ -279,6 +282,9 @@ class BluetoothService : Service(), IBluetoothService {
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
         super.onCreate()
+        // This is the authoritative boundary for a NEW Classic service instance. Activity
+        // recreation/rebind must not reset a healthy service's durable registration state.
+        ClassicHidStartupRegistry.beginActivation()
         if (!startInForeground()) return
 
         val btMgr = getSystemService(BluetoothManager::class.java)
