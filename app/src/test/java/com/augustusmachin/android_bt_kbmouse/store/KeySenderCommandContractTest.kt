@@ -1,5 +1,6 @@
 package com.augustusmachin.android_bt_kbmouse.store
 
+import com.augustusmachin.android_bt_kbmouse.HidDeliveryResult
 import com.augustusmachin.android_bt_kbmouse.HogpNotifier
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -9,9 +10,7 @@ class KeySenderCommandContractTest {
     @Test
     fun `BLE discovery is explicit unsupported`() {
         val sender = BleHogpKeySender(NoopNotifier)
-
         val result = sender.execute(KeyCommand.StartDiscovery)
-
         assertTrue(result is CommandResult.Unsupported)
         assertEquals(false, sender.capabilities.discovery)
     }
@@ -19,9 +18,7 @@ class KeySenderCommandContractTest {
     @Test
     fun `BLE scroll is explicit unsupported`() {
         val sender = BleHogpKeySender(NoopNotifier)
-
         val result = sender.execute(KeyCommand.ScrollVertical(1))
-
         assertTrue(result is CommandResult.Unsupported)
         assertEquals(false, sender.capabilities.verticalScroll)
     }
@@ -31,10 +28,11 @@ class KeySenderCommandContractTest {
         var calls = 0
         val notifier =
             object : HogpNotifier {
-                override fun notifyKeyboard(report: ByteArray) = Unit
+                override fun notifyKeyboard(report: ByteArray): HidDeliveryResult = HidDeliveryResult.Sent
 
-                override fun notifyMouse(report: ByteArray) {
+                override fun notifyMouse(report: ByteArray): HidDeliveryResult {
                     calls += 1
+                    return HidDeliveryResult.Sent
                 }
             }
         val sender = BleHogpKeySender(notifier)
@@ -46,8 +44,8 @@ class KeySenderCommandContractTest {
     }
 
     private object NoopNotifier : HogpNotifier {
-        override fun notifyKeyboard(report: ByteArray) = Unit
+        override fun notifyKeyboard(report: ByteArray): HidDeliveryResult = HidDeliveryResult.Sent
 
-        override fun notifyMouse(report: ByteArray) = Unit
+        override fun notifyMouse(report: ByteArray): HidDeliveryResult = HidDeliveryResult.Sent
     }
 }
