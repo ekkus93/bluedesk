@@ -2,227 +2,116 @@ package com.augustusmachin.android_bt_kbmouse.store
 
 import android.bluetooth.BluetoothDevice
 import com.augustusmachin.android_bt_kbmouse.IBluetoothService
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito
 
 class BluetoothKeySenderTest {
     @Test
-    fun `sendKeyDown forwards to pressKey`() {
+    fun `keyboard commands forward to service`() {
         val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        s.sendKeyDown(0x04, 0x02)
-        Mockito.verify(svc).pressKey(0x04.toByte(), 0x02)
-        Mockito.verifyNoMoreInteractions(svc)
-    }
+        val sender = BluetoothKeySender(svc)
 
-    @Test
-    fun `sendKeyUp forwards to releaseKey`() {
-        val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        s.sendKeyUp(0x04)
+        assertEquals(CommandResult.Success, sender.execute(KeyCommand.KeyDown(0x04, 0x02)))
+        assertEquals(CommandResult.Success, sender.execute(KeyCommand.KeyUp(0x04)))
+
+        Mockito.verify(svc).pressKey(0x04.toByte(), 0x02)
         Mockito.verify(svc).releaseKey(0x04.toByte())
         Mockito.verifyNoMoreInteractions(svc)
     }
 
     @Test
-    fun `moveMouse forwards to sendMouseMove`() {
+    fun `mouse button commands use explicit down and up`() {
         val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        s.moveMouse(5, -3)
+        val sender = BluetoothKeySender(svc)
+
+        assertEquals(CommandResult.Success, sender.execute(KeyCommand.MouseButtonDown(0x01)))
+        assertEquals(CommandResult.Success, sender.execute(KeyCommand.MouseButtonUp))
+
+        Mockito.verify(svc).mouseButtonDown(0x01)
+        Mockito.verify(svc).mouseButtonUp()
+        Mockito.verifyNoMoreInteractions(svc)
+    }
+
+    @Test
+    fun `scroll and move commands forward`() {
+        val svc = Mockito.mock(IBluetoothService::class.java)
+        val sender = BluetoothKeySender(svc)
+
+        sender.execute(KeyCommand.MoveMouse(5, -3))
+        sender.execute(KeyCommand.ScrollVertical(7))
+        sender.execute(KeyCommand.ScrollHorizontal(9))
+
         Mockito.verify(svc).sendMouseMove(5, -3)
-        Mockito.verifyNoMoreInteractions(svc)
-    }
-
-    @Test
-    fun `clicks forward to respective service calls`() {
-        val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        s.leftClick()
-        Mockito.verify(svc).sendLeftClick()
-        s.rightClick()
-        Mockito.verify(svc).sendRightClick()
-        s.middleClick()
-        Mockito.verify(svc).sendMiddleClick()
-        Mockito.verifyNoMoreInteractions(svc)
-    }
-
-    @Test
-    fun `scroll forwards to sendScroll and sendScrollH`() {
-        val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        s.scrollVertical(7)
         Mockito.verify(svc).sendScroll(7)
-        s.scrollHorizontal(9)
         Mockito.verify(svc).sendScrollH(9)
         Mockito.verifyNoMoreInteractions(svc)
     }
 
     @Test
-    fun `toggle locks sendKeyPress with correct codes`() {
+    fun `discovery pairing and connection commands forward`() {
         val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        s.toggleCapsLock()
-        Mockito.verify(svc).sendKeyPress(0x39.toByte(), 0)
-        s.toggleScrollLock()
-        Mockito.verify(svc).sendKeyPress(0x47.toByte(), 0)
-        Mockito.verifyNoMoreInteractions(svc)
-    }
+        val sender = BluetoothKeySender(svc)
+        val device = Mockito.mock(BluetoothDevice::class.java)
 
-    @Test
-    fun `discovery_and_pairing_and_connection_calls forwarded`() {
-        val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        val d = Mockito.mock(BluetoothDevice::class.java)
+        sender.execute(KeyCommand.StartDiscovery)
+        sender.execute(KeyCommand.StopDiscovery)
+        sender.execute(KeyCommand.PairDevice(device))
+        sender.execute(KeyCommand.ConnectDevice(device))
+        sender.execute(KeyCommand.DisconnectDevice)
+        sender.execute(KeyCommand.ForgetDevice(device, true))
+        sender.execute(KeyCommand.SetDefaultDevice(device))
+        sender.execute(KeyCommand.RenameDevice(device, "alias"))
 
-        s.startDiscovery()
         Mockito.verify(svc).startDiscovery()
-        s.stopDiscovery()
         Mockito.verify(svc).stopDiscovery()
-        s.pairDevice(d)
-        Mockito.verify(svc).pairDevice(d)
-        s.connectDevice(d)
-        Mockito.verify(svc).connectDevice(d)
-        s.disconnectDevice()
+        Mockito.verify(svc).pairDevice(device)
+        Mockito.verify(svc).connectDevice(device)
         Mockito.verify(svc).disconnectDevice()
-        s.forgetDevice(d, true)
-        Mockito.verify(svc).forgetDevice(d, true)
-        s.setDefaultDevice(d)
-        Mockito.verify(svc).setDefaultDevice(d)
-        s.renameDevice(d, "alias")
-        Mockito.verify(svc).setAlias(d, "alias")
+        Mockito.verify(svc).forgetDevice(device, true)
+        Mockito.verify(svc).setDefaultDevice(device)
+        Mockito.verify(svc).setAlias(device, "alias")
         Mockito.verifyNoMoreInteractions(svc)
     }
 
     @Test
-    fun `no extra interactions when only sendKeyDown called`() {
+    fun `SecurityException becomes permission failure`() {
         val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        s.sendKeyDown(0x05, 0)
-        // expected: only pressKey called
-        Mockito.verify(svc).pressKey(0x05.toByte(), 0)
-        // ensure releaseKey was not called
-        Mockito.verify(svc, Mockito.never()).releaseKey(0x05.toByte())
-        // and no other interactions occurred
-        Mockito.verifyNoMoreInteractions(svc)
-    }
-
-    @Test
-    fun `argument capture for pressKey in sendKeyDown`() {
-        val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        s.sendKeyDown(0x06, 0x03)
-
-        // verify exact values were passed to the service
-        Mockito.verify(svc).pressKey(0x06.toByte(), 0x03)
-        Mockito.verifyNoMoreInteractions(svc)
-    }
-
-    @Test
-    fun `pressKey exception is propagated`() {
-        val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        Mockito.doThrow(RuntimeException("boom"))
+        Mockito.doThrow(SecurityException("denied"))
             .`when`(svc).pressKey(0x07.toByte(), 0x01)
+        val sender = BluetoothKeySender(svc)
 
-        try {
-            s.sendKeyDown(0x07, 0x01)
-            org.junit.Assert.fail("Expected RuntimeException")
-        } catch (e: RuntimeException) {
-            org.junit.Assert.assertEquals("boom", e.message)
-        }
+        val result = sender.execute(KeyCommand.KeyDown(0x07, 0x01))
 
-        Mockito.verify(svc).pressKey(0x07.toByte(), 0x01)
-        Mockito.verifyNoMoreInteractions(svc)
+        assertTrue(result is CommandResult.Failure)
+        assertEquals(CommandErrorCode.PERMISSION_DENIED, (result as CommandResult.Failure).error.code)
     }
 
     @Test
-    fun `moveMouse exception is propagated`() {
+    fun `IllegalStateException becomes service unavailable failure`() {
         val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
         Mockito.doThrow(IllegalStateException("mouse-fail"))
             .`when`(svc).sendMouseMove(10, 20)
+        val sender = BluetoothKeySender(svc)
 
-        try {
-            s.moveMouse(10, 20)
-            org.junit.Assert.fail("Expected IllegalStateException")
-        } catch (e: IllegalStateException) {
-            org.junit.Assert.assertEquals("mouse-fail", e.message)
-        }
+        val result = sender.execute(KeyCommand.MoveMouse(10, 20))
 
-        Mockito.verify(svc).sendMouseMove(10, 20)
-        Mockito.verifyNoMoreInteractions(svc)
+        assertTrue(result is CommandResult.Failure)
+        assertEquals(CommandErrorCode.SERVICE_UNAVAILABLE, (result as CommandResult.Failure).error.code)
     }
 
     @Test
-    fun `pairDevice exception is propagated`() {
+    fun `IllegalArgumentException becomes invalid-state failure`() {
         val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        val d = Mockito.mock(BluetoothDevice::class.java)
+        val device = Mockito.mock(BluetoothDevice::class.java)
         Mockito.doThrow(IllegalArgumentException("pair-fail"))
-            .`when`(svc).pairDevice(d)
+            .`when`(svc).pairDevice(device)
+        val sender = BluetoothKeySender(svc)
 
-        try {
-            s.pairDevice(d)
-            org.junit.Assert.fail("Expected IllegalArgumentException")
-        } catch (e: IllegalArgumentException) {
-            org.junit.Assert.assertEquals("pair-fail", e.message)
-        }
+        val result = sender.execute(KeyCommand.PairDevice(device))
 
-        Mockito.verify(svc).pairDevice(d)
-        Mockito.verifyNoMoreInteractions(svc)
-    }
-
-    @Test
-    fun `disconnectDevice exception is propagated`() {
-        val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        Mockito.doThrow(IllegalStateException("disconnect-io"))
-            .`when`(svc).disconnectDevice()
-
-        try {
-            s.disconnectDevice()
-            org.junit.Assert.fail("Expected IllegalStateException")
-        } catch (e: IllegalStateException) {
-            org.junit.Assert.assertEquals("disconnect-io", e.message)
-        }
-
-        Mockito.verify(svc).disconnectDevice()
-        Mockito.verifyNoMoreInteractions(svc)
-    }
-
-    @Test
-    fun `toggleCapsLock exception is propagated`() {
-        val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        Mockito.doThrow(RuntimeException("caps-fail"))
-            .`when`(svc).sendKeyPress(0x39.toByte(), 0)
-
-        try {
-            s.toggleCapsLock()
-            org.junit.Assert.fail("Expected RuntimeException")
-        } catch (e: RuntimeException) {
-            org.junit.Assert.assertEquals("caps-fail", e.message)
-        }
-
-        Mockito.verify(svc).sendKeyPress(0x39.toByte(), 0)
-        Mockito.verifyNoMoreInteractions(svc)
-    }
-
-    @Test
-    fun `leftClick exception is propagated`() {
-        val svc = Mockito.mock(IBluetoothService::class.java)
-        val s = BluetoothKeySender(svc)
-        Mockito.doThrow(RuntimeException("left-fail"))
-            .`when`(svc).sendLeftClick()
-
-        try {
-            s.leftClick()
-            org.junit.Assert.fail("Expected RuntimeException")
-        } catch (e: RuntimeException) {
-            org.junit.Assert.assertEquals("left-fail", e.message)
-        }
-
-        Mockito.verify(svc).sendLeftClick()
-        Mockito.verifyNoMoreInteractions(svc)
+        assertTrue(result is CommandResult.Failure)
+        assertEquals(CommandErrorCode.INVALID_STATE, (result as CommandResult.Failure).error.code)
     }
 }
