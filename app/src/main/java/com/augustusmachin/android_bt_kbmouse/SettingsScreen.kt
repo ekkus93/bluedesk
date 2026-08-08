@@ -88,16 +88,12 @@ private suspend fun loadImeLabels(
 ): Map<String, String> {
     val pm = context.packageManager
     return overrides.keys.associateWith { pkg ->
-        try {
-            pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0))?.toString() ?: pkg
-        } catch (
-            @Suppress("TooGenericExceptionCaught") e: Exception,
-        ) {
-            // A missing/stale package label is not an IME override storage failure. Keep the
-            // stable package id visible while recording the diagnostic.
-            DebugLog.e("SettingsScreen", "IME label lookup failed for $pkg: ${e.message}")
-            pkg
-        }
+        val resolution =
+            resolveImeLabel(pkg) {
+                pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0))
+            }
+        resolution.diagnostic?.let { DebugLog.e("SettingsScreen", it) }
+        resolution.label
     }
 }
 
@@ -136,20 +132,17 @@ fun SettingsScreen(
     val batteryExempt by rememberBatteryExemptState(context)
 
     LaunchedEffect(Unit) {
-        try {
-            val loaded = SettingsManager.getAllImeOverrides(context)
-            imeOverrides = loaded
-            imeLabels = loadImeLabels(context, loaded)
-            imeLoadError = null
-        } catch (
-            @Suppress("TooGenericExceptionCaught") e: Exception,
-        ) {
-            // Do not transform a storage/read failure into a successful empty configuration.
-            // Preserve any last-known-good in-memory values and expose the failure separately.
-            val message = "Could not load IME overrides: ${e.message ?: e.javaClass.simpleName}"
-            DebugLog.e("SettingsScreen", message)
-            imeLoadError = message
-        }
+        val loadState =
+            loadImeOverridesState(
+                previousOverrides = imeOverrides,
+                previousLabels = imeLabels,
+                readOverrides = { SettingsManager.getAllImeOverrides(context) },
+                resolveLabels = { loaded -> loadImeLabels(context, loaded) },
+            )
+        imeOverrides = loadState.overrides
+        imeLabels = loadState.labels
+        imeLoadError = loadState.errorMessage
+        loadState.errorMessage?.let { DebugLog.e("SettingsScreen", it) }
     }
 
     val scrollState = rememberScrollState()
