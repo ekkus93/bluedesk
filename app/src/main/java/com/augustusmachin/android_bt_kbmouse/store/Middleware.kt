@@ -156,7 +156,8 @@ class KeySenderMiddleware(private val scope: CoroutineScope = CoroutineScope(Dis
         store: Store<AppState>,
         command: KeyCommand,
     ): CommandResult {
-        val result = sender?.execute(command) ?: missingSender()
+        val current = sender
+        val result = if (current == null) missingSender() else current.execute(command)
         report(store, result)
         return result
     }
