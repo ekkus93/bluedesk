@@ -37,6 +37,7 @@ class ServiceForegroundController(
             val message = "Classic HID could not enter foreground service state: ${e.message ?: e.javaClass.simpleName}"
             DebugLog.e(TAG, message)
             Log.e(TAG, message, e)
+            BtDevicePrefs(service).setLastRuntimeFailure(message)
             ClassicHidStartupRegistry.publish(ClassicHidStartupState.Failed(message))
             StoreProvider.dispatch(Action.UpdateMessage(message))
             postRuntimeFailureSafely(message)
