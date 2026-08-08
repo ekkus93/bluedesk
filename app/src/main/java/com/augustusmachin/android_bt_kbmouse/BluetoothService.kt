@@ -606,7 +606,12 @@ class BluetoothService : Service(), IBluetoothService {
                 intent: Intent,
             ) {
                 when (intent.action) {
-                    ACTION_CONNECT -> if (!connectLast()) eventListener?.onError("No remembered Bluetooth host is available")
+                    ACTION_CONNECT ->
+                        if (!connectLast()) {
+                            eventListener?.onError(
+                                "No remembered Bluetooth host is available",
+                            )
+                        }
                     ACTION_DISCONNECT -> disconnectDevice()
                     ACTION_FORGET -> {
                         devicePrefs.clearLastAndConnected()

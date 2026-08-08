@@ -232,7 +232,12 @@ private fun StatusTitle(
 ) {
     val chip =
         if (settings.debugLogging) {
-            val t = when (settings.logLevel) { 1 -> "Info"; 2 -> "Error"; else -> "All" }
+            val t =
+                when (settings.logLevel) {
+                    1 -> "Info"
+                    2 -> "Error"
+                    else -> "All"
+                }
             " • Log:$t"
         } else {
             ""

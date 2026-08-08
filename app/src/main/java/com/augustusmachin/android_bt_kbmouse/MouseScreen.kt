@@ -280,7 +280,13 @@ private fun MouseButtonRow(
             onClick = {
                 val newLock = !dragLock
                 onDragLockChange(newLock)
-                if (newLock) StoreProvider.dispatch(Action.MouseButtonDown(0x01)) else StoreProvider.dispatch(Action.MouseButtonUp)
+                if (newLock) {
+                    StoreProvider.dispatch(
+                        Action.MouseButtonDown(0x01),
+                    )
+                } else {
+                    StoreProvider.dispatch(Action.MouseButtonUp)
+                }
             },
             colors =
                 if (dragLock) {

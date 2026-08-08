@@ -224,7 +224,9 @@ private fun forwardImeInput(
         ImeEditPlan.NoChange -> true
         is ImeEditPlan.ResetRequired -> {
             DebugLog.e("KeyboardScreen", plan.reason)
-            StoreProvider.dispatch(Action.UpdateMessage("System keyboard input changed too far; input buffer was reset."))
+            StoreProvider.dispatch(
+                Action.UpdateMessage("System keyboard input changed too far; input buffer was reset."),
+            )
             StoreProvider.dispatch(Action.ReleaseLockedModifiers)
             false
         }

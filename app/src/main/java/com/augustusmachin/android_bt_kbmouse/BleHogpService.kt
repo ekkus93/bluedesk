@@ -250,8 +250,15 @@ class BleHogpService : Service(), HogpNotifier {
 
     private val gattCb =
         object : BluetoothGattServerCallback() {
-            override fun onServiceAdded(status: Int, service: BluetoothGattService) {
-                val allRegistered = readiness.onServiceAdded(service.uuid.toString(), status == BluetoothGatt.GATT_SUCCESS)
+            override fun onServiceAdded(
+                status: Int,
+                service: BluetoothGattService,
+            ) {
+                val allRegistered =
+                    readiness.onServiceAdded(
+                        service.uuid.toString(),
+                        status == BluetoothGatt.GATT_SUCCESS,
+                    )
                 if (readiness.state is BleHogpStartupState.Failed) {
                     failStartup((readiness.state as BleHogpStartupState.Failed).message)
                 } else if (allRegistered) {

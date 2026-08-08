@@ -156,7 +156,10 @@ class MainActivity : ComponentActivity() {
                     return
                 }
                 if (!backendLifecycle.senderInstalled(BackendMode.CLASSIC_HID)) {
-                    backendLifecycle.failInitialization(BackendMode.CLASSIC_HID, "Classic backend-init stage was rejected")
+                    backendLifecycle.failInitialization(
+                        BackendMode.CLASSIC_HID,
+                        "Classic backend-init stage was rejected",
+                    )
                     return
                 }
                 restoreClassicHostSnapshot(svc)
@@ -384,7 +387,9 @@ class MainActivity : ComponentActivity() {
             }
             StartupDecision.FallbackBleToClassic -> handleBleStartupDenied()
             StartupDecision.ShowClassicPermissionDenied -> {
-                StoreProvider.dispatch(Action.UpdateMessage("Bluetooth permission is required before the HID backend can start."))
+                StoreProvider.dispatch(
+                    Action.UpdateMessage("Bluetooth permission is required before the HID backend can start."),
+                )
                 showPermissionNeededDialog()
                 StartupState.markPermissionFlowResolved()
             }
@@ -477,7 +482,13 @@ class MainActivity : ComponentActivity() {
                                         bleHogpBound = it
                                     }
                             }
-                        if (bound) LifecycleOperationResult.Success else LifecycleOperationResult.Failure("Binding $mode returned false")
+                        if (bound) {
+                            LifecycleOperationResult.Success
+                        } else {
+                            LifecycleOperationResult.Failure(
+                                "Binding $mode returned false",
+                            )
+                        }
                     } catch (
                         @Suppress("TooGenericExceptionCaught") e: Exception,
                     ) {
@@ -594,7 +605,11 @@ class MainActivity : ComponentActivity() {
     private fun reconcileClassicReadiness(state: ClassicHidStartupState) {
         when (state) {
             ClassicHidStartupState.Ready -> backendLifecycle.markReady(BackendMode.CLASSIC_HID)
-            is ClassicHidStartupState.Failed -> backendLifecycle.failInitialization(BackendMode.CLASSIC_HID, state.message)
+            is ClassicHidStartupState.Failed ->
+                backendLifecycle.failInitialization(
+                    BackendMode.CLASSIC_HID,
+                    state.message,
+                )
             ClassicHidStartupState.WaitingForRegisterRequest,
             ClassicHidStartupState.WaitingForRegistrationCallback,
             -> Unit

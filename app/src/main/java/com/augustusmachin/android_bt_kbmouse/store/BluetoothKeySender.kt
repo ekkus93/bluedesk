@@ -144,10 +144,11 @@ class BluetoothKeySender(private val svc: IBluetoothService) : KeySender {
                     },
                     result.message,
                 )
-            null -> failure(
-                CommandErrorCode.SERVICE_UNAVAILABLE,
-                "Classic HID service returned no delivery result",
-            )
+            null ->
+                failure(
+                    CommandErrorCode.SERVICE_UNAVAILABLE,
+                    "Classic HID service returned no delivery result",
+                )
         }
 
     private inline fun successAfter(operation: () -> Unit): CommandResult {

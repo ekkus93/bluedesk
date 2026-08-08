@@ -214,7 +214,10 @@ private fun resolveDeviceRows(
     return PairingDeviceState(discovered, paired, connection.connectedDevice != null)
 }
 
-private fun requiredScanPermissions(): Array<String> = PermissionPolicy.requiredForScan(Build.VERSION.SDK_INT).toTypedArray()
+private fun requiredScanPermissions(): Array<String> =
+    PermissionPolicy.requiredForScan(
+        Build.VERSION.SDK_INT,
+    ).toTypedArray()
 
 @Composable
 private fun PairingContent(
