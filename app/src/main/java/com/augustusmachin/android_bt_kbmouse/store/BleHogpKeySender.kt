@@ -16,9 +16,13 @@ class BleHogpKeySender(private val notifier: HogpNotifier) : KeySender {
     override val backend: BackendMode = BackendMode.BLE_HOGP
     override val capabilities: BackendCapabilities = BackendCapabilitySets.bleHogp
 
-    @Volatile private var modifierByte: Int = 0
+    @Volatile
+    private var modifierByte: Int = 0
+
     private val pressedKeys = mutableListOf<Byte>()
-    @Volatile private var buttonsMask: Int = 0
+
+    @Volatile
+    private var buttonsMask: Int = 0
 
     private fun buildKeyReport(): ByteArray =
         HidReportBuilder.keyboardReport(
@@ -26,8 +30,10 @@ class BleHogpKeySender(private val notifier: HogpNotifier) : KeySender {
             synchronized(pressedKeys) { pressedKeys.take(MAX_ROLLOVER_KEYS).toList() },
         )
 
-    private fun buildMouseReport(dx: Int = 0, dy: Int = 0): ByteArray =
-        HidReportBuilder.mouseReportSimple(buttonsMask, dx, dy)
+    private fun buildMouseReport(
+        dx: Int = 0,
+        dy: Int = 0,
+    ): ByteArray = HidReportBuilder.mouseReportSimple(buttonsMask, dx, dy)
 
     override fun execute(command: KeyCommand): CommandResult =
         try {
@@ -71,29 +77,64 @@ class BleHogpKeySender(private val notifier: HogpNotifier) : KeySender {
             failure(CommandErrorCode.TRANSPORT_FAILURE, e.message ?: "BLE HOGP command failed")
         }
 
-    fun sendKeyDown(code: Byte, mods: Int): CommandResult = execute(KeyCommand.KeyDown(code, mods))
-    fun sendKeyUp(code: Byte): CommandResult = execute(KeyCommand.KeyUp(code))
-    fun moveMouse(dx: Int, dy: Int): CommandResult = execute(KeyCommand.MoveMouse(dx, dy))
-    fun leftClick(): CommandResult = click(0x01)
-    fun rightClick(): CommandResult = click(0x02)
-    fun middleClick(): CommandResult = click(0x04)
-    fun mouseButtonDown(button: Int): CommandResult = execute(KeyCommand.MouseButtonDown(button))
-    fun mouseButtonUp(): CommandResult = execute(KeyCommand.MouseButtonUp)
-    fun scrollVertical(delta: Int): CommandResult = execute(KeyCommand.ScrollVertical(delta))
-    fun scrollHorizontal(delta: Int): CommandResult = execute(KeyCommand.ScrollHorizontal(delta))
-    fun toggleCapsLock(): CommandResult = keyPress(0x39.toByte())
-    fun toggleScrollLock(): CommandResult = keyPress(0x47.toByte())
-    fun setModifiers(mods: Int): CommandResult = execute(KeyCommand.SetModifiers(mods))
-    fun startDiscovery(): CommandResult = execute(KeyCommand.StartDiscovery)
-    fun stopDiscovery(): CommandResult = execute(KeyCommand.StopDiscovery)
-    fun pairDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.PairDevice(device))
-    fun connectDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.ConnectDevice(device))
-    fun disconnectDevice(): CommandResult = execute(KeyCommand.DisconnectDevice)
-    fun forgetDevice(device: BluetoothDevice, unpair: Boolean): CommandResult = execute(KeyCommand.ForgetDevice(device, unpair))
-    fun setDefaultDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.SetDefaultDevice(device))
-    fun renameDevice(device: BluetoothDevice, alias: String): CommandResult = execute(KeyCommand.RenameDevice(device, alias))
+    fun sendKeyDown(
+        code: Byte,
+        mods: Int,
+    ): CommandResult = execute(KeyCommand.KeyDown(code, mods))
 
-    private fun sendKeyDownInternal(code: Byte, mods: Int): HidDeliveryResult {
+    fun sendKeyUp(code: Byte): CommandResult = execute(KeyCommand.KeyUp(code))
+
+    fun moveMouse(
+        dx: Int,
+        dy: Int,
+    ): CommandResult = execute(KeyCommand.MoveMouse(dx, dy))
+
+    fun leftClick(): CommandResult = click(0x01)
+
+    fun rightClick(): CommandResult = click(0x02)
+
+    fun middleClick(): CommandResult = click(0x04)
+
+    fun mouseButtonDown(button: Int): CommandResult = execute(KeyCommand.MouseButtonDown(button))
+
+    fun mouseButtonUp(): CommandResult = execute(KeyCommand.MouseButtonUp)
+
+    fun scrollVertical(delta: Int): CommandResult = execute(KeyCommand.ScrollVertical(delta))
+
+    fun scrollHorizontal(delta: Int): CommandResult = execute(KeyCommand.ScrollHorizontal(delta))
+
+    fun toggleCapsLock(): CommandResult = keyPress(0x39.toByte())
+
+    fun toggleScrollLock(): CommandResult = keyPress(0x47.toByte())
+
+    fun setModifiers(mods: Int): CommandResult = execute(KeyCommand.SetModifiers(mods))
+
+    fun startDiscovery(): CommandResult = execute(KeyCommand.StartDiscovery)
+
+    fun stopDiscovery(): CommandResult = execute(KeyCommand.StopDiscovery)
+
+    fun pairDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.PairDevice(device))
+
+    fun connectDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.ConnectDevice(device))
+
+    fun disconnectDevice(): CommandResult = execute(KeyCommand.DisconnectDevice)
+
+    fun forgetDevice(
+        device: BluetoothDevice,
+        unpair: Boolean,
+    ): CommandResult = execute(KeyCommand.ForgetDevice(device, unpair))
+
+    fun setDefaultDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.SetDefaultDevice(device))
+
+    fun renameDevice(
+        device: BluetoothDevice,
+        alias: String,
+    ): CommandResult = execute(KeyCommand.RenameDevice(device, alias))
+
+    private fun sendKeyDownInternal(
+        code: Byte,
+        mods: Int,
+    ): HidDeliveryResult {
         modifierByte = mods
         synchronized(pressedKeys) {
             if (!pressedKeys.contains(code)) pressedKeys.add(code)
@@ -140,5 +181,8 @@ class BleHogpKeySender(private val notifier: HogpNotifier) : KeySender {
     private fun unsupported(operation: String): CommandResult.Unsupported =
         CommandResult.Unsupported(operation, "BLE HOGP does not support $operation; connect and pair from the host.")
 
-    private fun failure(code: CommandErrorCode, message: String) = CommandResult.Failure(CommandError(code, message))
+    private fun failure(
+        code: CommandErrorCode,
+        message: String,
+    ) = CommandResult.Failure(CommandError(code, message))
 }
