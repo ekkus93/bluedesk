@@ -3,6 +3,7 @@ package com.augustusmachin.android_bt_kbmouse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HidImeMapperTest {
@@ -65,11 +66,8 @@ class HidImeMapperTest {
 
     @Test
     fun unmapped_character_returns_null() {
-        val greek = charToHid('α')
-        assertNull(greek)
+        assertNull(charToHid('α'))
     }
-
-    // ── imeAppendedText: the repeated-key fix ──────────────────────────────
 
     @Test
     fun imeAppended_firstCharacter() {
@@ -78,7 +76,6 @@ class HidImeMapperTest {
 
     @Test
     fun imeAppended_repeatedSameCharacter() {
-        // The bug: "a" -> "aa" must report the appended "a" (not be dropped as a dup).
         assertEquals("a", imeAppendedText("a", "aa"))
         assertEquals("a", imeAppendedText("aa", "aaa"))
     }
@@ -105,13 +102,52 @@ class HidImeMapperTest {
 
     @Test
     fun imeAppended_nonPrefixReplacementIsNull() {
-        // e.g. autocorrect replacing the text, not a clean append.
         assertNull(imeAppendedText("teh", "the"))
     }
 
     @Test
     fun imeAppended_largeJumpRejectedAsDesync() {
-        // Guards against replaying the whole buffer after a reset desync.
         assertNull(imeAppendedText("", "abcdefghij", maxBatch = 8))
+    }
+
+    @Test
+    fun imePlan_simpleAppend() {
+        assertEquals(ImeEditPlan.Apply(0, "c"), planImeEdit("ab", "abc"))
+    }
+
+    @Test
+    fun imePlan_multiCharacterAppend() {
+        assertEquals(ImeEditPlan.Apply(0, "xyz"), planImeEdit("ab", "abxyz"))
+    }
+
+    @Test
+    fun imePlan_backspaceDelete() {
+        assertEquals(ImeEditPlan.Apply(1, ""), planImeEdit("abc", "ab"))
+    }
+
+    @Test
+    fun imePlan_equalLengthReplacement() {
+        assertEquals(ImeEditPlan.Apply(2, "he"), planImeEdit("teh", "the"))
+    }
+
+    @Test
+    fun imePlan_suffixReplacement() {
+        assertEquals(ImeEditPlan.Apply(3, "xyz"), planImeEdit("prefixabc", "prefixxyz"))
+    }
+
+    @Test
+    fun imePlan_compositionLikeReplacement() {
+        assertEquals(ImeEditPlan.Apply(2, "llo"), planImeEdit("hel", "hello"))
+    }
+
+    @Test
+    fun imePlan_noChange() {
+        assertEquals(ImeEditPlan.NoChange, planImeEdit("same", "same"))
+    }
+
+    @Test
+    fun imePlan_largeDesyncRequiresReset() {
+        val plan = planImeEdit("abcdefghijklmnop", "qrstuvwxyzabcdef", maxOperations = 8)
+        assertTrue(plan is ImeEditPlan.ResetRequired)
     }
 }
