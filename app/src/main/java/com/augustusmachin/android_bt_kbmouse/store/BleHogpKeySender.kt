@@ -34,36 +34,38 @@ class BleHogpKeySender(private val notifier: HogpNotifier) : KeySender {
         dy: Int = 0,
     ): ByteArray = HidReportBuilder.mouseReportSimple(buttonsMask, dx, dy)
 
-    override fun execute(command: KeyCommand): CommandResult =
-        try {
+    override fun execute(command: KeyCommand): CommandResult {
+        return try {
             when (command) {
-                is KeyCommand.KeyDown -> sendKeyDownInternal(command.code, command.mods)
-                is KeyCommand.KeyUp -> sendKeyUpInternal(command.code)
-                is KeyCommand.MoveMouse -> notifier.notifyMouse(buildMouseReport(command.dx, command.dy))
-                is KeyCommand.MouseButtonDown -> {
-                    buttonsMask = buttonsMask or command.button
-                    notifier.notifyMouse(buildMouseReport())
-                }
-                KeyCommand.MouseButtonUp -> {
-                    buttonsMask = 0
-                    notifier.notifyMouse(buildMouseReport())
-                }
-                is KeyCommand.SetModifiers -> {
-                    modifierByte = command.mods
-                    notifier.notifyKeyboard(buildKeyReport())
-                }
-                is KeyCommand.ScrollVertical -> return unsupported("vertical scroll")
-                is KeyCommand.ScrollHorizontal -> return unsupported("horizontal scroll")
-                KeyCommand.StartDiscovery -> return unsupported("device discovery")
-                KeyCommand.StopDiscovery -> return unsupported("device discovery")
-                is KeyCommand.PairDevice -> return unsupported("Classic pairing")
-                is KeyCommand.ConnectDevice -> return unsupported("explicit connect")
-                KeyCommand.DisconnectDevice -> return unsupported("explicit disconnect")
-                is KeyCommand.ForgetDevice -> return unsupported("forget/unpair")
-                is KeyCommand.SetDefaultDevice -> return unsupported("default device")
-                is KeyCommand.RenameDevice -> return unsupported("device rename")
+                is KeyCommand.KeyDown -> successAfter { sendKeyDownInternal(command.code, command.mods) }
+                is KeyCommand.KeyUp -> successAfter { sendKeyUpInternal(command.code) }
+                is KeyCommand.MoveMouse -> successAfter { notifier.notifyMouse(buildMouseReport(command.dx, command.dy)) }
+                is KeyCommand.MouseButtonDown ->
+                    successAfter {
+                        buttonsMask = buttonsMask or command.button
+                        notifier.notifyMouse(buildMouseReport())
+                    }
+                KeyCommand.MouseButtonUp ->
+                    successAfter {
+                        buttonsMask = 0
+                        notifier.notifyMouse(buildMouseReport())
+                    }
+                is KeyCommand.SetModifiers ->
+                    successAfter {
+                        modifierByte = command.mods
+                        notifier.notifyKeyboard(buildKeyReport())
+                    }
+                is KeyCommand.ScrollVertical -> unsupported("vertical scroll")
+                is KeyCommand.ScrollHorizontal -> unsupported("horizontal scroll")
+                KeyCommand.StartDiscovery -> unsupported("device discovery")
+                KeyCommand.StopDiscovery -> unsupported("device discovery")
+                is KeyCommand.PairDevice -> unsupported("Classic pairing")
+                is KeyCommand.ConnectDevice -> unsupported("explicit connect")
+                KeyCommand.DisconnectDevice -> unsupported("explicit disconnect")
+                is KeyCommand.ForgetDevice -> unsupported("forget/unpair")
+                is KeyCommand.SetDefaultDevice -> unsupported("default device")
+                is KeyCommand.RenameDevice -> unsupported("device rename")
             }
-            CommandResult.Success
         } catch (e: SecurityException) {
             CommandResult.Failure(
                 CommandError(CommandErrorCode.PERMISSION_DENIED, e.message ?: "BLE permission denied"),
@@ -77,6 +79,7 @@ class BleHogpKeySender(private val notifier: HogpNotifier) : KeySender {
                 CommandError(CommandErrorCode.INVALID_STATE, e.message ?: "BLE HOGP command was rejected"),
             )
         }
+    }
 
     fun sendKeyDown(
         code: Byte,
@@ -158,6 +161,11 @@ class BleHogpKeySender(private val notifier: HogpNotifier) : KeySender {
         val down = execute(KeyCommand.KeyDown(code, modifierByte))
         if (down != CommandResult.Success) return down
         return execute(KeyCommand.KeyUp(code))
+    }
+
+    private inline fun successAfter(operation: () -> Unit): CommandResult {
+        operation()
+        return CommandResult.Success
     }
 
     private fun unsupported(operation: String): CommandResult.Unsupported =
