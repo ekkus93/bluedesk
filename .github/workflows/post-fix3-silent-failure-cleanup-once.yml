@@ -1,4 +1,4 @@
-name: One-shot post-Fix3 hardening cleanup
+name: One-shot post-Fix3 evidence-test cleanup
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   fix:
-    if: github.event.head_commit.message == 'Run silent-failure cleanup once'
+    if: github.event.head_commit.message == 'Run final evidence-test cleanup'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,11 +24,8 @@ jobs:
           java-version: '21'
           cache: gradle
 
-      - name: Apply bounded correctness cleanup
-        run: python3 .github/scripts/post_fix3_silent_failure_cleanup.py
-
-      - name: Apply bounded UI contract cleanup
-        run: python3 .github/scripts/post_fix3_ui_contract_cleanup.py
+      - name: Integrate explicit IME load-state model
+        run: python3 .github/scripts/post_fix3_ime_load_state_cleanup.py
 
       - name: Format Kotlin sources
         run: ./gradlew :app:ktlintFormat --stacktrace
@@ -36,12 +33,12 @@ jobs:
       - name: Verify unit, instrumented compile, and static gates
         run: ./gradlew :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:ktlintCheck :app:detekt --stacktrace
 
-      - name: Commit bounded fixes
+      - name: Commit bounded integration
         run: |
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add app/src
           git diff --cached --quiet && { echo 'No changes produced'; exit 1; }
-          git commit -m 'Close post-Fix3 correctness and UI gaps'
+          git commit -m 'Complete hardening evidence tests'
           git push origin HEAD:master
