@@ -1,9 +1,9 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Guardrails for the exact silent-failure patterns removed by the post-Fix3 hardening pass.
