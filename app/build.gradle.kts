@@ -12,7 +12,9 @@ android {
 
     defaultConfig {
         applicationId = "com.augustusmachin.android_bt_kbmouse"
-        minSdk = 26
+        // Classic Bluetooth HID Device support begins at Android 9 / API 28.
+        // BlueDeck's primary Classic backend therefore cannot honestly support API 26-27.
+        minSdk = 28
         targetSdk = 34
         versionCode = 2
         versionName = "0.2.0"
