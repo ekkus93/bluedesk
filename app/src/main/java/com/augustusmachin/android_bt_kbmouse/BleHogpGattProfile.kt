@@ -82,7 +82,9 @@ internal object BleHogpGattProfileBuilder {
         )
     }
 
-    private fun addKeyboard(service: BluetoothGattService): Pair<BluetoothGattCharacteristic, BluetoothGattCharacteristic> {
+    private fun addKeyboard(
+        service: BluetoothGattService,
+    ): Pair<BluetoothGattCharacteristic, BluetoothGattCharacteristic> {
         val bootInput =
             BluetoothGattCharacteristic(
                 bootKeyboardInputUuid,
@@ -104,7 +106,8 @@ internal object BleHogpGattProfileBuilder {
         service.addCharacteristic(
             BluetoothGattCharacteristic(
                 bootKeyboardOutputUuid,
-                BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE or
+                BluetoothGattCharacteristic.PROPERTY_READ or
+                    BluetoothGattCharacteristic.PROPERTY_WRITE or
                     BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,
                 BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
             ),
@@ -112,7 +115,9 @@ internal object BleHogpGattProfileBuilder {
         return bootInput to inputReport
     }
 
-    private fun addMouse(service: BluetoothGattService): Pair<BluetoothGattCharacteristic, BluetoothGattCharacteristic> {
+    private fun addMouse(
+        service: BluetoothGattService,
+    ): Pair<BluetoothGattCharacteristic, BluetoothGattCharacteristic> {
         val bootInput =
             BluetoothGattCharacteristic(
                 bootMouseInputUuid,
@@ -152,11 +157,15 @@ internal object BleHogpGattProfileBuilder {
     private fun cccDescriptor(): BluetoothGattDescriptor =
         BluetoothGattDescriptor(
             cccUuid,
-            BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
+            BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED or
+                BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED,
         )
 
     private fun reportReferenceDescriptor(reportId: Byte): BluetoothGattDescriptor =
-        BluetoothGattDescriptor(reportReferenceUuid, BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED).also {
+        BluetoothGattDescriptor(
+            reportReferenceUuid,
+            BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED,
+        ).also {
             it.setValueCompat(byteArrayOf(reportId, 0x01))
         }
 
