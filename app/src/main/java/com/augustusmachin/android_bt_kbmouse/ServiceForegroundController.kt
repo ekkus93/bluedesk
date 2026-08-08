@@ -5,6 +5,9 @@ import android.content.ComponentName
 import android.content.Intent
 import android.os.Build
 import android.service.quicksettings.TileService
+import android.util.Log
+import com.augustusmachin.android_bt_kbmouse.store.Action
+import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 
 /**
  * Owns the foreground-service notification, the quick-settings tile refresh, and the
@@ -19,9 +22,9 @@ class ServiceForegroundController(
     private val forgetAction: String,
 ) {
     /**
-     * Promote the service to the foreground. Returns true on success. On failure we do NOT
-     * fall back to a plain notification (that is not a foreground service and can be killed
-     * unpredictably) — we log, stop the service, and return false so the caller aborts.
+     * Promote the Classic HID service to the foreground. Failure is authoritative: publish
+     * failed startup state, surface a user-visible notification/message, stop the service,
+     * and return false so the caller cannot continue initialization.
      */
     fun startInForeground(): Boolean {
         val notif = ServiceNotifications.buildForeground(service, connectAction, disconnectAction, forgetAction)
@@ -31,8 +34,13 @@ class ServiceForegroundController(
         } catch (
             @Suppress("TooGenericExceptionCaught") e: Exception,
         ) {
-            DebugLog.e(TAG, "startForeground failed: ${e.message}")
-            service.stopSelf()
+            val message = "Classic HID could not enter foreground service state: ${e.message ?: e.javaClass.simpleName}"
+            DebugLog.e(TAG, message)
+            Log.e(TAG, message, e)
+            ClassicHidStartupRegistry.publish(ClassicHidStartupState.Failed(message))
+            StoreProvider.dispatch(Action.UpdateMessage(message))
+            postRuntimeFailureSafely(message)
+            stopSelfSafely("foreground-start failure")
             false
         }
     }
@@ -41,7 +49,11 @@ class ServiceForegroundController(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             try {
                 TileService.requestListeningState(service, ComponentName(service, HidQuickTileService::class.java))
-            } catch (_: Exception) {
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                // The tile is an optional observer; failure must not alter authoritative HID state.
+                Log.w(TAG, "Quick Settings tile refresh failed", e)
             }
         }
     }
@@ -49,19 +61,53 @@ class ServiceForegroundController(
     fun reportMissingBluetoothConnect() {
         val msg = "App requires BLUETOOTH_CONNECT permission. Please grant it in Settings."
         DebugLog.e(TAG, msg)
-        // Post a user-visible notification with a shortcut to app settings
-        runCatchingLogged(TAG, "failed to post settings notification") {
+        Log.e(TAG, msg)
+
+        try {
             ServiceNotifications.postMissingPermission(service, msg)
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception,
+        ) {
+            // Activity broadcast remains an independent user-visible path.
+            Log.e(TAG, "Failed to post missing-permission notification", e)
         }
-        // Broadcast so the Activity can show UI and exit gracefully
-        runCatchingLogged(TAG, "failed to send missing-perm broadcast") {
+
+        try {
             val b = Intent(BluetoothService.ACTION_MISSING_BLUETOOTH_CONNECT).setPackage(service.packageName)
             service.sendBroadcast(b)
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception,
+        ) {
+            // Notification above remains an independent user-visible path.
+            Log.e(TAG, "Failed to send missing-permission broadcast", e)
         }
-        // Stop the service gracefully
+
+        stopSelfSafely("missing Bluetooth permission")
+    }
+
+    private fun postRuntimeFailureSafely(message: String) {
+        try {
+            ServiceNotifications.postRuntimeFailure(
+                service,
+                title = "BlueDeck could not start",
+                message = message,
+            )
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception,
+        ) {
+            // Store state and Android system log already contain the authoritative failure.
+            Log.e(TAG, "Failed to post foreground-start failure notification", e)
+        }
+    }
+
+    private fun stopSelfSafely(reason: String) {
         try {
             service.stopSelf()
-        } catch (_: Exception) {
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception,
+        ) {
+            // Teardown failure is diagnostic only; failed startup/permission state is already durable.
+            Log.e(TAG, "stopSelf failed during $reason", e)
         }
     }
 
