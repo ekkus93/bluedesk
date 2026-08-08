@@ -1,6 +1,5 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
@@ -39,10 +38,10 @@ private const val SDK_INT_MARSHMALLOW = 23
 
 class BleHogpService : Service(), HogpNotifier {
     companion object {
+        private const val TAG = "BleHogpService"
         private val UUID_HID_SERVICE = UUID.fromString("00001812-0000-1000-8000-00805f9b34fb")
         private val UUID_BATTERY_SERVICE = UUID.fromString("0000180F-0000-1000-8000-00805f9b34fb")
         private val UUID_DEVINFO_SERVICE = UUID.fromString("0000180A-0000-1000-8000-00805f9b34fb")
-
         private val UUID_HID_INFORMATION = UUID.fromString("00002A4A-0000-1000-8000-00805f9b34fb")
         private val UUID_REPORT_MAP = UUID.fromString("00002A4B-0000-1000-8000-00805f9b34fb")
         private val UUID_HID_CONTROL_POINT = UUID.fromString("00002A4C-0000-1000-8000-00805f9b34fb")
@@ -172,7 +171,9 @@ class BleHogpService : Service(), HogpNotifier {
     private fun registerNextGattService() {
         val serviceId = readiness.nextServiceToRegister()
         if (serviceId == null) {
-            if (readiness.state is BleHogpStartupState.Failed) failStartup((readiness.state as BleHogpStartupState.Failed).message)
+            if (readiness.state is BleHogpStartupState.Failed) {
+                failStartup((readiness.state as BleHogpStartupState.Failed).message)
+            }
             return
         }
         val service = mandatoryServices[serviceId]
@@ -454,7 +455,7 @@ class BleHogpService : Service(), HogpNotifier {
                         protocolMode = value.firstOrNull() ?: 0
                         characteristic.setValueCompat(byteArrayOf(protocolMode))
                     }
-                    UUID_HID_CONTROL_POINT -> Unit // Suspend/exit-suspend requires no local state change.
+                    UUID_HID_CONTROL_POINT -> Unit
                     UUID_BOOT_KB_OUTPUT -> eventListener?.onLeds(value.firstOrNull()?.toInt() ?: 0)
                 }
                 if (responseNeeded) gattSendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
@@ -498,7 +499,11 @@ class BleHogpService : Service(), HogpNotifier {
             StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
             return
         }
-        val server = gattServer ?: return
+        val server = gattServer
+        if (server == null) {
+            DebugLog.e(TAG, "Cannot send GATT response: GATT server is unavailable")
+            return
+        }
         try {
             server.sendResponse(device, requestId, status, offset, value)
         } catch (e: SecurityException) {
@@ -507,9 +512,11 @@ class BleHogpService : Service(), HogpNotifier {
         }
     }
 
-    override fun notifyKeyboard(report: ByteArray): HidDeliveryResult = notifyReport(report, listOfNotNull(kbInputChar, kbInputReportChar), "keyboard")
+    override fun notifyKeyboard(report: ByteArray): HidDeliveryResult =
+        notifyReport(report, listOfNotNull(kbInputChar, kbInputReportChar), "keyboard")
 
-    override fun notifyMouse(report: ByteArray): HidDeliveryResult = notifyReport(report, listOfNotNull(mouseInputChar, mouseInputReportChar), "mouse")
+    override fun notifyMouse(report: ByteArray): HidDeliveryResult =
+        notifyReport(report, listOfNotNull(mouseInputChar, mouseInputReportChar), "mouse")
 
     @SuppressLint("MissingPermission")
     private fun notifyReport(
@@ -527,8 +534,12 @@ class BleHogpService : Service(), HogpNotifier {
         val server = gattServer
             ?: return deliveryFailure(HidDeliveryFailureCode.HID_PROXY_MISSING, "BLE $kind report rejected: GATT server is unavailable")
         val devices = synchronized(connected) { connected.toList() }
-        if (devices.isEmpty()) return deliveryFailure(HidDeliveryFailureCode.DEVICE_MISSING, "BLE $kind report rejected: no host is connected")
-        if (characteristics.isEmpty()) return deliveryFailure(HidDeliveryFailureCode.HID_PROXY_MISSING, "BLE $kind report rejected: GATT input characteristic is unavailable")
+        if (devices.isEmpty()) {
+            return deliveryFailure(HidDeliveryFailureCode.DEVICE_MISSING, "BLE $kind report rejected: no host is connected")
+        }
+        if (characteristics.isEmpty()) {
+            return deliveryFailure(HidDeliveryFailureCode.HID_PROXY_MISSING, "BLE $kind report rejected: GATT input characteristic is unavailable")
+        }
 
         return try {
             for (characteristic in characteristics) {
@@ -638,9 +649,11 @@ class BleHogpService : Service(), HogpNotifier {
 
     private fun startInForeground(): Boolean {
         val channelId = "ble_hogp_service"
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= SDK_INT_OREO && nm.getNotificationChannel(channelId) == null) {
-            nm.createNotificationChannel(NotificationChannel(channelId, "BLE HID Service", NotificationManager.IMPORTANCE_LOW))
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= SDK_INT_OREO && notificationManager.getNotificationChannel(channelId) == null) {
+            notificationManager.createNotificationChannel(
+                NotificationChannel(channelId, "BLE HID Service", NotificationManager.IMPORTANCE_LOW),
+            )
         }
         val pendingIntent =
             PendingIntent.getActivity(
@@ -667,10 +680,6 @@ class BleHogpService : Service(), HogpNotifier {
             DebugLog.e(TAG, "startForeground failed: ${e.message}")
             false
         }
-    }
-
-    private companion object {
-        const val TAG = "BleHogpService"
     }
 }
 
