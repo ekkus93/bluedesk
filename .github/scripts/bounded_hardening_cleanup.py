@@ -20,7 +20,6 @@ replace(
                         profileListener,
                         BluetoothProfile.HID_DEVICE,
                     ) == true""",
-    expected=2,
 )
 replace(
     service,
