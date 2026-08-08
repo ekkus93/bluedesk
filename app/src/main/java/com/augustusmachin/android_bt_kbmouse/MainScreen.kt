@@ -52,6 +52,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import com.augustusmachin.android_bt_kbmouse.store.isInputUsable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -64,8 +65,12 @@ fun MainScreen() {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val appState by StoreProvider.asStateFlow().collectAsState()
-    val connected = appState.connection.connectedDevice
-    // Proactively request notifications on 33+
+    val hostConnected = appState.connection.connectedDevice != null
+    val inputUsable = appState.isInputUsable()
+    val connectedName = appState.connection.connectedDeviceLabel
+    val readyState = appState.backend.runtime as? BackendRuntimeState.Ready
+    val canDiscover = readyState?.capabilities?.discovery == true
+
     val context = LocalContext.current
     val notifLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -74,9 +79,6 @@ fun MainScreen() {
         }
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= SDK_INT_TIRAMISU) {
-            // Wait until the startup Bluetooth-permission flow has resolved so the notification
-            // prompt can never fire while the startup permission launcher is active (state-based,
-            // not a timer race). Notifications are optional and never block the app.
             StartupState.permissionFlowResolved.first { it }
             val sp = context.getSharedPreferences("perm", Context.MODE_PRIVATE)
             if (!sp.getBoolean("notif_asked", false)) {
@@ -91,28 +93,33 @@ fun MainScreen() {
             }
         }
     }
-    // Battery-optimization exemption is now offered on demand from the Settings screen
-    // (Background reliability), instead of as a prompt on launch.
-    // read settings from SettingsViewModel to avoid duplicate collectors
+
     val settingsViewModel: SettingsViewModel = viewModel()
-    val settings by settingsViewModel.settings.collectAsState(
-        initial = com.augustusmachin.android_bt_kbmouse.Settings(),
-    )
-    // Read the BT device name here (this composable performs a checkSelfPermission for
-    // POST_NOTIFICATIONS, satisfying lint) and pass the plain name down.
-    val connectedName = connected?.name
+    val settings by settingsViewModel.settings.collectAsState(initial = Settings())
     val onShowMessage: (String) -> Unit = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
     Scaffold(
-        topBar = { MainTopBar(navController, connected, connectedName, settings, onShowMessage) },
+        topBar = {
+            MainTopBar(
+                navController = navController,
+                hostConnected = hostConnected,
+                inputUsable = inputUsable,
+                connectedName = connectedName,
+                canDiscover = canDiscover,
+                settings = settings,
+                onShowMessage = onShowMessage,
+            )
+        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     ) { innerPadding ->
         val message = appState.connection.message
         val navBack by navController.currentBackStackEntryAsState()
         val route = navBack?.destination?.route
-        LaunchedEffect(connected, route, settings.offlinePreview, settings.debugLogging) {
-            val keyboardAccessible = connected != null || settings.debugLogging || settings.offlinePreview
+        LaunchedEffect(inputUsable, route, settings.offlinePreview, settings.debugLogging) {
+            val keyboardAccessible = inputUsable || settings.debugLogging || settings.offlinePreview
             if (!keyboardAccessible && (route == Screen.Keyboard.route || route == Screen.Mouse.route)) {
-                snackbarHostState.showSnackbar("Disconnected")
+                snackbarHostState.showSnackbar(
+                    if (hostConnected) "Input backend is not ready" else "Disconnected",
+                )
                 navController.navigate(Screen.Pairing.route) { launchSingleTop = true }
             }
         }
@@ -129,19 +136,18 @@ fun MainScreen() {
 @Composable
 private fun MainTopBar(
     navController: androidx.navigation.NavHostController,
-    connected: android.bluetooth.BluetoothDevice?,
+    hostConnected: Boolean,
+    inputUsable: Boolean,
     connectedName: String?,
+    canDiscover: Boolean,
     settings: Settings,
     onShowMessage: (String) -> Unit,
 ) {
     Column {
-        // Move the navigation bar to the top so it's accessible even when the IME is visible.
-        MainNavigationBar(navController, connected, settings, onShowMessage)
-
-        // Compact status row — hidden on Keyboard screen to save space.
+        MainNavigationBar(navController, hostConnected, inputUsable, settings, onShowMessage)
         val statusNavEntry by navController.currentBackStackEntryAsState()
         if (statusNavEntry?.destination?.route != Screen.Keyboard.route) {
-            StatusTopBar(connectedName, settings, navController)
+            StatusTopBar(hostConnected, inputUsable, connectedName, canDiscover, settings, navController)
         }
     }
 }
@@ -149,7 +155,8 @@ private fun MainTopBar(
 @Composable
 private fun MainNavigationBar(
     navController: androidx.navigation.NavHostController,
-    connected: android.bluetooth.BluetoothDevice?,
+    hostConnected: Boolean,
+    inputUsable: Boolean,
     settings: Settings,
     onShowMessage: (String) -> Unit,
 ) {
@@ -158,13 +165,12 @@ private fun MainNavigationBar(
         val currentDestination = navBackStackEntry?.destination
         Screen.values().forEach { screen ->
             val isEnabled =
-                connected != null || screen == Screen.Pairing ||
-                    screen == Screen.Settings || settings.debugLogging || settings.offlinePreview
+                inputUsable || screen == Screen.Pairing || screen == Screen.Settings ||
+                    settings.debugLogging || settings.offlinePreview
             NavigationBarItem(
                 icon = { Icon(painterResource(id = screen.icon), contentDescription = screen.title) },
                 label = { Text(screen.title) },
                 selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                // Always enabled so onClick fires; disabled appearance applied via colors.
                 enabled = true,
                 colors =
                     if (!isEnabled) {
@@ -180,7 +186,13 @@ private fun MainNavigationBar(
                     },
                 onClick = {
                     if (!isEnabled) {
-                        onShowMessage("Connect a device first")
+                        onShowMessage(
+                            if (hostConnected) {
+                                "Bluetooth host is connected, but the input backend is not ready"
+                            } else {
+                                "Connect a device first"
+                            },
+                        )
                     } else {
                         navController.navigate(screen.route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -197,60 +209,53 @@ private fun MainNavigationBar(
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun StatusTopBar(
+    hostConnected: Boolean,
+    inputUsable: Boolean,
     connectedName: String?,
+    canDiscover: Boolean,
     settings: Settings,
     navController: androidx.navigation.NavHostController,
 ) {
     CenterAlignedTopAppBar(
-        title = { StatusTitle(connectedName, settings) },
-        actions = { StatusActions(navController) },
+        title = { StatusTitle(hostConnected, inputUsable, connectedName, settings) },
+        actions = { StatusActions(navController, canDiscover) },
     )
 }
 
 @Composable
 private fun StatusTitle(
+    hostConnected: Boolean,
+    inputUsable: Boolean,
     connectedName: String?,
     settings: Settings,
 ) {
     val chip =
         if (settings.debugLogging) {
-            val t =
-                when (settings.logLevel) {
-                    1 -> "Info"
-                    2 -> "Error"
-                    else -> "All"
-                }
-            " • Log:" + t
+            val t = when (settings.logLevel) { 1 -> "Info"; 2 -> "Error"; else -> "All" }
+            " • Log:$t"
         } else {
             ""
         }
-    // Compact status: indicator + device name; omit the large app title to save space.
+    val deviceLabel = connectedName ?: "Bluetooth host"
     val statusText =
-        if (connectedName != null) "Connected to $connectedName" else "Disconnected"
+        when {
+            hostConnected && inputUsable -> "Connected to $deviceLabel"
+            hostConnected -> "$deviceLabel — input unavailable"
+            else -> "Disconnected"
+        }
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier =
-            Modifier.semantics {
-                this[SemanticsProperties.ContentDescription] = listOf(statusText)
-            },
+        modifier = Modifier.semantics { this[SemanticsProperties.ContentDescription] = listOf(statusText) },
     ) {
         val indicatorColor =
-            if (connectedName != null) {
-                MaterialTheme.colorScheme.tertiary
-            } else {
-                MaterialTheme.colorScheme.onSurface.copy(
-                    alpha = 0.34f,
-                )
+            when {
+                hostConnected && inputUsable -> MaterialTheme.colorScheme.tertiary
+                hostConnected -> MaterialTheme.colorScheme.error
+                else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f)
             }
-        Box(
-            modifier =
-                Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(indicatorColor),
-        )
+        Box(Modifier.size(8.dp).clip(CircleShape).background(indicatorColor))
         Spacer(modifier = Modifier.width(8.dp))
-        Text(text = connectedName ?: "Disconnected", style = MaterialTheme.typography.bodySmall)
+        Text(text = statusText, style = MaterialTheme.typography.bodySmall)
         if (settings.debugLogging && chip.isNotEmpty()) {
             Spacer(modifier = Modifier.width(6.dp))
             Text(chip, style = MaterialTheme.typography.labelSmall)
@@ -259,19 +264,22 @@ private fun StatusTitle(
 }
 
 @Composable
-private fun StatusActions(navController: androidx.navigation.NavHostController) {
-    // Scan action
-    IconButton(
-        onClick = { StoreProvider.dispatch(Action.StartDiscovery) },
-        modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
-    ) {
-        Icon(
-            painter = painterResource(id = R.drawable.ic_bluetooth),
-            contentDescription = "Scan",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+private fun StatusActions(
+    navController: androidx.navigation.NavHostController,
+    canDiscover: Boolean,
+) {
+    if (canDiscover) {
+        IconButton(
+            onClick = { StoreProvider.dispatch(Action.StartDiscovery) },
+            modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_bluetooth),
+                contentDescription = "Scan",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
-    // Settings action
     IconButton(
         onClick = { navController.navigate(Screen.Settings.route) },
         modifier = Modifier.semantics { this[SemanticsProperties.Role] = Role.Button },
