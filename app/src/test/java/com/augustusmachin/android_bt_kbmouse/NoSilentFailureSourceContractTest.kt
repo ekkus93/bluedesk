@@ -13,6 +13,7 @@ class NoSilentFailureSourceContractTest {
     private val criticalSources =
         listOf(
             "com/augustusmachin/android_bt_kbmouse/MainActivity.kt",
+            "com/augustusmachin/android_bt_kbmouse/BootReceiver.kt",
             "com/augustusmachin/android_bt_kbmouse/BluetoothService.kt",
             "com/augustusmachin/android_bt_kbmouse/BleHogpService.kt",
             "com/augustusmachin/android_bt_kbmouse/BluetoothHidTransport.kt",
@@ -44,6 +45,14 @@ class NoSilentFailureSourceContractTest {
         criticalSources.forEach { path ->
             assertFalse("Nullable sender dispatch is prohibited in $path", source(path).contains("sender?."))
         }
+    }
+
+    @Test
+    fun `boot failures remain durable and user visible`() {
+        val bootReceiver = source("com/augustusmachin/android_bt_kbmouse/BootReceiver.kt")
+        assertTrue(bootReceiver.contains("setLastBootFailure(message)"))
+        assertTrue(bootReceiver.contains("ServiceNotifications.postRuntimeFailure("))
+        assertTrue(bootReceiver.contains("Log.e(\"BootReceiver\", message)"))
     }
 
     @Test
