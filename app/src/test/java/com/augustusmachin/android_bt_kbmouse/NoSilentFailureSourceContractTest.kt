@@ -75,6 +75,17 @@ class NoSilentFailureSourceContractTest {
     }
 
     @Test
+    fun `BLE startup prerequisites fail closed through failStartup`() {
+        val ble = source("com/augustusmachin/android_bt_kbmouse/BleHogpService.kt")
+        assertTrue(ble.contains("PermissionPolicy.requiredForBleStartup(Build.VERSION.SDK_INT)"))
+        assertTrue(ble.contains("failStartup(\"BLE HOGP requires Bluetooth connect/advertise permissions\")"))
+        assertTrue(ble.contains("if (advertiser == null)"))
+        assertTrue(ble.contains("failStartup(\"BLE advertising is unavailable on this device\")"))
+        assertTrue(ble.contains("if (gattServer == null)"))
+        assertTrue(ble.contains("failStartup(\"Bluetooth manager returned no GATT server\")"))
+    }
+
+    @Test
     fun `production input runtime contains no blocking sleeps`() {
         val productionRoot = locateProductionRoot()
         val offenders =
