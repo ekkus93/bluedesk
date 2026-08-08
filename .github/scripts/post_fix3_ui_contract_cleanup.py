@@ -114,7 +114,6 @@ replace(
     ui_test,
     "import androidx.compose.ui.test.junit4.createAndroidComposeRule\n",
     "import androidx.compose.ui.platform.LocalDensity\n"
-    "import androidx.compose.ui.test.fetchSemanticsNode\n"
     "import androidx.compose.ui.test.junit4.createAndroidComposeRule\n",
 )
 replace(
