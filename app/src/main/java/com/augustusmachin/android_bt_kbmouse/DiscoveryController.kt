@@ -13,7 +13,7 @@ class DiscoveryController(
     private val context: Context,
     private val adapter: () -> BluetoothAdapter?,
     private val sdkInt: Int = Build.VERSION.SDK_INT,
-    private val hasPermissions: (Set<String>) -> Boolean = { required ->
+    private val hasPermissions: (List<String>) -> Boolean = { required ->
         PermissionGrantChecker.hasAll(context, required)
     },
 ) {
