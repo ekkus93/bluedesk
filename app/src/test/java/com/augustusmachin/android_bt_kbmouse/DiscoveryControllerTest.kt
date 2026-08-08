@@ -19,12 +19,14 @@ class DiscoveryControllerTest {
     fun setUp() {
         StoreProvider.dispatch(Action.UpdateIsScanning(false))
         StoreProvider.dispatch(Action.UpdateMessage(null))
+        StoreProvider.dispatch(Action.UpdatePermissionsValid(true))
     }
 
     @After
     fun tearDown() {
         StoreProvider.dispatch(Action.UpdateIsScanning(false))
         StoreProvider.dispatch(Action.UpdateMessage(null))
+        StoreProvider.dispatch(Action.UpdatePermissionsValid(true))
     }
 
     @Test
@@ -55,6 +57,32 @@ class DiscoveryControllerTest {
         assertFalse(controller.startDiscovery())
         assertFalse(StoreProvider.asStateFlow().value.connection.isScanning)
         Mockito.verify(adapter, Mockito.never()).startDiscovery()
+    }
+
+    @Test
+    fun `paired devices permission denial is visible and marks permissions invalid`() {
+        val controller = controller(granted = false)
+
+        assertTrue(controller.getPairedDevices().isEmpty())
+        assertFalse(StoreProvider.asStateFlow().value.connection.permissionsValid)
+        assertTrue(
+            StoreProvider.asStateFlow().value.connection.message!!
+                .contains("paired devices cannot be read"),
+        )
+    }
+
+    @Test
+    fun `missing adapter is visible instead of looking like an empty paired list`() {
+        val controller =
+            DiscoveryController(
+                context = context,
+                adapter = { null },
+                sdkInt = 34,
+                hasPermissions = { true },
+            )
+
+        assertTrue(controller.getPairedDevices().isEmpty())
+        assertTrue(StoreProvider.asStateFlow().value.connection.message!!.contains("Bluetooth adapter is unavailable"))
     }
 
     @Test
