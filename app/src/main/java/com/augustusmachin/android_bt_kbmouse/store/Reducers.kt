@@ -32,12 +32,23 @@ val appReducer: Reducer<AppState> = { state, action ->
         is Action.TrackPreviewKey -> state
         is Action.AddPreviewKey -> {
             val updated =
-                (state.ui.previewKeys + PreviewKeyEntry(action.id, action.label, action.decorate)).takeLast(MAX_PREVIEW_KEYS)
+                (
+                    state.ui.previewKeys +
+                        PreviewKeyEntry(
+                            action.id,
+                            action.label,
+                            action.decorate,
+                        )
+                ).takeLast(MAX_PREVIEW_KEYS)
             state.copy(ui = state.ui.copy(previewKeys = updated))
         }
         is Action.RemovePreviewKey -> {
             val updated = state.ui.previewKeys.filterNot { it.id == action.id }
-            if (updated.size == state.ui.previewKeys.size) state else state.copy(ui = state.ui.copy(previewKeys = updated))
+            if (updated.size == state.ui.previewKeys.size) {
+                state
+            } else {
+                state.copy(ui = state.ui.copy(previewKeys = updated))
+            }
         }
         is Action.SendKey,
         is Action.KeyDown,
@@ -52,29 +63,85 @@ val appReducer: Reducer<AppState> = { state, action ->
         Action.ToggleScrollLock,
         -> state
 
-        is Action.UpdateDiscoveredDevices -> state.copy(connection = state.connection.copy(discoveredDevices = action.devices))
-        is Action.UpdatePairedDevices -> state.copy(connection = state.connection.copy(pairedDevices = action.devices))
+        is Action.UpdateDiscoveredDevices ->
+            state.copy(
+                connection = state.connection.copy(discoveredDevices = action.devices),
+            )
+        is Action.UpdatePairedDevices ->
+            state.copy(
+                connection = state.connection.copy(pairedDevices = action.devices),
+            )
         is Action.UpdateConnectedDevice ->
             state.copy(
                 connection =
                     state.connection.copy(
                         connectedDevice = action.device,
-                        connectedDeviceLabel = if (action.device == null) null else state.connection.connectedDeviceLabel,
-                        connectedDeviceAddress = if (action.device == null) null else state.connection.connectedDeviceAddress,
+                        connectedDeviceLabel =
+                            if (action.device == null) {
+                                null
+                            } else {
+                                state.connection.connectedDeviceLabel
+                            },
+                        connectedDeviceAddress =
+                            if (action.device == null) {
+                                null
+                            } else {
+                                state.connection.connectedDeviceAddress
+                            },
                     ),
             )
-        is Action.UpdateConnectedDeviceLabel -> state.copy(connection = state.connection.copy(connectedDeviceLabel = action.label))
-        is Action.UpdateConnectedDeviceAddress -> state.copy(connection = state.connection.copy(connectedDeviceAddress = action.address))
-        is Action.UpdateMessage -> state.copy(connection = state.connection.copy(message = action.message))
-        is Action.UpdateDefaultDevice -> state.copy(connection = state.connection.copy(defaultDeviceAddress = action.address))
-        is Action.UpdateLocks -> state.copy(connection = state.connection.copy(capsLock = action.caps, scrollLock = action.scroll))
-        is Action.UpdateIsScanning -> state.copy(connection = state.connection.copy(isScanning = action.scanning))
-        is Action.UpdateSelectedBackend -> state.copy(backend = state.backend.copy(selectedBackend = action.backend))
-        is Action.UpdateBackendRuntime -> state.copy(backend = state.backend.copy(runtime = action.runtime))
-        is Action.UpdateSenderAvailable -> state.copy(backend = state.backend.copy(senderAvailable = action.available))
-        is Action.UpdatePermissionsValid -> state.copy(backend = state.backend.copy(permissionsValid = action.valid))
-        is Action.ReportCommandResult -> state.copy(backend = state.backend.copy(lastCommandResult = action.result))
-        Action.ClearCommandResult -> state.copy(backend = state.backend.copy(lastCommandResult = null))
+        is Action.UpdateConnectedDeviceLabel ->
+            state.copy(
+                connection = state.connection.copy(connectedDeviceLabel = action.label),
+            )
+        is Action.UpdateConnectedDeviceAddress ->
+            state.copy(
+                connection = state.connection.copy(connectedDeviceAddress = action.address),
+            )
+        is Action.UpdateMessage ->
+            state.copy(
+                connection = state.connection.copy(message = action.message),
+            )
+        is Action.UpdateDefaultDevice ->
+            state.copy(
+                connection = state.connection.copy(defaultDeviceAddress = action.address),
+            )
+        is Action.UpdateLocks ->
+            state.copy(
+                connection =
+                    state.connection.copy(
+                        capsLock = action.caps,
+                        scrollLock = action.scroll,
+                    ),
+            )
+        is Action.UpdateIsScanning ->
+            state.copy(
+                connection = state.connection.copy(isScanning = action.scanning),
+            )
+        is Action.UpdateSelectedBackend ->
+            state.copy(
+                backend = state.backend.copy(selectedBackend = action.backend),
+            )
+        is Action.UpdateBackendRuntime ->
+            state.copy(
+                backend = state.backend.copy(runtime = action.runtime),
+            )
+        is Action.UpdateSenderAvailable ->
+            state.copy(
+                backend = state.backend.copy(senderAvailable = action.available),
+            )
+        is Action.UpdatePermissionsValid ->
+            state.copy(
+                backend = state.backend.copy(permissionsValid = action.valid),
+            )
+        is Action.ReportCommandResult ->
+            state.copy(
+                backend = state.backend.copy(lastCommandResult = action.result),
+            )
+        Action.ClearCommandResult ->
+            state.copy(
+                backend = state.backend.copy(lastCommandResult = null),
+            )
         Action.StartDiscovery,
         Action.StopDiscovery,
         is Action.PairDevice,
