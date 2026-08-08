@@ -18,6 +18,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
+private const val TEST_HOST_ADDRESS = "AA:BB:CC:DD:EE:FF"
+
 @org.junit.runner.RunWith(androidx.test.ext.junit.runners.AndroidJUnit4::class)
 class UiComposeInstrumentedTest {
     @get:Rule
@@ -34,6 +36,45 @@ class UiComposeInstrumentedTest {
         composeRule.setContent { MainScreen() }
         composeRule.onNodeWithText("Keyboard").performClick()
         composeRule.onNodeWithText("Connect a device first").assertExists()
+    }
+
+    @Test
+    fun disconnectedMainScreenBlocksMouseNavigationWithVisibleReason() {
+        composeRule.setContent { MainScreen() }
+        composeRule.onNodeWithText("Mouse").performClick()
+        composeRule.onNodeWithText("Connect a device first").assertExists()
+    }
+
+    @Test
+    fun safeConnectedLabelFallbackDoesNotNeedBluetoothDeviceObject() {
+        val sender = installUsableClassicState(label = null)
+        composeRule.setContent { MainScreen() }
+
+        composeRule.onNodeWithText("Connected to Bluetooth host").assertExists()
+        composeRule.runOnIdle { assertTrue(sender.commands.isEmpty()) }
+    }
+
+    @Test
+    fun backendLossDisablesInputWhileSafeHostMetadataRemainsVisible() {
+        installUsableClassicState(label = null)
+        composeRule.setContent { MainScreen() }
+        composeRule.onNodeWithText("Connected to Bluetooth host").assertExists()
+
+        composeRule.runOnIdle {
+            StoreProvider.setKeySender(null)
+            StoreProvider.dispatch(
+                Action.UpdateBackendRuntime(
+                    BackendRuntimeState.Failed(
+                        BackendMode.CLASSIC_HID,
+                        BackendFailure(BackendFailureCode.SERVICE_DISCONNECTED, "Classic service lost"),
+                    ),
+                ),
+            )
+        }
+
+        composeRule.onNodeWithText("Bluetooth host — input unavailable").assertExists()
+        composeRule.onNodeWithText("Keyboard").performClick()
+        composeRule.onNodeWithText("Bluetooth host is connected, but the input backend is not ready").assertExists()
     }
 
     @Test
@@ -111,13 +152,7 @@ class UiComposeInstrumentedTest {
 
     @Test
     fun dragLockDisposalReleasesMouseButtonOnRealMouseScreen() {
-        val sender = RecordingSender()
-        StoreProvider.setKeySender(sender)
-        StoreProvider.dispatch(
-            Action.UpdateBackendRuntime(
-                BackendRuntimeState.Ready(BackendMode.CLASSIC_HID, BackendCapabilitySets.classic),
-            ),
-        )
+        val sender = installUsableClassicState(label = "Test host")
 
         composeRule.setContent { MouseScreen() }
         composeRule.onNodeWithText("Drag").performClick()
@@ -129,6 +164,21 @@ class UiComposeInstrumentedTest {
         composeRule.runOnIdle {
             assertTrue(sender.commands.any { it is KeyCommand.MouseButtonUp })
         }
+    }
+
+    private fun installUsableClassicState(label: String?): RecordingSender {
+        val sender = RecordingSender()
+        StoreProvider.setKeySender(sender)
+        StoreProvider.dispatch(Action.UpdateSelectedBackend(BackendMode.CLASSIC_HID))
+        StoreProvider.dispatch(Action.UpdateConnectedDeviceAddress(TEST_HOST_ADDRESS))
+        StoreProvider.dispatch(Action.UpdateConnectedDeviceLabel(label))
+        StoreProvider.dispatch(Action.UpdatePermissionsValid(true))
+        StoreProvider.dispatch(
+            Action.UpdateBackendRuntime(
+                BackendRuntimeState.Ready(BackendMode.CLASSIC_HID, BackendCapabilitySets.classic),
+            ),
+        )
+        return sender
     }
 
     private class RecordingSender : KeySender {
@@ -149,6 +199,7 @@ class UiComposeInstrumentedTest {
         StoreProvider.dispatch(Action.UpdateConnectedDevice(null))
         StoreProvider.dispatch(Action.UpdateConnectedDeviceAddress(null))
         StoreProvider.dispatch(Action.UpdateConnectedDeviceLabel(null))
+        StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
         StoreProvider.dispatch(Action.UpdateMessage(null))
         StoreProvider.dispatch(Action.UpdateIsScanning(false))
         StoreProvider.dispatch(Action.UpdateLocks(false, false))
