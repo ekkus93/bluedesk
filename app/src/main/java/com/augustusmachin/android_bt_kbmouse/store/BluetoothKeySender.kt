@@ -25,9 +25,23 @@ class BluetoothKeySender(private val svc: IBluetoothService) : KeySender {
                 is KeyCommand.ScrollHorizontal -> mapDelivery(svc.sendScrollH(command.delta))
                 is KeyCommand.SetModifiers -> mapDelivery(svc.setModifiers(command.mods))
                 KeyCommand.StartDiscovery ->
-                    if (svc.startDiscovery()) CommandResult.Success else failure(CommandErrorCode.DISCOVERY_FAILED, "Failed to start Bluetooth discovery")
+                    if (svc.startDiscovery()) {
+                        CommandResult.Success
+                    } else {
+                        failure(
+                            CommandErrorCode.DISCOVERY_FAILED,
+                            "Failed to start Bluetooth discovery",
+                        )
+                    }
                 KeyCommand.StopDiscovery ->
-                    if (svc.stopDiscovery()) CommandResult.Success else failure(CommandErrorCode.DISCOVERY_FAILED, "Failed to stop Bluetooth discovery")
+                    if (svc.stopDiscovery()) {
+                        CommandResult.Success
+                    } else {
+                        failure(
+                            CommandErrorCode.DISCOVERY_FAILED,
+                            "Failed to stop Bluetooth discovery",
+                        )
+                    }
                 is KeyCommand.PairDevice -> successAfter { svc.pairDevice(command.device) }
                 is KeyCommand.ConnectDevice -> successAfter { svc.connectDevice(command.device) }
                 KeyCommand.DisconnectDevice -> successAfter { svc.disconnectDevice() }
@@ -47,27 +61,59 @@ class BluetoothKeySender(private val svc: IBluetoothService) : KeySender {
             failure(CommandErrorCode.TRANSPORT_FAILURE, e.message ?: "Bluetooth command failed")
         }
 
-    fun sendKeyDown(code: Byte, mods: Int): CommandResult = execute(KeyCommand.KeyDown(code, mods))
+    fun sendKeyDown(
+        code: Byte,
+        mods: Int,
+    ): CommandResult = execute(KeyCommand.KeyDown(code, mods))
+
     fun sendKeyUp(code: Byte): CommandResult = execute(KeyCommand.KeyUp(code))
-    fun moveMouse(dx: Int, dy: Int): CommandResult = execute(KeyCommand.MoveMouse(dx, dy))
+
+    fun moveMouse(
+        dx: Int,
+        dy: Int,
+    ): CommandResult = execute(KeyCommand.MoveMouse(dx, dy))
+
     fun leftClick(): CommandResult = click(0x01)
+
     fun rightClick(): CommandResult = click(0x02)
+
     fun middleClick(): CommandResult = click(0x04)
+
     fun scrollVertical(delta: Int): CommandResult = execute(KeyCommand.ScrollVertical(delta))
+
     fun scrollHorizontal(delta: Int): CommandResult = execute(KeyCommand.ScrollHorizontal(delta))
+
     fun toggleCapsLock(): CommandResult = keyPress(0x39.toByte())
+
     fun toggleScrollLock(): CommandResult = keyPress(0x47.toByte())
+
     fun mouseButtonDown(button: Int): CommandResult = execute(KeyCommand.MouseButtonDown(button))
+
     fun mouseButtonUp(): CommandResult = execute(KeyCommand.MouseButtonUp)
+
     fun setModifiers(mods: Int): CommandResult = execute(KeyCommand.SetModifiers(mods))
+
     fun startDiscovery(): CommandResult = execute(KeyCommand.StartDiscovery)
+
     fun stopDiscovery(): CommandResult = execute(KeyCommand.StopDiscovery)
+
     fun pairDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.PairDevice(device))
+
     fun connectDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.ConnectDevice(device))
+
     fun disconnectDevice(): CommandResult = execute(KeyCommand.DisconnectDevice)
-    fun forgetDevice(device: BluetoothDevice, unpair: Boolean): CommandResult = execute(KeyCommand.ForgetDevice(device, unpair))
+
+    fun forgetDevice(
+        device: BluetoothDevice,
+        unpair: Boolean,
+    ): CommandResult = execute(KeyCommand.ForgetDevice(device, unpair))
+
     fun setDefaultDevice(device: BluetoothDevice): CommandResult = execute(KeyCommand.SetDefaultDevice(device))
-    fun renameDevice(device: BluetoothDevice, alias: String): CommandResult = execute(KeyCommand.RenameDevice(device, alias))
+
+    fun renameDevice(
+        device: BluetoothDevice,
+        alias: String,
+    ): CommandResult = execute(KeyCommand.RenameDevice(device, alias))
 
     private fun click(button: Int): CommandResult {
         val down = execute(KeyCommand.MouseButtonDown(button))
@@ -98,7 +144,10 @@ class BluetoothKeySender(private val svc: IBluetoothService) : KeySender {
                     },
                     result.message,
                 )
-            null -> failure(CommandErrorCode.SERVICE_UNAVAILABLE, "Classic HID service returned no delivery result")
+            null -> failure(
+                CommandErrorCode.SERVICE_UNAVAILABLE,
+                "Classic HID service returned no delivery result",
+            )
         }
 
     private inline fun successAfter(operation: () -> Unit): CommandResult {
@@ -106,5 +155,8 @@ class BluetoothKeySender(private val svc: IBluetoothService) : KeySender {
         return CommandResult.Success
     }
 
-    private fun failure(code: CommandErrorCode, message: String) = CommandResult.Failure(CommandError(code, message))
+    private fun failure(
+        code: CommandErrorCode,
+        message: String,
+    ) = CommandResult.Failure(CommandError(code, message))
 }
