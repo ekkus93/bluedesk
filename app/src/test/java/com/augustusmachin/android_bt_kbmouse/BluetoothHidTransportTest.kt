@@ -80,15 +80,14 @@ class BluetoothHidTransportTest {
         sdkInt: Int = 34,
         granted: Boolean = true,
         errors: MutableList<String> = mutableListOf(),
-    ) =
-        BluetoothHidTransport(
-            context = context,
-            currentDevice = { device },
-            currentHid = { hid },
-            onError = { errors += it },
-            sdkInt = sdkInt,
-            hasPermissions = { granted },
-        )
+    ) = BluetoothHidTransport(
+        context = context,
+        currentDevice = { device },
+        currentHid = { hid },
+        onError = { errors += it },
+        sdkInt = sdkInt,
+        hasPermissions = { granted },
+    )
 
     private fun assertFailure(
         result: HidDeliveryResult,
