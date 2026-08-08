@@ -10,6 +10,46 @@ def replace(path_str: str, old: str, new: str, expected: int = 1) -> None:
     path.write_text(text.replace(old, new))
 
 
+discovery = "app/src/main/java/com/augustusmachin/android_bt_kbmouse/DiscoveryController.kt"
+replace(
+    discovery,
+    '''    fun getPairedDevices(): List<BluetoothDevice> {
+        val required = PermissionPolicy.requiredForClassicStartup(sdkInt)
+        if (!hasPermissions(required)) {
+            StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
+            return failPairedList("Bluetooth connect permission is unavailable; paired devices cannot be read")
+        }
+        val currentAdapter = adapter()
+            ?: return failPairedList("Bluetooth adapter is unavailable; paired devices cannot be read")
+        return try {
+            currentAdapter.bondedDevices.toList()
+        } catch (se: SecurityException) {
+            DebugLog.e(TAG, "getPairedDevices SecurityException: ${se.message}")
+            StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
+            failPairedList("Bluetooth connect permission was revoked; paired devices cannot be read")
+        }
+    }
+''',
+    '''    fun getPairedDevices(): List<BluetoothDevice> {
+        val required = PermissionPolicy.requiredForClassicStartup(sdkInt)
+        return if (!hasPermissions(required)) {
+            StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
+            failPairedList("Bluetooth connect permission is unavailable; paired devices cannot be read")
+        } else {
+            adapter()?.let { currentAdapter ->
+                try {
+                    currentAdapter.bondedDevices.toList()
+                } catch (se: SecurityException) {
+                    DebugLog.e(TAG, "getPairedDevices SecurityException: ${se.message}")
+                    StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
+                    failPairedList("Bluetooth connect permission was revoked; paired devices cannot be read")
+                }
+            } ?: failPairedList("Bluetooth adapter is unavailable; paired devices cannot be read")
+        }
+    }
+''',
+)
+
 classic = "app/src/main/java/com/augustusmachin/android_bt_kbmouse/BluetoothService.kt"
 replace(
     classic,
