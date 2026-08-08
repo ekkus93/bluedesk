@@ -16,7 +16,7 @@ class NoSilentFailureSourceContractTest {
             "com/augustusmachin/android_bt_kbmouse/BluetoothService.kt",
             "com/augustusmachin/android_bt_kbmouse/BleHogpService.kt",
             "com/augustusmachin/android_bt_kbmouse/BluetoothHidTransport.kt",
-            "com/augustusmachin/android_bt_kbmouse/store/Middleware.kt",
+            "com/augustusmachin/android_bt_kbmouse/store/KeySenderMiddleware.kt",
             "com/augustusmachin/android_bt_kbmouse/store/CommandContract.kt",
         )
 
