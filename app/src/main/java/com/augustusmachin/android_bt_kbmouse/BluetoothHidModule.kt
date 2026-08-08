@@ -6,6 +6,14 @@ import android.bluetooth.BluetoothHidDevice
 import android.bluetooth.BluetoothHidDeviceAppSdpSettings
 import android.bluetooth.BluetoothProfile
 
+sealed interface HidRegistrationRequestResult {
+    data object Accepted : HidRegistrationRequestResult
+
+    data object Rejected : HidRegistrationRequestResult
+
+    data class PermissionDenied(val message: String) : HidRegistrationRequestResult
+}
+
 class BluetoothHidModule {
     interface HidEventListener {
         fun onAppStatus(registered: Boolean)
@@ -31,7 +39,7 @@ class BluetoothHidModule {
                 pluggedDevice: BluetoothDevice?,
                 registered: Boolean,
             ) {
-                DebugLog.log("BluetoothHidModule", "onAppStatusChanged registered=" + registered)
+                DebugLog.log("BluetoothHidModule", "onAppStatusChanged registered=$registered")
                 listener?.onAppStatus(registered)
             }
 
@@ -39,7 +47,7 @@ class BluetoothHidModule {
                 device: BluetoothDevice,
                 state: Int,
             ) {
-                DebugLog.log("BluetoothHidModule", "onConnectionStateChanged state=" + state + " dev=" + device.address)
+                DebugLog.log("BluetoothHidModule", "onConnectionStateChanged state=$state")
                 listener?.onConnectionStateChanged(device, state)
             }
 
@@ -51,7 +59,7 @@ class BluetoothHidModule {
             ) {
                 if (type == BluetoothHidDevice.REPORT_TYPE_OUTPUT.toByte()) {
                     val leds = data.firstOrNull()?.toInt() ?: 0
-                    DebugLog.log("BluetoothHidModule", "onSetReport OUTPUT leds=" + leds)
+                    DebugLog.log("BluetoothHidModule", "onSetReport OUTPUT leds=$leds")
                     (listener as? HidEventListenerExt)?.onLeds(leds)
                 }
             }
@@ -61,8 +69,7 @@ class BluetoothHidModule {
     fun registerApp(
         proxy: BluetoothProfile,
         simplified: Boolean,
-    ) {
-        // 0xC0 = keyboard + mouse combo subclass
+    ): HidRegistrationRequestResult {
         val subclass: Byte = 0xC0.toByte()
         val descriptor = HidDescriptorVariants.select(simplified)
         val sdpSettings =
@@ -75,11 +82,28 @@ class BluetoothHidModule {
             )
 
         DebugLog.log("BluetoothHidModule", "registerApp simplified=$simplified descriptor.size=${descriptor.size}")
-        try {
-            (proxy as BluetoothHidDevice).registerApp(sdpSettings, null, null, { it.run() }, callback)
+        return try {
+            val accepted =
+                (proxy as BluetoothHidDevice).registerApp(
+                    sdpSettings,
+                    null,
+                    null,
+                    { it.run() },
+                    callback,
+                )
+            if (accepted) {
+                HidRegistrationRequestResult.Accepted
+            } else {
+                val message = "Classic HID registerApp request was rejected immediately"
+                DebugLog.e("BluetoothHidModule", message)
+                listener?.onError(message)
+                HidRegistrationRequestResult.Rejected
+            }
         } catch (e: SecurityException) {
-            DebugLog.e("BluetoothHidModule", "registerApp SecurityException: ${e.message}")
-            listener?.onError("registerApp failed: ${e.message}")
+            val message = "registerApp failed: ${e.message}"
+            DebugLog.e("BluetoothHidModule", message)
+            listener?.onError(message)
+            HidRegistrationRequestResult.PermissionDenied(message)
         }
     }
 }
