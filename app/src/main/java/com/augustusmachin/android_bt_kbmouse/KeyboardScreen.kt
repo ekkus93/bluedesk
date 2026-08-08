@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
+import com.augustusmachin.android_bt_kbmouse.store.isInputUsable
 
 private const val KEY_FONT_SCALE = 4200
 private const val KEY_FONT_MIN_SP = 10f
@@ -130,7 +131,7 @@ fun KeyboardScreen(contentPadding: PaddingValues = PaddingValues()) {
         remember(previewSuffix) {
             if (previewSuffix.isEmpty()) VisualTransformation.None else PreviewSuffixVisualTransformation(previewSuffix)
         }
-    val connected = appState.connection.connectedDevice != null
+    val inputUsable = appState.isInputUsable()
     val configuration = LocalConfiguration.current
     val screenWidthDp = configuration.screenWidthDp.toFloat().coerceAtLeast(1f)
     val keyFontSize =
@@ -148,7 +149,7 @@ fun KeyboardScreen(contentPadding: PaddingValues = PaddingValues()) {
             HiddenImeField(
                 previewText = previewText,
                 onPreviewTextChange = { previewText = it },
-                connected = connected,
+                connected = inputUsable,
                 focusRequester = focusRequester,
                 previewTransformation = previewTransformation,
             )
@@ -214,16 +215,12 @@ private fun KeyboardTabRow(
     }
 }
 
-/**
- * Forward a deterministic bounded IME edit. Returns false when the local controlled field must
- * reset because the edit was too large/desynchronized to replay safely.
- */
 private fun forwardImeInput(
     previous: String,
     current: String,
     connected: Boolean,
-): Boolean {
-    return when (val plan = planImeEdit(previous, current)) {
+): Boolean =
+    when (val plan = planImeEdit(previous, current)) {
         ImeEditPlan.NoChange -> true
         is ImeEditPlan.ResetRequired -> {
             DebugLog.e("KeyboardScreen", plan.reason)
@@ -237,7 +234,6 @@ private fun forwardImeInput(
             true
         }
     }
-}
 
 private fun sendImeDelete(connected: Boolean) {
     StoreProvider.dispatch(Action.TrackPreviewKey("DEL"))
@@ -322,9 +318,7 @@ private class PreviewSuffixVisualTransformation(
     private val suffix: String,
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
-        if (suffix.isEmpty()) {
-            return TransformedText(text, OffsetMapping.Identity)
-        }
+        if (suffix.isEmpty()) return TransformedText(text, OffsetMapping.Identity)
         val builder = AnnotatedString.Builder()
         builder.append(text)
         builder.append(suffix)
