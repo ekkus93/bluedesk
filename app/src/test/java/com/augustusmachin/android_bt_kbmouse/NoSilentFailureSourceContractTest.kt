@@ -14,6 +14,7 @@ class NoSilentFailureSourceContractTest {
         listOf(
             "com/augustusmachin/android_bt_kbmouse/MainActivity.kt",
             "com/augustusmachin/android_bt_kbmouse/BootReceiver.kt",
+            "com/augustusmachin/android_bt_kbmouse/ServiceForegroundController.kt",
             "com/augustusmachin/android_bt_kbmouse/BluetoothService.kt",
             "com/augustusmachin/android_bt_kbmouse/BleHogpService.kt",
             "com/augustusmachin/android_bt_kbmouse/BluetoothHidTransport.kt",
@@ -53,6 +54,14 @@ class NoSilentFailureSourceContractTest {
         assertTrue(bootReceiver.contains("setLastBootFailure(message)"))
         assertTrue(bootReceiver.contains("ServiceNotifications.postRuntimeFailure("))
         assertTrue(bootReceiver.contains("Log.e(\"BootReceiver\", message)"))
+    }
+
+    @Test
+    fun `Classic foreground startup failure publishes failed state and visible error`() {
+        val foreground = source("com/augustusmachin/android_bt_kbmouse/ServiceForegroundController.kt")
+        assertTrue(foreground.contains("ClassicHidStartupRegistry.publish(ClassicHidStartupState.Failed(message))"))
+        assertTrue(foreground.contains("StoreProvider.dispatch(Action.UpdateMessage(message))"))
+        assertTrue(foreground.contains("ServiceNotifications.postRuntimeFailure("))
     }
 
     @Test
