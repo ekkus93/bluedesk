@@ -31,6 +31,9 @@ class BluetoothHidModule {
     }
 
     var listener: HidEventListener? = null
+    private val readiness = ClassicHidReadinessTracker()
+
+    fun currentStartupState(): ClassicHidStartupState = readiness.state
 
     @SuppressLint("NewApi")
     private val callback =
@@ -40,6 +43,7 @@ class BluetoothHidModule {
                 registered: Boolean,
             ) {
                 DebugLog.log("BluetoothHidModule", "onAppStatusChanged registered=$registered")
+                readiness.registrationCallback(registered)
                 listener?.onAppStatus(registered)
             }
 
@@ -92,15 +96,18 @@ class BluetoothHidModule {
                     callback,
                 )
             if (accepted) {
+                readiness.registrationRequestAccepted()
                 HidRegistrationRequestResult.Accepted
             } else {
                 val message = "Classic HID registerApp request was rejected immediately"
+                readiness.registrationRequestFailed(message)
                 DebugLog.e("BluetoothHidModule", message)
                 listener?.onError(message)
                 HidRegistrationRequestResult.Rejected
             }
         } catch (e: SecurityException) {
             val message = "registerApp failed: ${e.message}"
+            readiness.registrationRequestFailed(message)
             DebugLog.e("BluetoothHidModule", message)
             listener?.onError(message)
             HidRegistrationRequestResult.PermissionDenied(message)
