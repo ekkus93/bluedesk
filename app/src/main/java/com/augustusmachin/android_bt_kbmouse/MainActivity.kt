@@ -160,7 +160,7 @@ class MainActivity : ComponentActivity() {
                     return
                 }
                 restoreClassicHostSnapshot(svc)
-                reconcileClassicReadiness()
+                reconcileClassicReadiness(svc.getStartupState())
             }
 
             override fun onServiceDisconnected(name: ComponentName) {
@@ -425,7 +425,6 @@ class MainActivity : ComponentActivity() {
             val message = "Cannot switch to $target because required Bluetooth permission is unavailable"
             DebugLog.e("MainActivity", message)
             StoreProvider.dispatch(Action.UpdateMessage(message))
-            // Keep the working source backend and restore the persisted toggle to match it.
             if (source != null) {
                 lifecycleScope.launch {
                     SettingsManager.setUseBleHogp(this@MainActivity, source == BackendMode.BLE_HOGP)
@@ -445,7 +444,6 @@ class MainActivity : ComponentActivity() {
             runtimeCoordinator,
             object : BackendLifecycleOperations {
                 override fun startService(mode: BackendMode): LifecycleOperationResult {
-                    if (mode == BackendMode.CLASSIC_HID) ClassicHidStartupRegistry.beginActivation()
                     val intent = serviceIntent(mode)
                     return try {
                         val component =
@@ -593,8 +591,8 @@ class MainActivity : ComponentActivity() {
         StoreProvider.dispatch(Action.UpdateConnectedDeviceLabel(label))
     }
 
-    private fun reconcileClassicReadiness() {
-        when (val state = ClassicHidStartupRegistry.state) {
+    private fun reconcileClassicReadiness(state: ClassicHidStartupState) {
+        when (state) {
             ClassicHidStartupState.Ready -> backendLifecycle.markReady(BackendMode.CLASSIC_HID)
             is ClassicHidStartupState.Failed -> backendLifecycle.failInitialization(BackendMode.CLASSIC_HID, state.message)
             ClassicHidStartupState.WaitingForRegisterRequest,
@@ -633,7 +631,8 @@ class MainActivity : ComponentActivity() {
                     runtimeCoordinator.state is BackendRuntimeState.Starting &&
                     runtimeCoordinator.currentLiveBackend == BackendMode.CLASSIC_HID
                 ) {
-                    reconcileClassicReadiness()
+                    val state = classicService?.getStartupState() ?: ClassicHidStartupRegistry.state
+                    reconcileClassicReadiness(state)
                 }
                 StoreProvider.dispatch(Action.UpdateMessage(message))
             }
