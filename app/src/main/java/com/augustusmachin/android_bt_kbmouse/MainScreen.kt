@@ -298,7 +298,7 @@ private fun MainNavHost(
     innerPadding: PaddingValues,
 ) {
     NavHost(navController, startDestination = Screen.Pairing.route, Modifier) {
-        composable(Screen.Pairing.route) { PairingScreen(contentPadding = innerPadding) }
+        composable(Screen.Pairing.route) { BackendAwarePairingScreen(contentPadding = innerPadding) }
         composable(Screen.Keyboard.route) { KeyboardScreen(contentPadding = innerPadding) }
         composable(Screen.Mouse.route) { MouseScreen(contentPadding = innerPadding) }
         composable(Screen.Settings.route) {
