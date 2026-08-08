@@ -19,8 +19,21 @@ sealed interface BleHogpStartupState {
     data class Failed(val message: String) : BleHogpStartupState
 }
 
+/** Process-local durable snapshot so late binders do not depend on transient service callbacks. */
+object BleHogpStartupRegistry {
+    @Volatile
+    var state: BleHogpStartupState = BleHogpStartupState.Starting(BleHogpStartupStage.VALIDATING_PERMISSIONS)
+        private set
+
+    internal fun publish(next: BleHogpStartupState) {
+        state = next
+    }
+}
+
 /** Pure state machine used by [BleHogpService] and JVM tests. */
-class BleHogpReadinessTracker {
+class BleHogpReadinessTracker(
+    private val publish: (BleHogpStartupState) -> Unit = BleHogpStartupRegistry::publish,
+) {
     @Volatile
     var state: BleHogpStartupState = BleHogpStartupState.Starting(BleHogpStartupStage.VALIDATING_PERMISSIONS)
         private set
@@ -28,10 +41,14 @@ class BleHogpReadinessTracker {
     private val pendingServiceIds = ArrayDeque<String>()
     private var currentServiceId: String? = null
 
+    init {
+        publish(state)
+    }
+
     @Synchronized
     fun advance(stage: BleHogpStartupStage) {
         if (state !is BleHogpStartupState.Failed && state !is BleHogpStartupState.Ready) {
-            state = BleHogpStartupState.Starting(stage)
+            setState(BleHogpStartupState.Starting(stage))
         }
     }
 
@@ -41,7 +58,7 @@ class BleHogpReadinessTracker {
         pendingServiceIds.clear()
         pendingServiceIds.addAll(serviceIds)
         currentServiceId = null
-        state = BleHogpStartupState.Starting(BleHogpStartupStage.REGISTERING_GATT_SERVICES)
+        setState(BleHogpStartupState.Starting(BleHogpStartupStage.REGISTERING_GATT_SERVICES))
     }
 
     @Synchronized
@@ -95,13 +112,13 @@ class BleHogpReadinessTracker {
             fail("Advertising requested before mandatory GATT registration completed")
             return
         }
-        state = BleHogpStartupState.Starting(BleHogpStartupStage.STARTING_ADVERTISING)
+        setState(BleHogpStartupState.Starting(BleHogpStartupStage.STARTING_ADVERTISING))
     }
 
     @Synchronized
     fun advertisingSucceeded() {
         if (state == BleHogpStartupState.Starting(BleHogpStartupStage.STARTING_ADVERTISING)) {
-            state = BleHogpStartupState.Ready
+            setState(BleHogpStartupState.Ready)
         } else {
             fail("Advertising success arrived in invalid startup state: $state")
         }
@@ -109,6 +126,11 @@ class BleHogpReadinessTracker {
 
     @Synchronized
     fun fail(message: String) {
-        if (state !is BleHogpStartupState.Failed) state = BleHogpStartupState.Failed(message)
+        if (state !is BleHogpStartupState.Failed) setState(BleHogpStartupState.Failed(message))
+    }
+
+    private fun setState(next: BleHogpStartupState) {
+        state = next
+        publish(next)
     }
 }
