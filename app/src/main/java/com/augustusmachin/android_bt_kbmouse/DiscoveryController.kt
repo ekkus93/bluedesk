@@ -1,123 +1,130 @@
 package com.augustusmachin.android_bt_kbmouse
 
-import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Context
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
+import android.os.Build
 import com.augustusmachin.android_bt_kbmouse.store.Action
 import com.augustusmachin.android_bt_kbmouse.store.StoreProvider
 import java.util.concurrent.CopyOnWriteArrayList
 
-/**
- * Owns Bluetooth Classic device discovery (scanning) plus the discovered/paired device
- * lists, dispatching results to the store. Extracted from [BluetoothService] so that
- * class stays focused on the HID connection. [adapter] is read live because the service
- * resolves the adapter asynchronously. Permission checks are kept inline with the
- * guarded adapter calls so Android lint's MissingPermission stays satisfied.
- */
+/** Owns Classic discovery and publishes actual adapter state rather than optimistic UI intent. */
 class DiscoveryController(
     private val context: Context,
     private val adapter: () -> BluetoothAdapter?,
+    private val sdkInt: Int = Build.VERSION.SDK_INT,
 ) {
     private val discoveredDevices = CopyOnWriteArrayList<BluetoothDevice>()
 
-    fun startDiscovery() {
-        if (adapter()?.isDiscovering == true) {
+    fun startDiscovery(): Boolean {
+        val currentAdapter = adapter()
+        if (currentAdapter == null) {
+            return failStart("Bluetooth adapter is unavailable")
+        }
+        if (!PermissionGrantChecker.hasAll(context, PermissionPolicy.requiredForScan(sdkInt))) {
+            return failStart("Scan permission not granted")
+        }
+
+        if (isDiscovering(currentAdapter)) {
             DebugLog.log(TAG, "cancelDiscovery (was discovering)")
-            // Cancel discovery only if BLUETOOTH_SCAN is granted to avoid SecurityException
-            val hasBtScan =
-                ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) ==
-                    PackageManager.PERMISSION_GRANTED
-            if (hasBtScan) {
-                try {
-                    adapter()?.cancelDiscovery()
-                } catch (se: SecurityException) {
-                    DebugLog.e(TAG, "cancelDiscovery SecurityException: ${se.message}")
-                }
-            } else {
-                DebugLog.e(TAG, "BLUETOOTH_SCAN not granted; skipping cancelDiscovery")
+            try {
+                currentAdapter.cancelDiscovery()
+            } catch (se: SecurityException) {
+                return failStart("Scan permission was revoked: ${se.message}")
             }
         }
-        // Clear previous results so UI refreshes immediately
+
         discoveredDevices.clear()
         StoreProvider.dispatch(Action.UpdateDiscoveredDevices(emptyList()))
         DebugLog.log(TAG, "startDiscovery")
-        val hasBtScanStart =
-            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) ==
-                PackageManager.PERMISSION_GRANTED
-        if (!hasBtScanStart) {
-            DebugLog.e(TAG, "BLUETOOTH_SCAN not granted; cannot start discovery")
-            StoreProvider.dispatch(Action.UpdateMessage("Scan permission not granted"))
-            return
-        }
         val started =
             try {
-                adapter()?.startDiscovery() ?: false
+                currentAdapter.startDiscovery()
             } catch (se: SecurityException) {
                 DebugLog.e(TAG, "startDiscovery SecurityException: ${se.message}")
-                false
+                StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
+                return failStart("Scan permission was revoked")
             }
-        if (started) {
+
+        return if (started) {
             StoreProvider.dispatch(Action.UpdateIsScanning(true))
+            StoreProvider.dispatch(Action.UpdateMessage("Scanning for devices…"))
+            true
         } else {
-            DebugLog.e(TAG, "startDiscovery returned false")
-            StoreProvider.dispatch(Action.UpdateMessage("Failed to start scan"))
+            failStart("Failed to start scan")
         }
     }
 
-    fun stopDiscovery() {
+    fun stopDiscovery(): Boolean {
         DebugLog.log(TAG, "stopDiscovery")
-        val hasBtScan =
-            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) ==
-                PackageManager.PERMISSION_GRANTED
-        if (hasBtScan) {
-            try {
-                adapter()?.cancelDiscovery()
-            } catch (se: SecurityException) {
-                DebugLog.e(TAG, "cancelDiscovery SecurityException: ${se.message}")
-            }
-        } else {
-            DebugLog.e(TAG, "BLUETOOTH_SCAN not granted; skipping cancelDiscovery")
+        val currentAdapter = adapter()
+        if (currentAdapter == null) {
+            StoreProvider.dispatch(Action.UpdateIsScanning(false))
+            StoreProvider.dispatch(Action.UpdateMessage("Bluetooth adapter is unavailable"))
+            return false
         }
-        StoreProvider.dispatch(Action.UpdateIsScanning(false))
+        if (!PermissionGrantChecker.hasAll(context, PermissionPolicy.requiredForScan(sdkInt))) {
+            StoreProvider.dispatch(Action.UpdateIsScanning(false))
+            StoreProvider.dispatch(Action.UpdateMessage("Scan permission not granted"))
+            return false
+        }
+        return try {
+            currentAdapter.cancelDiscovery()
+            StoreProvider.dispatch(Action.UpdateIsScanning(false))
+            true
+        } catch (se: SecurityException) {
+            DebugLog.e(TAG, "cancelDiscovery SecurityException: ${se.message}")
+            StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
+            StoreProvider.dispatch(Action.UpdateIsScanning(false))
+            StoreProvider.dispatch(Action.UpdateMessage("Scan permission was revoked"))
+            false
+        }
     }
 
     fun getDiscoveredDevices(): List<BluetoothDevice> = discoveredDevices.toList()
 
     fun getPairedDevices(): List<BluetoothDevice> {
-        // Access to bondedDevices requires BLUETOOTH_CONNECT on newer Android; check permission
-        val hasBtConnect =
-            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) ==
-                PackageManager.PERMISSION_GRANTED
-        return if (hasBtConnect) {
-            try {
-                adapter()?.bondedDevices?.toList() ?: emptyList()
-            } catch (se: SecurityException) {
-                DebugLog.e(TAG, "getPairedDevices SecurityException: ${se.message}")
-                emptyList()
-            }
-        } else {
-            DebugLog.e(TAG, "BLUETOOTH_CONNECT not granted; returning empty paired list")
+        val required = PermissionPolicy.requiredForClassicStartup(sdkInt)
+        if (!PermissionGrantChecker.hasAll(context, required)) {
+            DebugLog.e(TAG, "Bluetooth connect permission not granted; paired list unavailable")
+            return emptyList()
+        }
+        return try {
+            adapter()?.bondedDevices?.toList() ?: emptyList()
+        } catch (se: SecurityException) {
+            DebugLog.e(TAG, "getPairedDevices SecurityException: ${se.message}")
+            StoreProvider.dispatch(Action.UpdatePermissionsValid(false))
             emptyList()
         }
     }
 
-    /** Record a device from an ACTION_FOUND broadcast and publish the updated list. */
     fun onDeviceFound(device: BluetoothDevice?) {
         device ?: return
         if (!discoveredDevices.contains(device)) {
             discoveredDevices.add(device)
-            DebugLog.log(TAG, "FOUND ${device.address}")
+            DebugLog.log(TAG, "Bluetooth device discovered")
         }
         StoreProvider.dispatch(Action.UpdateDiscoveredDevices(discoveredDevices.toList()))
     }
 
-    /** Handle an ACTION_DISCOVERY_FINISHED broadcast. */
     fun onDiscoveryFinished() {
         DebugLog.log(TAG, "discovery finished")
         StoreProvider.dispatch(Action.UpdateIsScanning(false))
+    }
+
+    private fun isDiscovering(adapter: BluetoothAdapter): Boolean =
+        try {
+            adapter.isDiscovering
+        } catch (se: SecurityException) {
+            DebugLog.e(TAG, "isDiscovering SecurityException: ${se.message}")
+            false
+        }
+
+    private fun failStart(message: String): Boolean {
+        DebugLog.e(TAG, message)
+        StoreProvider.dispatch(Action.UpdateIsScanning(false))
+        StoreProvider.dispatch(Action.UpdateMessage(message))
+        return false
     }
 
     private companion object {
