@@ -9,7 +9,7 @@ sealed interface LifecycleOperationResult {
 
 /**
  * Platform lifecycle operations are injected so transaction semantics can be proven with JVM tests.
- * Implementations must make stop/clear operations idempotent: rollback can run after partial startup.
+ * Implementations must make cleanup operations idempotent: rollback can run after partial startup.
  */
 interface BackendLifecycleOperations {
     fun startService(mode: BackendMode): LifecycleOperationResult
@@ -20,9 +20,9 @@ interface BackendLifecycleOperations {
 
     fun clearSenderAndListener(mode: BackendMode)
 
-    fun unbindService(mode: BackendMode)
+    fun unbindService(mode: BackendMode): LifecycleOperationResult
 
-    fun stopService(mode: BackendMode)
+    fun stopService(mode: BackendMode): LifecycleOperationResult
 
     fun resetLocalState()
 }
@@ -99,20 +99,21 @@ class BackendLifecycleController(
     @Synchronized
     fun stopCurrent(): Boolean {
         val mode = coordinator.currentLiveBackend ?: return false
-        stopInternal(mode)
-        return true
+        return stopInternal(mode)
     }
 
     @Synchronized
     fun switchTo(target: BackendMode): Boolean {
         val live = coordinator.currentLiveBackend
         if (live == target && coordinator.state is BackendRuntimeState.Ready) return true
-        if (live != null) stopInternal(live)
+        if (live != null && !stopInternal(live)) return false
         return start(target)
     }
 
     @Synchronized
     fun unexpectedServiceLoss(mode: BackendMode) {
+        if (coordinator.state is BackendRuntimeState.Stopping) return
+        if (coordinator.currentLiveBackend != mode) return
         operations.clearSenderAndListener(mode)
         operations.resetLocalState()
         coordinator.serviceLost(mode)
@@ -123,23 +124,34 @@ class BackendLifecycleController(
     @Synchronized
     fun forceStoppedAfterOwnerTeardown() {
         val live = coordinator.currentLiveBackend
-        if (live != null) stopInternal(live) else {
+        if (live != null) {
+            stopInternal(live)
+        } else {
             operations.resetLocalState()
             coordinator.markStopped()
             publishCurrent()
         }
     }
 
-    private fun stopInternal(mode: BackendMode) {
+    private fun stopInternal(mode: BackendMode): Boolean {
         coordinator.beginStop()
         publishCurrent()
         operations.releaseHeldInput(mode)
         operations.clearSenderAndListener(mode)
-        operations.unbindService(mode)
-        operations.stopService(mode)
+        val unbind = operations.unbindService(mode)
+        val stop = operations.stopService(mode)
         operations.resetLocalState()
+        val cleanupFailure = firstFailure(unbind, stop)
+        if (cleanupFailure != null) {
+            val message = "Failed to fully stop $mode: ${cleanupFailure.message}"
+            coordinator.fail(mode, BackendFailure(BackendFailureCode.SWITCH_FAILED, message))
+            publishCurrent()
+            surfaceFailure(message)
+            return false
+        }
         coordinator.markStopped()
         publishCurrent()
+        return true
     }
 
     private fun rollbackStartup(
@@ -149,13 +161,20 @@ class BackendLifecycleController(
         unbind: Boolean,
     ) {
         operations.clearSenderAndListener(mode)
-        if (unbind) operations.unbindService(mode)
-        operations.stopService(mode)
+        val unbindResult =
+            if (unbind) operations.unbindService(mode) else LifecycleOperationResult.Success
+        val stopResult = operations.stopService(mode)
         operations.resetLocalState()
-        coordinator.fail(mode, BackendFailure(code, message))
+        val cleanupFailure = firstFailure(unbindResult, stopResult)
+        val fullMessage =
+            if (cleanupFailure == null) message else "$message; cleanup also failed: ${cleanupFailure.message}"
+        coordinator.fail(mode, BackendFailure(code, fullMessage))
         publishCurrent()
-        surfaceFailure(message)
+        surfaceFailure(fullMessage)
     }
+
+    private fun firstFailure(vararg results: LifecycleOperationResult): LifecycleOperationResult.Failure? =
+        results.firstOrNull { it is LifecycleOperationResult.Failure } as? LifecycleOperationResult.Failure
 
     private fun advance(
         mode: BackendMode,
