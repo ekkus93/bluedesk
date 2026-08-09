@@ -1,5 +1,6 @@
 name: Temporary latest APK artifact
 
+# One-shot artifact packaging for the exact latest application source SHA.
 on:
   push:
     branches: [master]
