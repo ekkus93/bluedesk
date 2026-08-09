@@ -29,8 +29,8 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 
 - [x] Remove the `if (!isEnabled) / else` split from inside the `onClick` lambda — it is dead code.
 - [x] Replace the `NavigationBarItem` approach with a wrapper: keep `enabled = true` always and gate navigation logic inside `onClick`; visual disabled state applied via `NavigationBarItemDefaults.colors` at 38% opacity.
-- [ ] Verify the snackbar appears when the user taps Keyboard or Mouse tabs while disconnected. *(manual / instrumented test — requires device)*
-- [ ] Write the missing unit / UI test for the nav guard snackbar. *(requires Compose UI Test / instrumented; out of scope for host JVM suite)*
+- [x] Verify the snackbar appears when the user taps Keyboard or Mouse tabs while disconnected. *(instrumented production-screen evidence: post-Fix3 hardening API 28/30/31/34/35 matrix)*
+- [x] Write the missing UI test for the nav guard snackbar. *(implemented as real Compose/instrumented production-screen coverage in the post-Fix3 hardening pass)*
 
 ---
 
@@ -52,7 +52,7 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **Problem:** When `repeatable = true`, the computed `buttonModifier` does not include `.height(44.dp)`, so repeatable buttons may have inconsistent or zero height.
 
 - [x] In the `if (repeatable)` branch, chain `.height(44.dp)` before `.pointerInput(Unit)`.
-- [ ] Visually verify that arrow key buttons and other repeatable keys have consistent height with non-repeatable keys. *(manual verification on device)*
+- [ ] Visually verify that arrow key buttons and other repeatable keys have consistent height with non-repeatable keys. *(manual verification on device still pending; automated normal/large-font Navigation grid height tests now pass)*
 
 ---
 
@@ -79,8 +79,8 @@ Issues are grouped by priority. Each task is self-contained and can be implement
 **File:** `NavigationKeysScreen.kt` — Scroll Lock `Button`, lines 83–99  
 **Problem:** All other modifier buttons (Shift, CAPS, Alt, Meta) change background color when active. Scroll Lock only changes its text label ("Scroll Lock (On)").
 
-- [ ] Replace the plain `Button` for Scroll Lock with the same `activeColors` / `inactiveColors` `ButtonDefaults.buttonColors` pattern used in `KeyboardScreen`.
-- [ ] Keep the text as just `"Scrl Lk"` (or `"Scroll Lock"`) — the color is sufficient to show active state; the "(On)" suffix is redundant once color feedback is added.
+- [x] Replace the plain `Button` for Scroll Lock with active/inactive `ButtonDefaults.buttonColors` state styling; verified in current production `NavigationKeysScreen`.
+- [x] Keep the text as `"Scrl Lk"`; active state is conveyed by color rather than an `"(On)"` suffix.
 
 ---
 
