@@ -1,0 +1,42 @@
+name: Temporary latest APK artifact
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/temp-build-latest-apk.yml'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact latest source SHA
+        uses: actions/checkout@v5
+        with:
+          ref: 74828a6c42b6fb6aab34b8ff555c9efcd8539a97
+
+      - name: Verify exact source SHA
+        run: test "$(git rev-parse HEAD)" = "74828a6c42b6fb6aab34b8ff555c9efcd8539a97"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Record SHA256
+        run: sha256sum app/build/outputs/apk/debug/app-debug.apk | tee app/build/outputs/apk/debug/app-debug.apk.sha256
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bluedeck-master-74828a6c-debug-apk
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/debug/app-debug.apk.sha256
+          if-no-files-found: error
+          retention-days: 7
